@@ -1,0 +1,27 @@
+# Laravel specific
+/vendor
+/node_modules
+/public/*
+/storage/*.key
+/storage/debugbar
+/storage/framework
+/storage/logs
+/bootstrap/cache
+/venv-git/*
+# Environment files
+.env
+.env.*.local
+
+# Composer dependencies
+/vendor/
+composer.lock
+
+# Node dependencies
+/node_modules/
+npm-debug.log
+yarn-error.log
+pnpm-lock.yaml
+package-lock.json
+
+# Laravel logs & caches
+storage

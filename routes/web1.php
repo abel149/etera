@@ -1,0 +1,3465 @@
+<?php
+use App\Http\Controllers\CarPartController;
+use App\Http\Controllers\ProformaController;
+use App\Http\Controllers\ProformaApplicationDataController;
+use App\Http\Controllers\EmployeeController;
+use App\Http\Controllers\File\TemporaryFileController;
+use App\Http\Controllers\LevelController;
+use App\Http\Controllers\PartnerController;
+
+use App\Http\Controllers\AccountantController;
+use App\Http\Controllers\TempController;
+use App\Http\Controllers\ProformaApplicationController;
+use App\Http\Controllers\UserBalanceController;
+use App\Http\Controllers\WithdrawalController;
+use App\Http\Middleware\GarageMiddleware;
+use App\Http\Middleware\ShopMiddleware;
+use App\Models\Inbox;
+use App\Models\Proforma;
+use App\Models\ProformaPart;
+use App\Models\PartsImages;
+use App\Models\ProformaSelection;
+use App\Models\User;
+use App\Models\BrandUser;
+use App\Models\Brand;
+use App\Models\Cost;
+use App\Models\Commission;
+use App\Models\PaidUser;
+use App\Models\CarPart;
+use App\Models\ProformaApplication;
+use App\Models\ProformaInvoice;
+use App\Services\AudioService;
+use App\Services\ImageService;
+use App\Services\VideoService;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Facades\Route;
+use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Session;
+
+use App\Jobs\AutoSelectProformaOffers;
+
+use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\GarageController;
+use App\Http\Controllers\BusinessOwnerController;
+use App\Http\Controllers\MarketerController;
+
+use App\Http\Controllers\MarketerBusinessController;
+use App\Http\Controllers\ProfileController;
+
+use App\Http\Controllers\NotificationController;
+use App\Notifications\ProformaApplicationReceived;
+use App\Http\Controllers\UserReviewController;
+
+use App\Events\ProformaPublished;
+
+
+use App\Http\Controllers\LogViewerController;
+
+Route::get('/logs', [LogViewerController::class, 'index']);
+
+Route::get('/logs/fetch', [LogViewerController::class, 'fetchLogs']);
+
+
+Route::get('/review', function () {
+    $users = User::where('is_test', false)
+    ->whereIn('role', ['garage', 'shop'])
+    ->get();
+
+    return view('review', compact('users'));
+})->name('reviews.form');
+
+Route::post('/reviews/store', [UserReviewController::class, 'store'])
+    ->name('reviews.store');
+
+
+// Helper function to process temporary files
+if (!function_exists('processTemporaryFile')) {
+function processTemporaryFile($tempFile, $destinationFolder) {
+    \Log::info('Upload: processing temp file', [
+        'temp_folder' => is_string($tempFile) ? $tempFile : 'NON_STRING',
+        'destination' => $destinationFolder,
+    ]);
+    if (is_string($tempFile)) {
+        // If it's a folder name from FilePond
+        $tempFileModel = \App\Models\TemporaryFile::where('folder', $tempFile)->first();
+        if ($tempFileModel) {
+            $tempPath = 'temporary/tmp/' . $tempFile . '/' . $tempFileModel->file;
+            $newPath = $destinationFolder . '/' . time() . '_' . $tempFileModel->file;
+            
+            if (Storage::disk('local')->exists($tempPath)) {
+                // Copy file to permanent location
+                Storage::disk('public')->put($newPath, Storage::disk('local')->get($tempPath));
+                
+                // Clean up temporary file
+                Storage::disk('local')->deleteDirectory('temporary/tmp/' . $tempFile);
+                $tempFileModel->delete();
+                
+                return $newPath;
+            }
+        }
+    }
+    return null;
+}
+}
+
+Route::post('/upload-part-image', [TempController::class, 'uploadPartImage'])->name('upload.part.image');
+Route::delete('/delete-part-image', [TempController::class, 'revert'])->name('upload.part.image.revert');
+
+
+// Livewire File Upload Demo Route
+Route::get('/livewire-file-upload-demo', function () {
+    return view('livewire.file-upload-demo');
+})->name('livewire.file-upload-demo');
+
+// Enhanced Upload Components Demo Route
+Route::get('/upload-demo', function () {
+    return view('livewire.upload-demo');
+})->name('upload-demo');
+
+// ******************Authentication******************
+
+// Route::get('/admin/dashboard', [DashboardController::class, 'index'])->name('admin.dashboard');
+
+// Guest routes (login/signup) - redirect authenticated users
+Route::middleware(['guest'])->group(function () {
+    Route::get('/login', function () {
+        return view('authentication.login');
+    })->name('login');
+Route::post('/login', function (Request $request) {
+    // Validate the password field
+    $request->validate([
+        'password' => 'required|min:6|max:10',
+        'email_or_phone' => 'required',
+    ]);
+    
+    $input = $request->input('email_or_phone');
+    $credentials = ['password' => $request->input('password')];
+
+    // Email?
+    if (filter_var($input, FILTER_VALIDATE_EMAIL)) {
+        $credentials['email'] = $input;
+    }
+    // Phone?
+    else if (preg_match('/^\+?[0-9]{10,15}$/', $input)) {
+        $credentials['phone_number'] = $input;
+    } else {
+        return back()->withErrors(['email_or_phone' => 'The email or phone number is not valid.'])->withInput();
+    }
+
+    if (Auth::attempt($credentials, $request->has('remember'))) {
+
+        $user = Auth::user();
+
+        // ⭐ Check if user has an active session on another device
+        // if ($user->session_id && $user->session_id !== Session::getId()) {
+        //     Auth::logout();
+        //     return back()->withErrors([
+        //         'email_or_phone' => 'Please log out of all other devices.'
+        //     ])->withInput();
+        // }
+
+        // ⭐ Store current session ID
+        // $user->session_id = Session::getId();
+        $user->save();
+
+        // Role access & approval
+        if (!$user->approved) {
+            Auth::logout();
+            return back()->withErrors(['email_or_phone' => 'Your account is pending approval. Please wait for admin approval.'])->withInput();
+        }
+
+        Session::put('last_activity', time());
+
+        switch ($user->role) {
+            case 'admin':
+                return redirect()->intended('/admin');
+            case 'superadmin':
+                return redirect()->intended('/admin');
+            case 'manager':
+                return redirect()->intended('/manager/dashboard');
+            case 'operator':
+                return redirect()->intended('/operator/dashboard');
+            case 'insurance':
+                return redirect()->intended('/insurance');
+            case 'others':
+                return redirect()->intended('/business-owner');
+            case 'garage':
+                return redirect()->intended('/garage/proformas');
+            case 'shop':
+                return redirect()->intended('/spare-part-shops/proformas');
+            case 'marketer':
+                return redirect()->intended('/marketer');
+            case 'employee':
+                return redirect()->intended('/employee');
+
+            // ✅ New Role Added Here
+            case 'accountant':
+                return redirect()->intended('/finance');
+
+            default:
+                return redirect()->intended('/login');
+        }
+    }
+
+    return back()->withErrors(['email_or_phone' => 'Invalid credentials.'])->withInput();
+})->name('login');
+
+    // Signup routes
+    Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup');
+    Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual');
+    Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner');
+    Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart');
+});
+
+// CSRF token refresh route (for AJAX requests)
+Route::get('/csrf-refresh', function () {
+    return response()->json([
+        'token' => csrf_token(),
+        'timestamp' => now()->toISOString()
+    ]);
+})->name('csrf.refresh');
+
+// Protected routes - require authentication
+Route::middleware(['auth.user'])->group(function () {
+    // Profile routes
+    Route::get('/profile', function () {
+        return view('admin.profile.profile');
+    })->name('profile.show');
+
+    Route::put('/profile/update', function (Request $request) {
+        $user = Auth::user();
+        $request->validate([
+            'name' => 'required|string|max:255',
+            'email' => 'required|email|unique:users,email,' . $user->id,
+            'phone_number' => 'nullable|string|max:20',
+            'password' => 'nullable|min:8|confirmed',
+        ]);
+
+        // Update user details
+        $user->update([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone_number' => $request->phone_number,
+            'password' => $request->filled('password') ? Hash::make($request->password) : $user->password,
+        ]);
+
+        return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+    })->name('profile.update');
+
+    // Logout route
+    Route::delete('/logout', function () {
+
+    $user = Auth::user();
+
+    if ($user) {
+        // Clear the stored session ID, allowing new login anywhere
+        $user->session_id = null;
+        $user->save();
+    }
+
+    Auth::logout();
+    Session::flush();
+
+    return redirect()->to('/login')->with('success', 'You have been successfully logged out.');
+})->name('logout');
+
+
+    // Withdrawal routes
+    Route::post('withdraw-requests', [WithdrawalController::class, 'store'])->name('withdraw.store');
+
+    // Profile update routes
+    Route::put('/profile/{user}', function (User $user, Request $request) {
+        $request->validate([
+            'name' => 'required',
+            'email' => 'required|email|unique:users,email,'.$user->id,
+            'phone_number' => 'required|starts_with:2519,2517|min:12|integer|unique:users,phone_number,'.
+                $user->id,
+            'current_password' => 'nullable|min:8',
+            'password' => 'nullable|confirmed|min:8',
+            'tin_number' => 'nullable',
+            'brands' => 'nullable',
+            'business_license_number' => 'nullable',
+            'license_expire_date' => 'nullable',
+        ]);
+
+        if (! is_null($request->password)) {
+            if (Hash::check($request->current_password, auth()->user()->password)) {
+                return redirect()->back();
+            }
+            auth()
+                ->user()
+                ->update([
+                    'password' => bcrypt($request->password),
+                ]);
+        }
+        if ($request->brands) {
+            auth()->user()->brands->each(fn ($brand) => $brand->delete());
+            foreach ($request->brands as $brand) {
+                BrandUser::updateOrCreate([
+                    'brand_id' => $brand,
+                    'user_id' => auth()->id(),
+                ]);
+            }
+
+        }
+
+        auth()
+            ->user()
+            ->update([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone_number' => $request->phone_number,
+            ]);
+
+        session()->flash('success', 'Profile updated successfully');
+
+        return redirect()->back();
+    })->name('profile.update.user');
+
+    Route::put('/my-profile/update', [ProfileController::class, 'updateSelf'])->name('user.profile.update');
+    
+    Route::post('/user/bank', [ProfileController::class, 'storeBank'])->name('user.bank.store');
+    Route::put('/user/bank/{bank}', [ProfileController::class, 'updateBank'])->name('user.bank.update');
+
+
+
+    // Admin and Superadmin routes
+    Route::middleware(['auth.user'])->group(function () {
+        Route::prefix('admin')->name('admin.')->group(function () {
+            Route::get('/user-approval', [\App\Http\Controllers\UserApprovalController::class, 'index'])->name('user-approval.index');
+            Route::get('/user-approval/{user}', [\App\Http\Controllers\UserApprovalController::class, 'show'])->name('user-approval.show');
+            Route::post('/user-approval/{user}/approve', [\App\Http\Controllers\UserApprovalController::class, 'approve'])->name('user-approval.approve');
+            Route::post('/user-approval/{user}/reject', [\App\Http\Controllers\UserApprovalController::class, 'reject'])->name('user-approval.reject');
+            Route::get('/user-approval/{user}/edit', [\App\Http\Controllers\UserApprovalController::class, 'edit'])->name('user-approval.edit');
+            Route::put('/user-approval/{user}', [\App\Http\Controllers\UserApprovalController::class, 'update'])->name('user-approval.update');
+            Route::delete('/user-approval/{user}', [\App\Http\Controllers\UserApprovalController::class, 'destroy'])->name('user-approval.destroy');
+            Route::get('/user-approval/ajax/users', [\App\Http\Controllers\UserApprovalController::class, 'getUsers'])->name('user-approval.ajax.users');
+        });
+    });
+});
+
+
+
+/********************FILE RELATED ROUTES*****************************/
+Route::post('upload/{type}', [TemporaryFileController::class, 'store']);
+Route::delete('delete', [TemporaryFileController::class, 'destroy']);
+
+// These routes are now handled in the auth.user middleware group above
+
+Route::post('check-password', function (Request $request) {
+    $request->validate([
+        'password' => 'required|min:8',
+        'proforma' => 'required|exists:proformas,id',
+    ]);
+
+    if (Hash::check($request->password, auth()->user()->password)) {
+        if (auth()->user()?->role == 'insurance') {
+            return redirect()->intended(
+                '/insurance/proforma-details?proforma_id='.$request->proforma
+            );
+        } else {
+            return redirect()->intended(
+                '/business-owner/proforma-details?proforma_id='.$request->proforma
+            );
+        }
+    }
+
+    return back();
+});
+
+
+
+
+
+
+
+Route::patch('/proforma/close/{id}', [ProformaController::class, 'closeProforma'])->name('proforma.close');
+
+Route::patch('/proforma/paid/{id}', [ProformaController::class, 'paymentCollected'])->name('proforma.paid');
+Route::get('/proforma/{id}/status', [ProformaController::class, 'getStatusSummary'])->name('proforma.status');
+Route::post('/proforma/{id}/check-auto-close', [ProformaController::class, 'checkAutoClose'])->name('proforma.check-auto-close');
+
+// Proforma Application Data Routes
+Route::prefix('proforma-applications')->group(function () {
+    Route::post('/{proformaId}/register', [ProformaApplicationDataController::class, 'registerApplication'])->name('proforma.applications.register');
+    Route::get('/{proformaId}/data', [ProformaApplicationDataController::class, 'getApplicationData'])->name('proforma.applications.data');
+    Route::get('/{proformaId}/export', [ProformaApplicationDataController::class, 'exportApplicationData'])->name('proforma.applications.export');
+    Route::get('/statistics', [ProformaApplicationDataController::class, 'getApplicationStatistics'])->name('proforma.applications.statistics');
+    Route::get('/real-time-updates', [ProformaApplicationDataController::class, 'getRealTimeUpdates'])->name('proforma.applications.real-time');
+});
+
+
+
+Route::get('/', function () {
+    return redirect()->to('/login');
+});
+
+// Route::get('/received-details', function (Request $request) {
+//     $proforma = \App\Models\Proforma::findOrFail($request->query('proforma'));
+    
+//     $applications = $proforma?->applications;
+
+
+//     // dd($applications);
+
+//     return view('spare-part.received-details', compact('proforma', 'applications'));
+// });
+
+Route::get('/received-details', function (Request $request) {
+    $proforma = Proforma::with([
+        'applications.prices.part',
+        'brand'
+    ])->findOrFail($request->query('proforma'));
+
+    // Load all invoice rows for this proforma (handles multiple rows and returns)
+    $invoices = \App\Models\ProformaInvoice::where('proforma_id', $proforma->id)
+        ->orderBy('updated_at', 'desc')
+        ->get();
+
+    // Sort applications by actual final price
+    $applications = $proforma->applications->sortBy(function($application) {
+        if ($application->from === 'shop' && $application->prices->count() > 0) {
+            $subtotal = $application->prices->sum('part_total');
+            $discountPct = (float)($application->discount ?? 0);
+            $discountAmt = ($subtotal * $discountPct) / 100;
+            return $subtotal - $discountAmt;
+        }
+        return $application->amount ?? 0;
+    });
+    
+    return view('spare-part.received-details', [
+        'proforma' => $proforma,
+        'applications' => $applications,
+        'invoices' => $invoices,
+    ]);
+});
+
+
+// Login route is now handled in the guest middleware group above
+// Profile routes are now handled in the auth.user middleware group above
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Update Profile Route
+Route::put('/profile/update', function (Request $request) {
+    $user = Auth::user();
+
+    
+
+    // Validate the request
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'phone_number' => 'nullable|string|max:20',
+        'password' => 'nullable|min:8|confirmed',
+        'stamp_image' => 'nullable|image|mimes:jpg,png,jpeg,gif,svg|max:2048',
+        'license_image' => 'nullable|image|mimes:jpg,png,jpeg,gif,svg|max:2048',
+    ]);
+
+    // Update user details
+    $user->name = $request->name;
+    $user->email = $request->email;
+    $user->phone_number = $request->phone_number;
+
+    // Handle password update
+    if ($request->filled('password')) {
+        $user->password = Hash::make($request->password);
+    }
+
+    // Handle stamp image upload
+    if ($request->hasFile('stamp_image')) {
+        // Delete the old stamp image if exists
+        if ($user->stamp_image) {
+            unlink(storage_path('app/public/stamps/' . basename($user->stamp_image)));
+        }
+
+        // Store the new stamp image
+        $stampPath = $request->file('stamp_image')->store('stamps', 'public');
+        $user->stamp_image = $stampPath;
+    }
+
+    // Handle license image upload
+    if ($request->hasFile('license_image')) {
+        // Delete the old license image if exists
+        if ($user->license_image) {
+            unlink(storage_path('app/public/licenses/' . basename($user->license_image)));
+        }
+
+        // Store the new license image
+        $licensePath = $request->file('license_image')->store('licenses', 'public');
+        $user->license_image = $licensePath;
+    }
+
+    // Save the updated user information
+    $user->save();
+
+    // Redirect with success message
+    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+})->middleware('auth')->name('profile.update');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// Show Profile Page
+Route::get('/profile', function () {
+    return view('admin.profile.profile');
+    // Ensure this Blade file exists in resources/views/admin/
+})->middleware('auth')->name('profile.show');
+
+// Update Profile
+Route::put('/profile/update', function (Request $request) {
+    $user = Auth::user();
+
+    $request->validate([
+        'name' => 'required|string|max:255',
+        'email' => 'required|email|unique:users,email,' . $user->id,
+        'phone_number' => 'nullable|string|max:20',
+        'password' => 'nullable|min:8|confirmed',
+    ]);
+
+    // Update user details
+    $user->name = $request->name;
+    $user->email = $request->email;
+    $user->phone_number = $request->phone_number;
+
+    if ($request->filled('password')) {
+        $user->password = Hash::make($request->password);
+    }
+
+    $user->save();
+
+    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+})->middleware('auth')->name('profile.update');
+
+
+
+
+
+        // Register Users
+
+
+        Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup');
+        Route::post('/add-register', [\App\Http\Controllers\RegisterController::class, 'store'])->name('add-register');
+
+        // Separate signup routes for different user types
+        Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual');
+        Route::post('/register/individual', [\App\Http\Controllers\RegisterController::class, 'storeIndividual'])->name('register.individual');
+        
+        Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner');
+        Route::post('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'storeBusinessOwner'])->name('register.business-owner');
+        
+        Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart');
+        Route::post('/register/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'storeGarageSparepart'])->name('register.garage-sparepart');
+
+
+// Route::get('/signup',    function () {return view('authentication.signup');});
+
+Route::get('/forgot-password', function () {
+    return view('authentication.forgot-password');
+});
+
+Route::get('/reset-password', function () {
+    return view('authentication.reset-password');
+});
+
+Route::get('/float', function (Request $request) {
+    $proforma = \App\Models\Proforma::find($request->query('proforma_id'));
+    if (! $proforma || $proforma?->status != 'pending') {
+        return redirect()->back();
+    }
+
+    $proforma->update(['status' => 'published']);
+
+    // Log Activity
+    \App\Models\ProformaActivityLog::create([
+        'proforma_id' => $proforma->id,
+        'user_id' => auth()->id(),
+        'action' => 'floated',
+        'details' => 'Proforma floated (published) by ' . auth()->user()->name,
+    ]);
+
+    // 🔥 Fire Event
+    event(new ProformaPublished($proforma));
+
+    return redirect()->back();
+});
+
+// ******************Admin Side******************
+
+Route::prefix('/admin')
+    ->middleware([\App\Http\Middleware\AdminMiddleware::class])
+    ->group(function () {
+        // Approve newly registered users
+        Route::put('/users/{id}/approve', function ($id) {
+            $user = \App\Models\User::findOrFail($id);
+            $user->update([
+                'approved' => true,
+                'approved_at' => now(),
+            ]);
+
+            return redirect()->back()->with('success', 'User approved successfully');
+        });
+        
+         Route::get('/transactions', [\App\Http\Controllers\TransactionController::class, 'index'])->name('admin.transactions.index');
+        
+           // ⭐ View ratings (ADMIN ONLY)
+        Route::get('/ratings', [UserReviewController::class, 'index'])
+            ->name('admin.ratings.index');
+        // Dashboard
+
+        // Route::get('/', [DashboardController::class, 'index'])->name('admin.dashboard'); // Redirects to dashboard
+
+        Route::get('/users/chart', function () {
+            $users = \App\Models\User::select(DB::raw('DATE(created_at) as date'), DB::raw('count(*) as count'))
+                ->where('created_at', '>=', now()->subDays(7))
+                ->groupBy('date')
+                ->orderBy('date', 'ASC')
+                ->get();
+
+            return response()->json([
+                'categories' => $users->pluck('date'),
+                'data' => $users->pluck('count'),
+            ]);
+        });
+
+        Route::get('/', function () {
+            return view('admin.index');
+        })->name('admin.dashboard');
+        Route::get('/profile', function () {
+            return view('admin.profile.profile');
+        });
+
+
+Route::get('/verify/{proforma}', function (Proforma $proforma) {
+
+    // ❗ Prevent double verification
+    if ($proforma->status === 'completed') {
+        return redirect()->back()->with('error', 'Proforma already verified.');
+    }
+
+    DB::beginTransaction();
+
+    try {
+
+        Log::info('Verification started', ['proforma_id' => $proforma->id]);
+
+	if(!$proforma->brand->is_test){
+        $latestCost = Cost::latest()->first();
+        if (!$latestCost) {
+            throw new Exception('Cost data not found');
+        }
+
+        $vatRate = 0.15;
+        $rows = [];
+
+        $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+        $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+        // 🔹 Determine proforma type
+        if ($requiredShops > 0 && $requiredGarages == 0) {
+            $type = 'regular';
+        } elseif ($requiredShops == 3 && $requiredGarages == 3) {
+            $type = 'insurance';
+        } elseif ($requiredShops == 0 && $requiredGarages == 0) {
+            $type = 'etera_chereta';
+        } else {
+            throw new Exception('Unknown proforma type');
+        }
+
+        Log::info('Proforma type determined', ['type' => $type]);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 REGULAR PROFORMA (FIXED PRICE BUG)
+        |--------------------------------------------------------------------------
+        */
+        if ($type === 'regular') {
+
+            $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+            $count = $applications->count();
+
+            // Dynamic pricing from Cost table (EX: 1_proforma_cost, 2_proforma_cost ...)
+            $field = "{$count}_proforma_cost";
+            $totalAmount = (float) ($latestCost->$field ?? 0);
+
+            if ($totalAmount <= 0) {
+                throw new Exception("Invalid regular proforma cost for {$count} applications");
+            }
+
+            $unitPrice = $totalAmount / (1 + $vatRate);
+            $vatAmount = $totalAmount - $unitPrice;
+
+            $rows[] = [
+                'proforma_id'     => $proforma->id,
+                'type'            => 'regular',
+                'requested_count' => $count,
+                'unit_price'      => $unitPrice,
+                'vat_rate'        => $vatRate * 100,
+                'vat_amount'      => $vatAmount,
+                'total_amount'    => $totalAmount,
+                'created_by'      => Auth::id(),
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 INSURANCE PROFORMA
+        |--------------------------------------------------------------------------
+        */
+        elseif ($type === 'insurance') {
+
+            $insuranceTotal = (float) (
+                $proforma->insured
+                    ? ($latestCost->insured_cost ?? 0)
+                    : ($latestCost->insurance_proforma ?? 0)
+            );
+
+            if ($insuranceTotal <= 0) {
+                throw new Exception('Invalid insurance cost');
+            }
+
+            $unitPrice = $insuranceTotal / (1 + $vatRate);
+            $vatAmount = $insuranceTotal - $unitPrice;
+
+            $rows[] = [
+                'proforma_id'     => $proforma->id,
+                'type'            => 'insurance',
+                'requested_count' => 6,
+                'unit_price'      => $unitPrice,
+                'vat_rate'        => $vatRate * 100,
+                'vat_amount'      => $vatAmount,
+                'total_amount'    => $insuranceTotal,
+                'is_paid'         => !$proforma->insured,
+                'created_by'      => Auth::id(),
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 ETERA CHERETA
+        |--------------------------------------------------------------------------
+        */
+        elseif ($type === 'etera_chereta') {
+
+            $total = (float) ($latestCost->etera_chereta_cost ?? 0);
+            if ($total <= 0) {
+                throw new Exception('Invalid Etera Chereta cost');
+            }
+
+            $unit = $total / (1 + $vatRate);
+            $vatAmount = $total - $unit;
+
+            $rows[] = [
+                'proforma_id'  => $proforma->id,
+                'type'         => 'etera_chereta',
+                'requested_count' => 1,
+                'unit_price'   => 0,
+                'hourly_price' => $unit,
+                'hours'        => 1,
+                'vat_rate'     => $vatRate * 100,
+                'vat_amount'   => $vatAmount,
+                'total_amount' => $total,
+                'created_by'   => Auth::id(),
+                'created_at'   => now(),
+                'updated_at'   => now(),
+            ];
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 SAVE INVOICE
+        |--------------------------------------------------------------------------
+        */
+        ProformaInvoice::where('proforma_id', $proforma->id)->delete();
+        ProformaInvoice::insert($rows);
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 DEBIT POSTER WALLET (INVOICE)
+        |--------------------------------------------------------------------------
+        */
+        $invoiceTotal = $rows[0]['total_amount'] ?? 0;
+
+        if ($invoiceTotal > 0) {
+            (new \App\Services\WalletService())->processTransaction(
+                $proforma->poster,
+                $invoiceTotal,
+                'invoice',
+                'Invoice for Proforma #' . $proforma->id,
+                $proforma
+            );
+        }
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 COMMISSIONS
+        |--------------------------------------------------------------------------
+        */
+        $commissions = Commission::first();
+
+        // 🔹 Insurance poster commission (NOT insured)
+        if ($type === 'insurance' && !$proforma->insured) {
+            addCommissionRecord(
+                $proforma->poster,
+                $proforma->id,
+                null,
+                $commissions->insurancePay ?? 0
+            );
+        }
+
+        // 🔹 Applicant commissions (INSURANCE ONLY)
+        if ($type === 'insurance') {
+            $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+
+            foreach ($applications as $application) {
+                $user = $application->applicationBy;
+                $amount = $user->role === 'garage'
+                    ? ($commissions->garagePay ?? 0)
+                    : ($commissions->shopPay ?? 0);
+
+                if ($amount > 0) {
+                    addCommissionRecord(
+                        $user,
+                        $proforma->id,
+                        $application->id,
+                        $amount
+                    );
+                }
+            }
+        }
+
+        // 🔹 Operator commission (ALL TYPES)
+        $selection = \App\Models\ProformaSelection::where('proforma_id', $proforma->id)
+            ->where('active', true)
+            ->first();
+
+        if ($selection) {
+            $operator = $selection->operator ?? \App\Models\User::find($selection->employee_id);
+            if ($operator) {
+                $amount = $operator->commission_per_file ?? ($commissions->operatorPay ?? 0);
+                if ($amount > 0) {
+                    addCommissionRecord($operator, $proforma->id, null, $amount);
+                    $selection->update(['commission_earned' => $amount]);
+                }
+            }
+        }
+	}
+
+        /*
+        |--------------------------------------------------------------------------
+        | 🔹 FINALIZE
+        |--------------------------------------------------------------------------
+        */
+        $proforma->update(['status' => 'completed']);
+        $proforma->verify();
+
+        DB::commit();
+
+        return redirect()->back()->with('success', 'Proforma verified successfully.');
+
+    } catch (\Throwable $e) {
+
+        DB::rollBack();
+
+        Log::error('Verification failed', [
+            'error' => $e->getMessage(),
+            'line'  => $e->getLine()
+        ]);
+
+        return redirect()->back()->with('error', 'Verification failed.');
+    }
+});
+
+
+/**
+ * 🔹 Helper function to create PaidUser commission records
+ */
+ 
+ if (!function_exists('addCommissionRecord')) {
+ 
+function addCommissionRecord($user, $proformaId, $applicationId, $amount)
+{
+    $role = $user->role; // 'shop', 'garage', or 'insurance'
+
+    // 1. Create PaidUser record (Legacy/Work Log)
+    $record = PaidUser::create([
+        'user_id'       => $user->id,
+        'proforma_id'   => $proformaId,
+        'application_id'=> $applicationId,
+        'amount'        => $amount,
+        'is_paid'       => false,
+        'paid_at'       => null,
+    ]);
+
+    Log::info('PaidUser record created', [
+        'user_id' => $user->id,
+        'role' => $role,
+        'amount' => $amount,
+        'proforma_id' => $proformaId,
+        'application_id' => $applicationId,
+    ]);
+
+    // 2. Create Transaction (Ledger)
+    // Commission is "Money In" (Credit) for the user
+    $walletService = new \App\Services\WalletService();
+    $walletService->processTransaction(
+        $user,
+        -$amount,
+        'commission',
+        'Commission for Proforma #' . $proformaId,
+        $record
+    );
+
+    return $record;
+}
+
+}
+
+
+
+        // View Proforma
+        // admin proformas
+        Route::get('/proforma', function () {
+            $proformas = \App\Models\Proforma::fromInsurances()
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+                // dd($proformas);
+
+            return view('admin.proforma.view', compact('proformas'));
+        })->name('admin.proformas.index');
+
+        // Post Proforma
+        Route::get('/post-proforma', function (Request $request) {
+            $proforma = \App\Models\Proforma::find(
+                $request->query('proforma_id')
+            );
+            if (! $proforma) {
+                return redirect()->back();
+            }
+
+            return view('admin.proforma.post', compact('proforma'));
+        });
+
+        Route::get('/others-proforma', function () {
+            $proformas = \App\Models\Proforma::fromOthers()
+                ->orderBy('created_at', 'desc')
+                ->get();
+
+            return view(
+                'admin.proforma.others-proforma.view',
+                compact('proformas')
+            );
+        });
+
+        Route::get('/post-others-proforma', function () {
+            return view('admin.proforma.others-proforma.post');
+        });
+
+        // View Garage Bid
+        Route::get('/bid', function () {
+            return view('admin.bid.view');
+        });
+
+        // View Insurances
+        Route::get('/insurances', function () {
+            $insurances = \App\Models\User::where('role', 'insurance')->get();
+
+            return view('admin.users.insurances.view', [
+                'insurances' => $insurances,
+            ]);
+        })->name('admin.insurances.index');
+
+
+
+
+
+
+
+
+        
+
+        // Add Insurance
+        Route::get('/add-insurance', function () {
+            return view('admin.users.insurances.add');
+        })->name('admin.insurances.create');
+
+        
+
+
+        // Add Insurance
+        Route::post('/add-insurance', [
+            \App\Http\Controllers\InsuranceController::class,
+            'store',
+        ])->name('add-insurance');
+        Route::get('/edit-insurance/{id}', [
+            \App\Http\Controllers\InsuranceController::class,
+            'edit',
+        ])->name('edit-insurance');
+        
+        Route::put('/update-insurance/{id}', [
+            \App\Http\Controllers\InsuranceController::class,
+            'update',
+        ])->name('update-insurance');
+        
+        Route::post('/delete-insurance/{id}', [
+            \App\Http\Controllers\InsuranceController::class,
+            'destroy',
+        ])->name('delete-insurance');
+        
+
+
+
+
+        
+        // View Garage
+        Route::get('/garages', function () {
+            $garages = \App\Models\User::where('role', 'garage')->get();
+
+            return view('admin.users.garages.view', [
+                'garages' => $garages,
+            ]);
+        });
+
+        // Add Garage
+        Route::get('/add-garage', function () {
+            return view('admin.users.garages.add');
+        });
+
+
+        Route::post('/add-garage', [
+            \App\Http\Controllers\GarageController::class,
+            'store',
+        ])->name('add-garage');
+
+// adding garages for the admin
+
+        Route::get('/edit-garage/{id}', [
+            \App\Http\Controllers\GarageController::class,
+            'edit',
+            
+        ])->name('edit-garage');
+
+
+
+        Route::put('/update-garage/{id}', [
+            \App\Http\Controllers\GarageController::class,
+            'update',
+        ])->name('update-garage');
+
+        Route::post('/delete-garage/{id}', [
+            \App\Http\Controllers\GarageController::class,
+            'destroy',
+        ])->name('delete-garage');
+
+
+// Edit Business Owner (GET)
+Route::get('/business-owners/{id}/edit', [BusinessOwnerController::class, 'edit'])
+    ->name('admin.business-owners.edit');  // Ensure this is plural
+
+// Update Business Owner (PUT)
+Route::put('/business-owners/{id}', [BusinessOwnerController::class, 'update'])
+    ->name('admin.business-owners.update');
+
+// Delete Business Owner (DELETE)
+Route::POST('/business-owners/{id}', [BusinessOwnerController::class, 'destroy'])
+    ->name('admin.business-owners.destroy');
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+
+
+
+    // Marketers
+
+// Edit Marketer (GET)
+Route::get('/admin/marketers/{id}/edit', [MarketerController::class, 'edit'])
+    ->name('admin.users.marketers.edit');
+
+// Update Marketer (PUT)
+Route::put('/admin/marketers/{id}', [MarketerController::class, 'update'])
+    ->name('admin.users.marketers.update');
+
+// Delete Marketer (DELETE)
+Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
+    ->name('admin.users.marketers.destroy');
+
+    
+
+
+
+
+
+    
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        Route::get('/business-owners', function () {
+            $businessOwners = \App\Models\User::where(
+                'role',
+                'others'
+            )->get();
+
+            return view('admin.users.business-owners.view', [
+                'businessOwners' => $businessOwners,
+            ]);
+        });
+
+        Route::get('/add-business-owner', function () {
+            return view('admin.users.business-owners.add');
+        });
+
+
+        Route::post('/add-business-owner', [
+            \App\Http\Controllers\BusinessOwnerController::class,
+            'store',
+        ])->name('add-busines-owner');
+
+
+
+            // business owners add 
+
+// In routes/web.php
+
+            // Route::get('/edit-business-owner/{id}', [
+            //     \App\Http\Controllers\BusinessOwnerController::class,
+            //     'edit',
+            // ])->name('edit-business-owner');
+
+            // Route::put('/update-business-owner/{id}', [
+            //     \App\Http\Controllers\BusinessOwnerController::class,
+            //     'update',
+            // ])->name('update-business-owner');
+
+            // Route::post('/delete-business-owner/{id}', [
+            //     \App\Http\Controllers\BusinessOwnerController::class,
+            //     'destroy',
+            // ])->name('delete-business-owner');
+
+
+
+
+            // marketers route
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // Add Business Owner
+        Route::get('/add-marketer', function () {
+            return view('admin.users.marketers.add');
+        });
+        Route::get('/marketers', function () {
+            $marketers = \App\Models\User::where('role', 'marketer')->get();
+
+            return view('admin.users.marketers.view', [
+                'marketers' => $marketers,
+            ]);
+        });
+        // View Spare Part Shops
+        Route::get('/spare-part-shops', function () {
+            $shops = \App\Models\User::where('role', 'shop')->get();
+
+            // dd($shops);
+
+
+            return view('admin.users.spare-part-shops.view', [
+                'shops' => $shops,
+            ]);
+        });
+        // Add Insurance
+        Route::post('/add-shop', [
+            \App\Http\Controllers\ShopController::class,
+            'store',
+        ])->name('add-shop');
+
+        Route::get('/edit-shop/{id}', [
+            \App\Http\Controllers\ShopController::class,
+            'edit',
+            
+        ])->name('edit-shop');
+
+
+        
+        Route::put('/update-shop/{id}', [
+            \App\Http\Controllers\ShopController::class,
+            'update',
+        ])->name('update-shop');
+
+        Route::post('/delete-shop/{id}', [
+            \App\Http\Controllers\ShopController::class,
+            'destroy',
+        ])->name('delete-shop');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // spare part shopss
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // Add Spare Part Shop
+        Route::get('/add-spare-part-shop', function () {
+            $brands = \App\Models\Brand::latest()->get();
+
+            return view('admin.users.spare-part-shops.add', [
+                'brands' => $brands,
+            ]);
+        });
+           // Employee Routes
+        Route::get('/employees', [EmployeeController::class, 'index'])->name(
+            'admin.employees.index'
+        );
+        Route::get('/add-employee', [EmployeeController::class, 'create'])->name(
+            'admin.employees.create'
+        );
+        Route::post('/add-employee', [EmployeeController::class, 'store'])->name(
+            'admin.employees.store'
+        );
+
+        Route::prefix('employees')->name('admin.employees.')->group(function () {
+            Route::get('/{id}/edit', [EmployeeController::class, 'edit'])
+                ->name('edit');
+            Route::put('/{id}', [EmployeeController::class, 'update'])
+                ->name('update');
+            Route::delete('/{id}', [EmployeeController::class, 'destroy'])
+                ->name('destroy');
+            Route::post('/{id}/assign-files', [EmployeeController::class, 'assignFiles'])
+                ->name('assign-files');
+        });
+
+        // =====================
+        // Operator Management Routes
+        // =====================
+        Route::prefix('operators')->name('admin.operators.')->group(function () {
+            Route::get('/', [\App\Http\Controllers\AdminController::class, 'listOperators'])
+                ->name('index');
+            Route::post('/{operator}/assign-manager', [\App\Http\Controllers\AdminController::class, 'assignOperatorToManager'])
+                ->name('assign-manager');
+            Route::post('/{operator}/set-quota', [\App\Http\Controllers\AdminController::class, 'setOperatorQuota'])
+                ->name('set-quota');
+            Route::post('/{operator}/set-commission', [\App\Http\Controllers\AdminController::class, 'setOperatorCommission'])
+                ->name('set-commission');
+        });
+
+        // =====================
+        // Commission Overview Route
+        // =====================
+        Route::get('/commissions', [\App\Http\Controllers\AdminController::class, 'viewAllCommissions'])
+            ->name('admin.commissions.index');
+        
+
+
+        Route::get('/edit-employee/{employeeId}', function ($employeeId) {
+            return Livewire::mount(EditEmployee::class, ['employeeId' => $employeeId]);
+        })->name('admin.employees.edit-employee');
+        
+        Route::post('/employees/{id}/assign-manager', [\App\Http\Controllers\EmployeeController::class, 'assignManager'])
+            ->name('admin.employees.assign-manager');
+        
+
+// admin car parts
+
+
+
+
+
+// Route::get('/parts/{id}', function ($id) {
+//     $carPart = CarPart::findOrFail($id);  // Get the car part by ID
+//     return view('admin.parts.edit', ['carPart' => $carPart]);  // Pass car part to the view
+// })->name('parts');  // Name the route 'parts'
+
+
+
+
+// Route::put('/parts/{id}', function ($id) {
+//     $carPart = CarPart::findOrFail($id);
+//     $carPart->update(request()->only('name')); // Update the part (add validation and sanitization)
+//     // return redirect()->route('admin.parts.view', $carPart->id);
+//     return redirect()->to('/admin/parts');
+
+// })->name('parts.update');
+
+
+
+// // Delete Route (Handle delete action)
+// Route::delete('/parts/{id}', function ($id) {
+//     $carPart = \App\Models\CarPart::findOrFail($id);
+//     $carPart->delete();
+
+//     return redirect()->to('/admin/parts');
+    
+
+// })->name('parts.destroy');
+
+
+// /admin/parts
+
+
+
+
+
+
+Route::get('/parts/{id}', function ($id) {
+    $carPart = CarPart::findOrFail($id);  // Get the car part by ID
+    return view('admin.parts.edit', ['carPart' => $carPart]);  // Pass car part to the view
+})->name('parts');  // Name the route 'parts'
+
+
+
+
+// Route::put('/parts/{id}', function ($id) {
+//     $carPart = CarPart::findOrFail($id);
+//     $carPart->update(request()->only('name')); // Update the part (add validation and sanitization)
+    
+//     // return redirect()->route('admin.parts.view', $carPart->id);
+//     return redirect()->to('/admin/parts');
+
+// })->name('parts.update');
+
+
+Route::put('/parts/{id}', function ($id) {
+    // Find the car part by ID or fail if not found
+    $carPart = \App\Models\CarPart::findOrFail($id);
+    
+    // Validate the request
+    $validatedData = request()->validate([
+        'name' => 'required|string|max:255|unique:car_parts,name,' . $id,
+        'component' => 'required|string|in:Body Parts (Inner),Body Parts (Outer),Mechanical Parts',
+    ]);
+
+    // Update the car part with the validated data
+    $carPart->update($validatedData);
+
+    // Redirect back to the parts list page
+    return redirect()->to('/admin/parts')->with('success', 'Car part updated successfully');
+})->name('parts.update');
+
+// Delete Route (Handle delete action)
+Route::delete('/parts/{id}', function ($id) {
+    $carPart = \App\Models\CarPart::findOrFail($id);
+    $carPart->delete();
+
+    return redirect()->to('/admin/parts');
+    
+
+})->name('parts.destroy');
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // // View Brands
+        // Route::get('/brands', function () {
+        //     $brands = \App\Models\Brand::latest()->get();
+
+        //     return view('admin.brands.view', [
+        //         'brands' => $brands,
+        //     ]);
+        // });
+// View Brands - Sorted Alphabetically
+Route::get('/brands', function () {
+    $brands = \App\Models\Brand::orderBy('name', 'asc')->get();  // Order by 'name' in ascending order
+
+    return view('admin.brands.view', [
+        'brands' => $brands,
+    ]);
+});
+
+        Route::post('/brands', function (Request $request) {
+            $request->validate([
+                'name' => 'required|unique:brands,name',
+            ]);
+
+            $brands = \App\Models\Brand::create([
+                'name' => $request->name,
+            ]);
+
+            $brands->save();
+
+            return redirect()->to('/admin/brands');
+        })->name('add-brand');
+
+        // Add Brands
+        Route::get('/add-brands', function () {
+            return view('admin.brands.add');
+        });
+
+
+
+
+
+
+
+
+
+
+
+
+        Route::get('/brands/{id}', function ($id) {
+            $brands = Brand::findOrFail($id);  // Get the car part by ID
+            return view('admin.brands.edit', ['brands' => $brands]);  // Pass car part to the view
+        })->name('brands');  // Name the route 'parts'
+        
+        
+        
+        
+        Route::put('/brands/{id}', function ($id) {
+            $brands = Brand::findOrFail($id);
+            $brands->update(request()->only('name')); // Update the part (add validation and sanitization)
+            // return redirect()->route('admin.parts.view', $carPart->id);
+            return redirect()->to('/admin/brands');
+        
+        })->name('brands.update');
+        
+        
+        
+        // Delete Route (Handle delete action)
+        Route::delete('/brands/{id}', function ($id) {
+            $brands = \App\Models\Brand::findOrFail($id);
+            $brands->delete();
+        
+            return redirect()->to('/admin/brands');
+            
+        
+        })->name('brands.destroy');
+        
+        
+        
+        
+        
+
+
+
+Route::prefix('marketer')->group(function () {
+    Route::get('/business-owners/{id}/edit', [MarketerBusinessController::class, 'edit'])
+        ->name('marketer.business-owners.edit');
+
+    Route::put('/business-owners/{id}', [MarketerBusinessController::class, 'update'])
+        ->name('marketer.business-owners.update');
+
+    Route::delete('/business-owners/{id}', [MarketerBusinessController::class, 'destroy'])
+        ->name('marketer.business-owners.destroy');
+    
+
+});
+
+
+
+
+
+
+
+
+
+
+
+        
+
+        // View Car Parts
+        // Route::get('/parts', function () {
+        //     $carParts = \App\Models\CarPart::latest()->get();
+
+        //     return view('admin.parts.view', [
+        //         'carParts' => $carParts,
+        //     ]);
+        // });
+
+// View Car Parts - Sorted Alphabetically
+// Route::get('/parts', function () {
+//     // $carParts = \App\Models\CarPart::orderBy('name', 'asc')->get();  // Order by 'name' in ascending order
+//     $carParts = CarPart::orderBy('name', 'asc')->paginate(8); // ✅ This returns a Paginator
+
+//     return view('admin.parts.view', [
+//         'carParts' => $carParts,
+//     ]);
+// });
+Route::get('/parts', function (Request $request) {
+    $query = CarPart::query();
+
+    if ($request->has('component')) {
+        $query->where('component', $request->component);
+    }
+
+    $carParts = $query->orderBy('name', 'asc')->paginate(8);
+
+    return view('admin.parts.view', [
+        'carParts' => $carParts,
+    ]);
+})->name('parts.index');
+        Route::post('/parts', function (Request $request) {
+            $request->validate([
+                'name' => 'required|unique:car_parts,name',
+                'component' => 'required|in:Body Parts (Inner),Body Parts (Outer),Mechanical Parts',
+
+            ]);
+
+            $part = \App\Models\CarPart::create([
+                'name' => $request->name,
+                'component' => $request->component,
+
+            ]);
+
+            $part->save();
+
+            return redirect()->to('/admin/parts');
+        })->name('add-part');
+
+        // Add Car Parts
+        Route::get('/add-parts', function () {
+            return view('admin.parts.add');
+        });
+
+        // View Roles
+        Route::get('/roles', [LevelController::class, 'index'])->name(
+            'operators.role.index'
+        );
+        Route::get('/add-role', [LevelController::class, 'create'])->name(
+            'operators.role.create'
+        );
+        Route::post('/add-role', [LevelController::class, 'store'])->name(
+            'operators.role.store'
+        );
+
+        // Withdraw Requests
+        Route::get('/withdraw-requests', [
+            WithdrawalController::class,
+            'index',
+        ])->name('withdraw-requests');
+        Route::put('withdraw-requests/{id}/approve', [
+            WithdrawalController::class,
+            'approve',
+        ])->name('withdraw.approve');
+        Route::put('withdraw-requests/{id}/reject', [
+            WithdrawalController::class,
+            'reject',
+        ])->name('withdraw.reject');
+
+        // ******************Insurance Side******************
+    });
+
+Route::prefix('marketer')
+    ->middleware([\App\Http\Middleware\MarketerMiddleware::class])
+    ->group(function () {
+        Route::get('/', function () {
+            return view('marketer.index');
+        });
+            Route::get('/proformas', [\App\Http\Controllers\MarketerProformaController::class, 'index'])
+        ->name('marketer.proformas');
+
+        // Marketer Proforma Details (Read-only view)
+        Route::get('/proforma-details', function (Request $request) {
+            $proforma = \App\Models\Proforma::find($request->query('proforma'));
+            if (!$proforma) {
+                return redirect()->back();
+            }
+            return view('marketer.proforma-details', compact('proforma'));
+        });
+
+
+
+
+
+
+
+
+
+        // View Insurances
+        Route::get('/insurances', function () {
+            $insurances = \App\Models\User::where('role', 'insurance')
+            ->where('registered_by', auth()->id())
+            ->get();
+
+            return view('marketer.users.insurances.view', [
+                'insurances' => $insurances,
+            ]);
+        });
+
+        // Add Insurance
+        Route::get('/add-insurance', function () {
+            return view('marketer.users.insurances.add');
+        });
+
+        // Add Insurance
+        Route::post('/add-insurance', [
+            \App\Http\Controllers\InsuranceController::class,
+            'store',
+        ])->name('add-insurance.marketer');
+
+
+
+        Route::get('/edit-insurance/{id}', [
+            \App\Http\Controllers\InsuranceController::class,
+            'edit',
+        ])->name('edit-insurance.marketer');
+        
+        Route::put('/update-insurance/{id}', [
+            \App\Http\Controllers\InsuranceController::class,
+            'update',
+        ])->name('update-insurance.marketer');
+        
+
+
+
+
+
+        Route::get('/edit-shop/{id}', [
+            \App\Http\Controllers\ShopController::class,
+            'edit',
+            
+        ])->name('edit-shop.marketer');
+
+
+        
+        Route::put('/update-shop/{id}', [
+            \App\Http\Controllers\ShopController::class,
+            'update',
+        ])->name('update-shop.marketer');
+
+
+        Route::get('/edit-garage/{id}', [
+            \App\Http\Controllers\GarageController::class,
+            'edit',
+            
+        ])->name('edit-garage.marketer');
+
+
+
+        Route::put('/update-garage/{id}', [
+            \App\Http\Controllers\GarageController::class,
+            'update',
+        ])->name('update-garage.marketer');
+
+
+
+
+
+
+        // View Garage
+        Route::get('/garages', function () {
+            $garages = \App\Models\User::where('role', 'garage')
+            ->where('registered_by', auth()->id())
+            ->get();
+
+            return view('marketer.users.garages.view', [
+                'garages' => $garages,
+            ]);
+        });
+
+        // Add Garage
+        Route::get('/add-garage', function () {
+            return view('marketer.users.garages.add');
+        });
+        // Add Insurance
+        Route::post('/add-garage', [
+            \App\Http\Controllers\GarageController::class,
+            'store',
+        ])->name('add-garage.marketer');
+        // View Business Owner
+        Route::get('/business-owners', function () {
+            $businessOwners = \App\Models\User::where(
+                'role',
+                'others'
+            )->where('registered_by', auth()->id())
+            ->get();
+
+
+
+                
+
+
+
+
+
+            return view('marketer.users.business-owners.view', [
+                'businessOwners' => $businessOwners,
+            ]);
+        });
+
+        // Add Business Owner
+        Route::get('/add-business-owner', function () {
+            return view('marketer.users.business-owners.add');
+        });
+
+
+
+
+
+// Edit Business Owner (GET)
+Route::get('/business-owners/{id}/edit', [BusinessOwnerController::class, 'edit'])
+    ->name('marketer.business-owners.edit');  // Ensure this is plural
+
+// Update Business Owner (PUT)
+Route::put('/business-owners/{id}', [BusinessOwnerController::class, 'update'])
+    ->name('marketer.business-owners.update');
+
+
+
+
+
+
+
+
+
+
+
+
+
+        // Add Insurance
+        Route::post('/add-business-owner', [
+            \App\Http\Controllers\BusinessOwnerController::class,
+            'store',
+        ])->name('add-business-owner.marketer');
+
+        // View Spare Part Shops
+        Route::get('/spare-part-shops', function () {
+            $shops = \App\Models\User::where('role', 'shop')
+            ->where('registered_by', auth()->id())
+            ->get();
+
+            return view('marketer.users.spare-part-shops.view', [
+                'shops' => $shops,
+            ]);
+        });
+        // Add Insurance
+        Route::post('/add-shop', [
+            \App\Http\Controllers\ShopController::class,
+            'store',
+        ])->name('add-shop.marketer');
+        // Add Spare Part Shop
+        Route::get('/add-spare-part-shop', function () {
+            $brands = \App\Models\Brand::latest()->get();
+
+            return view('marketer.users.spare-part-shops.add', [
+                'brands' => $brands,
+            ]);
+        });
+    });
+
+Route::prefix('employee')
+    ->middleware([\App\Http\Middleware\EmployeeMiddleware::class])
+    ->group(function () {
+        Route::get('/', function () {
+            return view('employee.index');
+        });
+
+        Route::get('/proformas-from-insurances', function () {
+            return view('employee.insurance-proformas');
+        });
+
+        Route::get('/proformas-from-others', function () {
+            return view('employee.other-proformas');
+        });
+
+        Route::get('/my-files', function () {
+            $proformas = \App\Models\Proforma::all();
+
+            return view('employee.my-files', compact('proformas'));
+        });
+
+        Route::get('/change-status/{proforma}', function (Proforma $proforma) {
+            $currentUserLevel = auth()->user()->level;
+            $userManager = auth()->user()->manager;
+            if ($userManager) {
+                $proforma->update(['status' => 'payment collected']);
+                $proforma->selectedBy()?->deactivate();
+                ProformaSelection::updateOrCreate([
+                    'proforma_id' => $proforma->id,
+                    'employee_id' => $userManager->manager?->id,
+                    'active' => true,
+                ]);
+            } else {
+                 if ($proforma->selected()) {
+                    $proforma->selectedBy()?->deactivate();
+                    $proforma->update([
+                        'status' => 'completed',
+                        'verified' => true,
+                    ]);
+                } else {
+                    $proforma->update([
+                        'status' => 'completed',
+                    ]);
+                }
+            }
+
+
+            return redirect()->back();
+        });
+
+        Route::get('/withdraw-requests', function () {
+            return view('employee.balance');
+        });
+        Route::get('/profile', function () {
+            return view('employee.profile');
+        });
+
+        Route::get('/post-proforma', function (Request $request) {
+            $proforma = \App\Models\Proforma::find(
+                $request->query('proforma_id')
+            );
+            if (! $proforma) {
+                return redirect()->back();
+            }
+
+            return view('admin.proforma.operator-post', compact('proforma'));
+        });
+    });
+
+Route::prefix('insurance')
+    ->middleware([\App\Http\Middleware\RoleMiddleware::class])
+    ->group(function () {
+        Route::get('/', function(){ return view('insurance.index'); });
+Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/received-proformas', function () {
+    if (auth()->check()) {
+        $user = auth()->user();
+
+        // Mark all new proformas for this user as viewed
+        $user->markReceivedProformasAsViewed();
+
+        $proformas = \App\Models\Proforma::where('poster_id', $user->id)
+            ->where('status', 'completed')
+            ->where('verified', true)
+            ->orderBy('created_at','desc')
+            ->paginate(10);
+
+        return view('insurance.proformas', compact('proformas'));
+    }
+
+    return redirect('/login');
+});
+
+        Route::get('proforma-details', function (Request $request) {
+            $proforma = \App\Models\Proforma::with([
+                'applications.prices',
+                'applications.applicationBy',
+                'parts',
+            ])->findOrFail($request->query('proforma_id'));
+            $applications = $proforma->applications->sortBy(function($application) {
+                // For shops: calculate final price from parts minus discount
+                if ($application->from === 'shop' && $application->prices->count() > 0) {
+                    $subtotal = $application->prices->sum('part_total');
+                    $discountPct = (float)($application->discount ?? 0);
+                    $discountAmt = ($subtotal * $discountPct) / 100;
+                    return $subtotal - $discountAmt;
+                }
+                // For garages: use amount field
+                return $application->amount ?? 0;
+            });
+            return view('insurance.proforma-details', compact('proforma','applications'));
+        });
+        Route::get('/add-parts', function () {
+            return view('insurance.parts.add');
+        });
+        Route::get('/parts', function () {
+            return view('insurance.parts.view');
+        });
+        // Create file
+        Route::get('partners', function () {
+            return view('insurance.partners');
+        });
+        Route::delete('partners/{partner}', [
+            PartnerController::class,
+            'destroy',
+        ])->name('partners.destroy');
+        Route::post('partners/add', [PartnerController::class, 'store'])->name('partners.add');
+
+        Route::get('/profile', function () {
+            return view('insurance.profile');
+        });
+        
+
+
+
+
+        // validation is not included for the file creation
+        Route::get('create-file', function () {
+            $availableBrands = BrandUser::distinct('brand_id')->pluck('brand_id');
+            // $brands = \App\Models\Brand::whereIn('id', $availableBrands?->toArray())->orderBy('name', 'asc')->get();
+            $brands = \App\Models\Brand::orderBy('name', 'asc')->get();
+            $parts = \App\Models\CarPart::orderBy('name', 'asc')->get();
+            $spare_part_partners = auth()->user()->sparePartPartners();
+            $garage_partners = auth()->user()->garagePartners();
+
+            return view(
+                'insurance.create-file',
+                compact(
+                    'brands',
+                    'parts',
+                    'spare_part_partners',
+                    'garage_partners'
+                )
+            );
+        });
+        // Route::post('create-file', function (Request $request) {
+        //     $request->validate(
+        //         [
+        //             'file_number' => 'required',
+        //             'brand_id' => 'required|exists:brands,id',
+        //             'model' => 'required',
+        //             'year' => 'required|numeric',
+        //             'customer_name' => 'required',
+        //             'customer_phone_number' => 'required|numeric',
+        //             'license_plate_number' => 'required',
+        //             'chassis_number' => 'required',
+        //             'parts' => 'required|array',
+        //             'parts.id' => 'required|array',
+        //             'parts.number' => 'required|array|size:',
+        //                 count($request->input('parts.id')),
+        //             'parts.grade' => 'required|array|size:',
+        //                 count($request->input('parts.id')),
+        //             'parts.id.*' => 'required|exists:car_parts,id',
+        //             'parts.number.*' => 'required|string',
+        //             'parts.grade.*' => 'required|string',
+        //             'parts.country.*' => 'nullable|string',
+        //             'parts.quantity.*' => 'nullable|numeric',
+        //         ],
+        //         [
+        //             'parts.required' => 'Please provide the parts information.',
+        //             'parts.array' => 'Parts must be an array.',
+        //             'parts.id.required' => 'Part IDs are required.',
+        //             'parts.id.array' => 'Part IDs must be an array.',
+        //             'parts.number.required' => 'Please enter part numbers for each part.',
+        //             'parts.number.array' => 'Part numbers must be an array.',
+        //             'parts.number.size' => 'You must provide a part number for each part.',
+        //             'parts.grade.required' => 'Please specify grades for each part.',
+        //             'parts.grade.array' => 'Grades must be an array.',
+        //             'parts.grade.size' => 'You must provide a grade for each part.',
+        //             'parts.id.*.required' => 'Each part ID is required.',
+        //             'parts.id.*.exists' => 'The selected part does not exist.',
+        //             'parts.number.*.required' => 'Each part number is required.',
+        //             'parts.number.*.numeric' => 'Each part number must be a numeric value.',
+        //             'parts.grade.*.required' => 'Each part grade is required.',
+        //             'parts.grade.*.string' => 'Each part grade must be a string.',
+        //         ]
+        //     );
+
+        //     DB::beginTransaction();
+        //     $proforma = \App\Models\Proforma::create([
+        //         'poster_id' => auth()->user()->id,
+        //         'file_number' => $request->file_number,
+        //         'car_brand_id' => $request->brand_id,
+        //         'customer_name' => $request->customer_name,
+        //         'customer_phone_number' => $request->customer_phone_number,
+        //         'license_plate_number' => $request->license_plate_number,
+        //         'chassis_number' => $request->chassis_number,
+        //         'year' => $request->year,
+        //         'model' => $request->model,
+        //         'required_number_of_shops' => 3,
+        //         'required_number_of_garages' => 3,
+        //     ]);
+
+        //     foreach ($request->parts['id'] as $index => $partId) {
+        //         $proforma->parts()->attach($partId, [
+        //             'number' => $request->parts['number'][$index],
+        //             'grade' => $request->parts['grade'][$index],
+        //             'country' => $request->parts['country'][$index],
+        //             'quantity' => $request->parts['quantity'][$index],
+        //             'photo' => $request->parts['photo'][$index] ?? null,
+        //         ]);
+        //     }
+
+
+
+            
+
+        //     if ($request.spare_part_partners) {
+        //         foreach ($request.spare_part_partners as $inbox) {
+        //             Inbox::create([
+        //                 'proforma_id' => $proforma->id,
+        //                 'user_id' => $inbox,
+        //             ]);
+        //         }
+        //     }
+        //     if ($request.garage_partners) {
+        //         foreach ($request.garage_partners as $inbox) {
+        //             Inbox::create([
+        //                 'proforma_id' => $proforma->id,
+        //                 'user_id' => $inbox,
+        //             ]);
+        //         }
+        //     }
+
+
+        //     return redirect()
+        //         ->to('/insurance')
+        //         ->with('success', 'File created successfully');
+        // })->name('create.proforma');
+
+
+
+
+
+
+
+
+        Route::post('create-file', function (Request $request) {
+            $validator = Validator::make($request->all(), [
+                'file_number' => 'nullable',
+                'brand_id' => 'required|exists:brands,id',
+                'car_type' => 'nullable|in:ICE,EV,Hybrid,Others',
+                'model' => 'required',
+                'year' => 'required',
+                'customer_name' => 'required',
+                'insured' => 'nullable|boolean',
+                'customer_phone_number' => 'required|string',
+                'customer_email' => 'nullable|string',
+                'license_plate_number' => 'required',
+                'chassis_number' => 'required',
+                'parts' => 'required|array',
+                'parts.*.number' => 'required|string',
+                'parts.*.grade' => 'required|string',
+                'parts.*.country' => 'nullable|string',
+                'parts.*.quantity' => 'nullable|numeric',
+                'parts.*.condition' => 'nullable|string',
+                'parts.*.component' => 'nullable|string',
+                'parts.*.images.*' => 'nullable|image|max:10240', // Validate images
+                'number_of_proformas' => 'nullable|integer|min:-1|max:5',
+                'etera_chereta_hours' => 'nullable|integer|in:4,8,12,24,48,72',
+                'voice_note' => 'nullable|string|max:10485760'
+            ]);
+            
+            if ($validator->fails()) {
+                return redirect()->back()->withErrors($validator)->withInput();
+            }
+        
+            DB::beginTransaction();
+
+            $isEteraChereta = $request->input('number_of_proformas') === '-1';
+
+            $timerMinutes = null;
+            $requiredShops = 3;
+            $requiredGarages = 3;
+            $timerExpiresAt = null;
+
+            if ($isEteraChereta) {
+                $eteraHours = (int) $request->input('etera_chereta_hours', 24);
+                $timerMinutes = $eteraHours * 60;
+                $timerEnabled = true;
+                $timerExpiresAt = now()->addMinutes($timerMinutes);
+                $requiredShops = 0; // Float mode - no limit on shops
+                $requiredGarages = 0; // Float mode - no limit on garages
+            } else {
+                $requiredShops = (int) $request->input('number_of_proformas', 3);
+                $requiredGarages = 3;
+            }
+
+            $proforma = \App\Models\Proforma::create([
+                'poster_id' => auth()->user()->id,
+                'file_number' => $request->file_number ?? '#'.auth()->user()->id.'-'.time(),
+                'car_brand_id' => $request->brand_id,
+                'car_type' => $request->input('car_type', 'ICE'),
+                'customer_name' => $request->customer_name,
+                'customer_phone_number' => $request->customer_phone_number,
+                'customer_email' => $request->customer_email,
+                'license_plate_number' => $request->license_plate_number,
+                'chassis_number' => $request->chassis_number,
+                'year' => $request->year,
+                'model' => $request->model,
+                'required_number_of_shops' => $requiredShops,
+                'required_number_of_garages' => $requiredGarages,
+                'timer_duration' => $timerMinutes,
+                'timer_expires_at' => $timerExpiresAt,
+                'insured' => $request->has('insured') ? true : false,
+            ]);
+
+            foreach ($request->parts as $partData) {
+                // Create a new part record
+                $part = $proforma->parts()->create([
+                    'number' => $partData['number'],
+                    'grade' => $partData['grade'] ?? null,
+                    'country' => $partData['country'] ?? null,
+                    'quantity' => $partData['quantity'] ?? null,
+                    'condition' => $partData['condition'] ?? null,
+                    'component' => $partData['component'] ?? null,
+                ]);
+
+            }
+            
+            if ($request->spare_part_partners) {
+                foreach ($request->spare_part_partners as $inbox) {
+                    Inbox::create([
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $inbox,
+                    ]);
+                }
+            }
+
+            // add garage partneer
+        
+            if ($request->garage_partners) {
+                foreach ($request->garage_partners as $inbox) {
+                    Inbox::create([
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $inbox,
+                    ]);
+                }
+            }
+
+            // Handle voice note if present
+            if ($request->voice_note) {
+    try {
+        $base64 = $request->voice_note;
+
+        // Remove any header like "data:audio/webm;codecs=opus;base64,"
+        if (preg_match('/^data:audio\/(\w+);.*base64,/', $base64, $matches)) {
+            $extension = $matches[1]; // e.g. webm, mp3, wav
+            $base64 = substr($base64, strpos($base64, ',') + 1);
+        } else {
+            $extension = 'webm'; // default
+        }
+
+        // Decode and save safely
+        $voiceData = base64_decode($base64);
+
+        if ($voiceData === false) {
+            throw new \Exception('Base64 decoding failed.');
+        }
+
+        $filename = 'voice_note_' . $proforma->id . '_' . time() . '.' . $extension;
+        Storage::disk('public')->put('voice_notes/' . $filename, $voiceData);
+
+        $proforma->update(['voice_note_path' => 'voice_notes/' . $filename]);
+    } catch (\Exception $e) {
+        \Log::error('Voice note upload failed: ' . $e->getMessage());
+    }
+}
+
+            
+        
+            
+            
+            $imageService = new ImageService();
+            $imageService->upload($request, $proforma->id);
+            $audioservice = new AudioService();
+            $audioservice->upload($request, $proforma->id);
+            $videoService = new VideoService();
+            $videoService->upload($request, $proforma->id);
+            
+
+            DB::commit();
+
+            // If Etera-Chereta mode, dispatch auto-selection after expiry
+            if ($isEteraChereta) {
+                \App\Jobs\AutoSelectProformaOffers::dispatch($proforma->id)->delay(now()->addMinutes($timerMinutes));
+            }
+
+            return redirect()->back()->with('success', 'Proforma created successfully');
+        })->name('insurance.create-file');
+
+    Route::get('/insurance/create-file', function () {
+        $brands = Brand::all();
+        $spare_part_partners = User::where('role', 'shop')->get();
+        $garage_partners = User::where('role', 'garage')->get();
+        
+        return view('insurance.create-file', compact('brands', 'spare_part_partners', 'garage_partners'));
+    })->name('insurance.create-file.show');
+
+
+        
+        
+    Route::post('/upload/image', [App\Http\Controllers\FileUploadController::class, 'uploadPartsImage'])->name('upload.image');
+    Route::delete('/delete', [App\Http\Controllers\FileUploadController::class, 'deleteUpload'])->name('upload.delete');
+
+    });
+
+Route::get('proforma-details', function (Request $request) {
+    $proforma = \App\Models\Proforma::find($request->query('proforma'));
+    if (!$proforma) {
+        return redirect()->back();
+    }
+
+    // Reset inbox count when user opens proforma details
+    if (auth()->check()) {
+        // Remove the proforma from user's inbox to reset the ticker
+        \App\Models\Inbox::where('user_id', auth()->id())
+            ->where('proforma_id', $proforma->id)
+            ->delete();
+    }
+
+    return view('spare-part.details', compact('proforma'));
+})->name('proforma-details');
+
+Route::prefix('garage')
+    ->middleware([GarageMiddleware::class])
+    ->group(function () {
+        Route::get('/proformas', function () {
+            return view('spare-part.garage-proformas');
+        });
+        
+
+Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
+
+    Log::info("🔵 Route hit: Start request-close", [
+        'proforma_id' => $proformaId,
+    ]);
+
+    // Try to fetch the model normally
+    $proforma = \App\Models\Proforma::find($proformaId);
+
+    if (!$proforma) {
+        Log::error("❌ Proforma not found!", [
+            'proforma_id' => $proformaId,
+        ]);
+
+        return back()->with('error', 'Proforma not found.');
+    }
+
+    Log::info("🟡 Proforma loaded", [
+        'id' => $proforma->id,
+        'current_close_request' => $proforma->close_request,
+    ]);
+
+    // Try updating
+    $updated = $proforma->update([
+        'close_request' => true,
+    ]);
+
+    Log::info("🟢 Update executed", [
+        'result' => $updated,
+        'new_close_request' => $proforma->fresh()->close_request,
+    ]);
+
+    return back()->with('success', 'Close request submitted.');
+})->name('garage.proforma.request-close');
+
+        
+        Route::get('/my-files', function () {
+    $proformas = auth()->user()
+        ->proformas()
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    return view('spare-part.files', compact('proformas'));
+})->name('garage.my-files');
+
+        
+        Route::get('proforma-details', function (Request $request) {
+            $proforma = \App\Models\Proforma::find($request->query('proforma'));
+            if (! $proforma) {
+                return redirect()->back();
+            }
+
+            // Reset inbox count when user opens proforma details
+            if (auth()->check()) {
+                // Remove the proforma from user's inbox to reset the ticker
+                \App\Models\Inbox::where('user_id', auth()->id())
+                    ->where('proforma_id', $proforma->id)
+                    ->delete();
+            }
+
+            return view('spare-part.details', compact('proforma'));
+        })->name('garage.proforma-details');
+        
+        Route::post('apply/{proforma}', function (
+            Request $request,
+            Proforma $proforma
+        ) {
+            $request->validate([
+                'amount' => 'required|numeric|min:1',
+                'discount' => 'nullable|numeric|min:0|max:100',
+            ]);
+
+            // Calculate final amount
+            $initialPrice = $request->amount;
+            $discount = $request->discount ?? 0;
+            $finalAmount = $request->input('final-amount', $initialPrice);
+            
+            // Ensure minimum amount
+            $finalAmount = max($finalAmount, 1);
+
+            $application = $proforma->applications()->create([
+                'application_by' => auth()->id(),
+                'from' => 'garage',
+                'amount' => $finalAmount,
+                'discount' => $discount,
+            ]);
+
+            // Send notification to proforma poster
+            if ($proforma->poster && $proforma->poster->id !== auth()->id()) {
+                $proforma->poster->notify(new ProformaApplicationReceived($proforma, $application, auth()->user()));
+            }
+
+            // Remove inbox record if exists
+            $proforma->inboxes()->where('user_id', auth()->id())->delete();
+
+            // Check if proforma should be closed (both garage and shop requirements met)
+            $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
+            $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
+            $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+            $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+            
+            // Check if BOTH garage and shop requirements are met and not an Etera-Chereta (0,0) proforma
+            $isEteraChereta = ($requiredGarages + $requiredShops) === 0;
+            $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
+            $shopRequirementMet = $requiredShops === 0 || $shopApplicationsCount >= $requiredShops;
+            
+            if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet && ($requiredGarages > 0 || $requiredShops > 0)) {
+                $proforma->update(['status' => 'closed']);
+                $proforma->inboxes()->delete();
+            }
+
+            return redirect('/role/proformas')
+                ->with('success', 'Price quote submitted successfully!');
+        })->name('garage.proforma.apply');
+
+// Located inside the Route::prefix('garage') group
+
+Route::get('/received-proformas', function () {
+    $user = auth()->user();
+
+    // Mark all new proformas for this user as viewed
+    $user->markReceivedProformasAsViewed();
+
+    // Fetch only completed proformas for the current user, newest first, paginated
+    $proformas = Proforma::where('poster_id', $user->id)
+        ->where('status', 'completed')       // ✅ only completed
+        ->orderBy('created_at', 'desc')      // ✅ newest first
+        ->paginate(10);
+
+    return view('spare-part.received', compact('proformas'));
+});
+
+
+Route::get('/received-details', function (Request $request) {
+    // Eagerly load all relationships the frontend view needs for the Proforma
+    $proforma = Proforma::with([
+            'parts', 
+            'proformaInvoice', 
+            'brand'
+        ])
+        ->where('status', 'completed')
+        ->findOrFail($request->query('proforma'));
+
+    // Eagerly load the 'applicationBy' relationship for each application
+    $applications = $proforma->applications()
+        ->with(['prices', 'applicationBy']) // ✅ Added 'applicationBy'
+        ->orderBy('created_at', 'desc')
+        ->get()
+        ->sortByDesc(function($application) {
+            // This sorting logic remains the same
+            if ($application->applicationBy->role === 'shop' && $application->prices->count() > 0) {
+                $subtotal = $application->prices->sum('part_total');
+                $discountPct = (float)($application->discount ?? 0);
+                $discountAmt = ($subtotal * $discountPct) / 100;
+                return $subtotal - $discountAmt;
+            }
+            return $application->amount ?? 0;
+        });
+
+    return view('spare-part.received-details', compact('proforma', 'applications'));
+});
+        Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/inbox', function () {
+            return view('spare-part.inbox');
+        });
+
+        Route::get('/other-proformas', function () {
+            $proformas = Proforma::fromOthers()
+                ->where('status', 'published')
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+
+            return view('spare-part.others', compact('proformas'));
+        });
+
+Route::get('/create-file', function () {
+    return view('spare-part.posts');
+})->name('garage.create-file');
+
+// use Illuminate\Http\Request;
+// use Illuminate\Support\Facades\DB;
+// use Illuminate\Support\Facades\Log;
+// use Illuminate\Support\Facades\Storage;
+// use App\Jobs\AutoSelectProformaOffers;
+// use App\Models\Proforma;
+// use App\Http\Middleware\GarageMiddleware;
+// use App\Http\Controllers\TempController;
+
+Route::prefix('garage')
+    ->middleware([GarageMiddleware::class])
+    ->group(function () {
+
+        /**
+         * Display the proforma creation form
+         */
+        Route::get('create-file', function () {
+            Log::info('🔍 GET request to garage/create-file');
+            return view('spare-part.posts');
+        })->name('garage.create-file');
+
+        /**
+         * Handle FilePond uploads
+         */
+        Route::post('/upload-part-image', [TempController::class, 'uploadPartImage'])->name('garage.upload-part-image');
+        Route::delete('/delete-part-image', [TempController::class, 'revert'])->name('garage.delete-part-image');
+
+        /**
+         * Handle form submission (POST)
+         */
+        Route::post('create-file', function (Request $request) {
+            Log::info('📝 POST request to garage/create-file received', [
+                'user_id' => auth()->id(),
+                'has_files' => $request->hasFile('parts.photo'),
+                'all_input_keys' => array_keys($request->all()),
+                'files_count' => $request->hasFile('parts.photo') ? count($request->file('parts.photo')) : 0,
+            ]);
+
+            Log::debug('📥 Full Request Data Snapshot', [
+                'raw_input' => $request->except(['voice_note']),
+                'voice_note_present' => $request->filled('voice_note'),
+            ]);
+
+            // 🔹 Step 1 — Validate input
+            try {
+                $validatedData = $request->validate([
+                    'number_of_proformas' => ['required', 'integer', 'min:-1', 'max:4'],
+                    'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48,72'],
+                    'brand_id' => ['required', 'integer', 'exists:brands,id'],
+                    'car_type' => 'required|in:ICE,EV,Hybrid,Others',
+                    'model' => ['required', 'string', 'max:255'],
+                    'year' => ['required', 'regex:/^(#N\/A|19\d{2}|20\d{2})$/'],
+                    'customer_phone_number' => ['required', 'string'],
+                    'license_plate_number' => ['required', 'string'],
+                    'chassis_number' => ['required', 'string'],
+                    'parts.condition' => ['required', 'array', 'min:1'],
+                    'parts.condition.*' => ['required', 'string', 'in:New'],
+                    'parts.number' => ['required', 'array', 'min:1'],
+                    'parts.number.*' => ['required', 'string'],
+                    'parts.grade' => ['required', 'array', 'min:1'],
+                    'parts.grade.*' => ['required', 'string'],
+                    'parts.country' => ['sometimes', 'array'],
+                    'parts.country.*' => ['nullable', 'string'],
+                    'parts.quantity' => ['sometimes', 'array'],
+                    'parts.quantity.*' => ['nullable', 'integer'],
+                    'parts.component' => ['required', 'array', 'min:1'],
+                    'parts.component.*' => ['required', 'string', 'in:Body Parts,Mechanical Parts'],
+                    // ⚠️ FilePond now sends uploaded paths, not actual image files
+                    'parts.photo' => ['nullable', 'array'],
+                    'parts.photo.*' => ['nullable', 'array'],
+                    'parts.photo.*.*' => ['nullable', 'string'],
+                    'voice_note' => ['nullable', 'string'],
+                ]);
+
+                Log::info('✅ Validation passed successfully');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                Log::error('❌ Validation failed', [
+                    'errors' => $e->errors(),
+                    'input_data' => $request->except(['parts.photo', 'voice_note'])
+                ]);
+                return redirect()->back()->withErrors($e->errors())->withInput();
+            }
+
+            // 🔹 Step 2 — Process transaction
+            try {
+                DB::beginTransaction();
+
+                $isEteraChereta = $request->input('number_of_proformas') === '-1';
+                $eteraHours = (int) $request->input('etera_chereta_hours', 24);
+                $requiredShops = $isEteraChereta ? 0 : (int) $request->input('number_of_proformas', 3);
+                $timerMinutes = $isEteraChereta ? $eteraHours * 60 : null;
+                $timerExpiresAt = $isEteraChereta ? now()->addMinutes($timerMinutes) : null;
+
+                $proforma = Proforma::create([
+                    'poster_id' => auth()->id(),
+                    'file_number' => '#' . auth()->id() . '-' . substr(time(), -4),
+                    'car_brand_id' => $request->brand_id,
+                    'car_type' => $request->input('car_type', 'ICE'),
+                    'customer_name' => auth()->user()->name,
+                    'customer_phone_number' => $request->customer_phone_number,
+                    'license_plate_number' => $request->license_plate_number,
+                    'chassis_number' => $request->chassis_number,
+                    'year' => $request->year,
+                    'model' => $request->model,
+                    'required_number_of_shops' => $requiredShops,
+                    'required_number_of_garages' => 0,
+                    'timer_duration' => $timerMinutes,
+                    'timer_expires_at' => $timerExpiresAt,
+                ]);
+
+                // 🔹 Step 3 — Handle spare parts
+                // 🔹 Attach FilePond async-uploaded images (using PartsImage model)
+// 🔹 Step 3 — Handle spare parts
+$partsData = $request->input('parts');
+
+foreach ($partsData['condition'] as $index => $condition) {
+    $part = $proforma->parts()->create([
+        'number'    => $partsData['number'][$index] ?? null,
+        'grade'     => $partsData['grade'][$index] ?? null,
+        'country'   => $partsData['country'][$index] ?? null,
+        'quantity'  => $partsData['quantity'][$index] ?? 1,
+        'condition' => $condition,
+        'component' => $partsData['component'][$index] ?? null,
+    ]);
+
+    Log::info('✅ Proforma part created', ['part_id' => $part->id, 'index' => $index]);
+
+    // 🔹 Move temp images and attach them
+    if (isset($partsData['photo'][$index]) && is_array($partsData['photo'][$index])) {
+        foreach ($partsData['photo'][$index] as $photoPath) {
+            if (!empty($photoPath) && str_contains($photoPath, 'uploads/temp/')) {
+                $tempPath = $photoPath;
+                $filename = basename($tempPath);
+                $finalPath = 'uploads/part-images/' . $filename;
+
+                // Move the file
+                if (Storage::disk('public')->exists($tempPath)) {
+                    Storage::disk('public')->move($tempPath, $finalPath);
+
+                    \App\Models\PartsImage::create([
+                        'proforma_part_id' => $part->id,
+                        'image_path' => $finalPath,
+                    ]);
+
+                    Log::info('✅ Temp image moved and saved', [
+                        'from' => $tempPath,
+                        'to' => $finalPath,
+                        'proforma_part_id' => $part->id,
+                    ]);
+                } else {
+                    Log::warning('⚠️ Temp image not found', ['path' => $tempPath]);
+                }
+            }
+        }
+    } else {
+        Log::warning('⚠️ No images found for part', ['index' => $index]);
+    }
+}
+
+
+                // 🔹 Step 4 — Voice note (optional)
+                if ($request->filled('voice_note')) {
+                    $base64 = $request->voice_note;
+                    
+                    // Extract the extension from the MIME type (handles codecs like audio/webm;codecs=opus)
+                    if (preg_match('#^data:audio/([^;,]+)#i', $base64, $matches)) {
+                        $extension = $matches[1]; // e.g. webm, mp3, wav
+                    } else {
+                        $extension = 'webm'; // default
+                    }
+                    
+                    // Remove the entire data URI prefix including any codec specifications
+                    // Pattern matches: data:audio/webm;codecs=opus;base64, OR data:audio/webm;base64,
+                    $audioData = base64_decode(preg_replace('#^data:audio/[^;]+[^,]*,#i', '', $base64));
+                    
+                    if ($audioData === false) {
+                        Log::error('❌ Voice note base64 decoding failed');
+                    } else {
+                        $filename = 'voice_note_' . time() . '_' . uniqid() . '.' . $extension;
+                        Storage::disk('public')->put('voice_notes/' . $filename, $audioData);
+                        $proforma->update(['voice_note_path' => 'voice_notes/' . $filename]);
+                        Log::info('🎤 Voice note saved', ['filename' => $filename, 'size' => strlen($audioData)]);
+                    }
+                }
+
+                DB::commit();
+
+                // 🔹 Step 5 — Schedule Etera-Chereta AutoSelect
+                if ($isEteraChereta) {
+                    AutoSelectProformaOffers::dispatch($proforma->id)->delay(now()->addMinutes($timerMinutes));
+                }
+
+                return redirect()->back()->with('success', 'Proforma created successfully!');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('❌ Proforma creation failed', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return redirect()->back()->withErrors(['general' => 'An unexpected error occurred.'])->withInput();
+            }
+        })->name('garage.create-file');
+    });
+
+        Route::get('/profile', function () {
+            return view('spare-part.profile');
+        });
+
+
+
+
+        
+    });
+
+Route::post('apply/{proforma}', [ProformaApplicationController::class, 'store'])->name('proforma.apply');
+
+Route::prefix('spare-part-shops')
+    ->middleware([ShopMiddleware::class])
+    ->group(function () {
+        Route::get('/proformas', function () {
+            return view('spare-part.proformas');
+        });
+        Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/inbox', function () {
+            return view('spare-part.inbox');
+        });
+        Route::get('/other-proformas', function () {
+            $proformas = Proforma::fromOthers()
+                ->where('status', 'published')
+                ->orderBy('created_at', 'desc')
+                ->paginate(10);
+
+            return view('spare-part.others', compact('proformas'));
+        });
+        
+        Route::get('/unified-proformas', function () {
+            return view('spare-part.unified');
+        });
+
+        Route::get('proforma-details', function (Request $request) {
+            $proforma = \App\Models\Proforma::find($request->query('proforma'));
+            if (! $proforma) {
+                return redirect()->back();
+            }
+
+            // Reset inbox count when user opens proforma details
+            if (auth()->check()) {
+                // Remove the proforma from user's inbox to reset the ticker
+                \App\Models\Inbox::where('user_id', auth()->id())
+                    ->where('proforma_id', $proforma->id)
+                    ->delete();
+            }
+
+            return view('spare-part.details', compact('proforma'));
+        })->name('proforma-details');
+
+Route::post('apply/{proforma}', function (
+    Request $request,
+    Proforma $proforma
+) {
+    $request->validate([
+        'amount' => 'required|numeric|min:1',
+    ]);
+    $application = $proforma->applications()->create([
+        'application_by' => auth()->check()
+            ? Auth::id()
+            : \App\Models\User::Where('role', 'shop')->first()->id,
+        'from' => 'shop',
+        'amount' => $request->amount,
+    ]);
+
+    // Check if proforma should be closed (both garage and shop requirements met)
+    $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
+    $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
+    $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+    $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+    
+    // Check if BOTH garage and shop requirements are met and not an Etera-Chereta (0,0) proforma
+    $isEteraChereta = ($requiredGarages + $requiredShops) === 0;
+    $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
+    $shopRequirementMet = $requiredShops === 0 || $shopApplicationsCount >= $requiredShops;
+    
+    if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet && ($requiredGarages > 0 || $requiredShops > 0)) {
+        if ($proforma->selected()) {
+            $proforma->update(['status' => 'closed']);
+        } 
+        // The following line is what you need to remove or change:
+        // else {
+        //    $proforma->update(['status' => 'completed']);
+        // }
+        // The block is no longer needed since you don't want to set the status to 'completed'.
+        $proforma->save();
+    }
+
+    return redirect('/role/proformas')
+        ->with('success', 'Application submitted successfully');
+});
+
+        Route::get('/profile', function () {
+            return view('spare-part.profile');
+        });
+    });
+
+Route::get('/others', function () {
+    return view('spare-part.others');
+});
+
+Route::get('/others-details', function () {
+    return view('spare-part.others-details');
+});
+
+Route::get('/my-files', function () {
+    return view('employee.my-proforma.view');
+});
+
+Route::post('/proformas', function (Request $request) {
+    $proforma = \App\Models\Proforma::findOrFail($request->proforma);
+
+    if ($request->spare_part_partners) {
+        $uniqueSparePartPartners = array_unique($request->spare_part_partners);
+
+        foreach ($uniqueSparePartPartners as $inbox) {
+            Inbox::firstOrCreate([
+                'proforma_id' => $proforma->id,
+                'user_id' => $inbox,
+            ]);
+        }
+    }
+
+    if ($request->garage_partners) {
+        $uniqueGaragePartners = array_unique($request->garage_partners);
+
+        foreach ($uniqueGaragePartners as $inbox) {
+            Inbox::firstOrCreate([
+                'proforma_id' => $proforma->id,
+                'user_id' => $inbox,
+            ]);
+        }
+    }
+
+    $proforma->update(['status' => 'published']);
+
+    return redirect()->back()->with('success', 'Proforma updated successfully!');
+})->name('proforma.store');
+
+Route::post('/notifications/mark-all-read', [NotificationController::class, 'markAllRead'])->name('markAllNotificationsRead');
+
+Route::get('/debug-shops-and-brands', function () {
+    $shops = \App\Models\User::where('role', 'shop')->with('brands')->get();
+    $brands = \App\Models\Brand::all();
+    return view('debug.shops-and-brands', compact('shops', 'brands'));
+});
+
+Route::post('proforma/{id}', function($id, \Illuminate\Http\Request $request){
+// ... existing code ...
+});
+// Admin Analytics Routes
+Route::middleware(['auth'])->group(function () {
+    Route::get('/admin/analytics', [App\Http\Controllers\AdminAnalyticsController::class, 'index'])
+        ->name('admin.analytics.index');
+    Route::post('/admin/analytics/mark-paid/{userId}', [App\Http\Controllers\AdminAnalyticsController::class, 'markPaid'])
+        ->name('admin.analytics.markPaid');
+    Route::post('/admin/analytics/receieve/{userId}', [App\Http\Controllers\AdminAnalyticsController::class, 'receivePayment'])
+        ->name('admin.analytics.receivePayment');
+    Route::get('/admin/analytics/export/{type}', [App\Http\Controllers\AdminAnalyticsController::class, 'exportData'])
+        ->name('admin.analytics.export');
+});
+
+
+
+// Admin Settings Routes
+Route::middleware(['auth'])->group(function () {
+
+    // Admin Settings (Cost + Commission)
+    Route::get('/admin/settings', [App\Http\Controllers\AdminSettingsController::class, 'index'])
+        ->name('admin.settings.index');
+
+    // Cost
+    Route::post('/admin/settings/costs', [App\Http\Controllers\AdminSettingsController::class, 'storeCost'])
+        ->name('admin.settings.store');
+
+    Route::delete('/admin/settings/costs/{cost}', [App\Http\Controllers\AdminSettingsController::class, 'destroyCost'])
+        ->name('admin.settings.destroy');
+
+    // Commission
+    Route::post('/admin/settings/commissions', [App\Http\Controllers\AdminSettingsController::class, 'storeCommission'])
+        ->name('admin.commission.store');
+});
+
+
+// Admin User Approval Routes
+Route::get('/admin/users/approvals', [App\Http\Controllers\AdminController::class, 'userApprovals'])->name('admin.users.approvals');
+Route::patch('/admin/users/{id}/approve', [App\Http\Controllers\AdminController::class, 'approveUser'])->name('admin.users.approve');
+Route::patch('/admin/users/{id}/revoke', [App\Http\Controllers\AdminController::class, 'revokeUser'])->name('admin.users.revoke');
+Route::get('/admin/users/{id}/view', [App\Http\Controllers\AdminController::class, 'viewUser'])->name('admin.users.view');
+Route::delete('/admin/users/{id}/delete', [App\Http\Controllers\AdminController::class, 'deleteUser'])->name('admin.users.delete');
+
+// Admin Proforma Routes
+Route::get('/admin/proformas/{id}/details', [App\Http\Controllers\AdminController::class, 'proformaDetails'])->name('admin.proformas.details');
+Route::delete('/admin/proformas/{id}', [App\Http\Controllers\AdminController::class, 'deleteProforma'])->name('admin.proformas.delete');
+Route::post('/admin/proformas/{id}/approve', [App\Http\Controllers\AdminController::class, 'approveProforma'])->name('admin.proformas.approve');
+Route::post('/admin/applications/{id}/accept', [App\Http\Controllers\AdminController::class, 'acceptApplication'])->name('admin.applications.accept');
+Route::post('/admin/applications/{id}/reject', [App\Http\Controllers\AdminController::class, 'rejectApplication'])->name('admin.applications.reject');
+Route::post('/admin/proformas/{proforma}/reject', [ProformaController::class, 'reject'])->name('proformas.reject');
+
+ 
+
+// Admin Send to Owner Routes
+Route::post('/admin/proformas/{id}/send-to-garage', [App\Http\Controllers\AdminController::class, 'sendToGarage'])->name('admin.proformas.send-to-garage');
+Route::post('/admin/proformas/{id}/send-to-insurance', [App\Http\Controllers\AdminController::class, 'sendToInsurance'])->name('admin.proformas.send-to-insurance');
+Route::post('/admin/proformas/{id}/send-to-business-owner', [App\Http\Controllers\AdminController::class, 'sendToBusinessOwner'])->name('admin.proformas.send-to-business-owner');
+Route::post('/admin/proformas/{id}/send-to-spare-part', [App\Http\Controllers\AdminController::class, 'sendToSparePart'])->name('admin.proformas.send-to-spare-part');
+Route::prefix('business-owner')
+    ->middleware([\App\Http\Middleware\BusinessOwnerMiddleware::class])
+    ->group(function () {
+        // Create file (GET)
+        Route::get('create-file', function () {
+            $userIsTest = auth()->user()?->is_test ?? false;
+
+$brands = \App\Models\Brand::where('is_test', $userIsTest)
+    ->orderBy('name', 'asc')
+    ->get();
+ 	    $parts = \App\Models\CarPart::orderBy('name', 'asc')->get();
+            $spare_part_partners = auth()->user()->sparePartPartners();
+            $garage_partners = auth()->user()->garagePartners();
+
+            return view('business-owner.create-file', compact('brands','parts','spare_part_partners','garage_partners'));
+        })->name('business-owner.create-file');
+        
+Route::prefix('business-owner')
+    ->middleware([\App\Http\Middleware\BusinessOwnerMiddleware::class])
+    ->group(function () {
+
+        /**
+         * Display the proforma creation form
+         */
+        Route::get('create-file', function () {
+            Log::info('🔍 GET request to business-owner/create-file');
+            $brands = Brand::orderBy('name', 'asc')->get();
+            $parts = CarPart::orderBy('name', 'asc')->get();
+            $spare_part_partners = auth()->user()->sparePartPartners();
+            $garage_partners = auth()->user()->garagePartners();
+
+            return view('business-owner.create-file', compact('brands','parts','spare_part_partners','garage_partners'));
+        })->name('business-owner.create-file');
+        Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
+
+    Log::info("🔵 Route hit: Start request-close", [
+        'proforma_id' => $proformaId,
+    ]);
+
+    // Try to fetch the model normally
+    $proforma = \App\Models\Proforma::find($proformaId);
+
+    if (!$proforma) {
+        Log::error("❌ Proforma not found!", [
+            'proforma_id' => $proformaId,
+        ]);
+
+        return back()->with('error', 'Proforma not found.');
+    }
+
+    Log::info("🟡 Proforma loaded", [
+        'id' => $proforma->id,
+        'current_close_request' => $proforma->close_request,
+    ]);
+
+    // Try updating
+    $updated = $proforma->update([
+        'close_request' => true,
+    ]);
+
+    Log::info("🟢 Update executed", [
+        'result' => $updated,
+        'new_close_request' => $proforma->fresh()->close_request,
+    ]);
+
+    return back()->with('success', 'Close request submitted.');
+})->name('business-owner.proforma.request-close');
+
+        /**
+         * Handle FilePond uploads
+         */
+        Route::post('/upload-part-image', [TempController::class, 'uploadPartImage'])->name('business-owner.upload-part-image');
+        Route::delete('/delete-part-image', [TempController::class, 'revert'])->name('business-owner.delete-part-image');
+
+        /**
+         * Handle form submission (POST)
+         */
+        Route::post('create-file', function (Request $request) {
+            Log::info('📝 POST request to business-owner/create-file received', [
+                'user_id' => auth()->id(),
+                'user_type' => 'business-owner',
+                'has_files' => $request->hasFile('parts.photo'),
+                'all_input_keys' => array_keys($request->all()),
+                'files_count' => $request->hasFile('parts.photo') ? count($request->file('parts.photo')) : 0,
+            ]);
+
+            Log::debug('📥 Full Request Data Snapshot', [
+                'raw_input' => $request->except(['voice_note']),
+                'voice_note_present' => $request->filled('voice_note'),
+            ]);
+
+            // 🔹 Step 1 — Validate input
+            try {
+                $validatedData = $request->validate([
+                    'number_of_proformas' => ['required', 'integer', 'min:-1', 'max:4'],
+                    'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48'],
+                    'brand_id' => ['required', 'integer', 'exists:brands,id'],
+                    'car_type' => 'required|in:ICE,EV,Hybrid,Others',
+
+                    'model' => ['required', 'string', 'max:255'],
+                    'year' => ['required', 'regex:/^(#N\/A|19\d{2}|20\d{2})$/'],
+                    'customer_phone_number' => ['required', 'string'],
+                    'license_plate_number' => ['required', 'string'],
+                    'chassis_number' => ['required', 'string'],
+                    'parts.condition' => ['required', 'array', 'min:1'],
+                    'parts.condition.*' => ['required', 'string', 'in:New'],
+                    'parts.number' => ['required', 'array', 'min:1'],
+                    'parts.number.*' => ['required', 'string'],
+                    'parts.grade' => ['required', 'array', 'min:1'],
+                    'parts.grade.*' => ['required', 'string'],
+                    'parts.country' => ['sometimes', 'array'],
+                    'parts.country.*' => ['nullable', 'string'],
+                    'parts.quantity' => ['sometimes', 'array'],
+                    'parts.quantity.*' => ['nullable', 'integer'],
+                    'parts.component' => ['required', 'array', 'min:1'],
+                    'parts.component.*' => ['required', 'string', 'in:Body Parts,Mechanical Parts'],
+                    // ⚠️ FilePond now sends uploaded paths, not actual image files
+                    'parts.photo' => ['nullable', 'array'],
+                    'parts.photo.*' => ['nullable', 'array'],
+                    'parts.photo.*.*' => ['nullable', 'string'],
+                    'voice_note' => ['nullable', 'string'],
+                ]);
+
+                Log::info('✅ Validation passed successfully for business-owner');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                Log::error('❌ Validation failed for business-owner', [
+                    'errors' => $e->errors(),
+                    'input_data' => $request->except(['parts.photo', 'voice_note'])
+                ]);
+                return redirect()->back()->withErrors($e->errors())->withInput();
+            }
+
+            // 🔹 Step 2 — Process transaction
+            try {
+                DB::beginTransaction();
+
+                $isEteraChereta = $request->input('number_of_proformas') === '-1';
+                $eteraHours = (int) $request->input('etera_chereta_hours', 24);
+                $requiredShops = $isEteraChereta ? 0 : (int) $request->input('number_of_proformas', 3);
+                $timerMinutes = $isEteraChereta ? $eteraHours * 60 : null;
+                $timerExpiresAt = $isEteraChereta ? now()->addMinutes($timerMinutes) : null;
+
+                $proforma = Proforma::create([
+                    'poster_id' => auth()->id(),
+                    'file_number' => '#' . auth()->id() . '-' . substr(time(), -4),
+                    'car_brand_id' => $request->brand_id,
+                    'car_type' => $request->input('car_type', 'ICE'),
+
+                    'customer_name' => auth()->user()->name,
+                    'customer_phone_number' => $request->customer_phone_number,
+                    'license_plate_number' => $request->license_plate_number,
+                    'chassis_number' => $request->chassis_number,
+                    'year' => $request->year,
+                    'model' => $request->model,
+                    'required_number_of_shops' => $requiredShops,
+                    'required_number_of_garages' => 0,
+                    'timer_duration' => $timerMinutes,
+                    'timer_expires_at' => $timerExpiresAt,
+                ]);
+
+                Log::info('✅ Proforma created for business-owner', ['proforma_id' => $proforma->id]);
+
+                // 🔹 Step 3 — Handle spare parts with FilePond image handling
+                $partsData = $request->input('parts');
+
+                foreach ($partsData['condition'] as $index => $condition) {
+                    $part = $proforma->parts()->create([
+                        'number'    => $partsData['number'][$index] ?? null,
+                        'grade'     => $partsData['grade'][$index] ?? null,
+                        'country'   => $partsData['country'][$index] ?? null,
+                        'quantity'  => $partsData['quantity'][$index] ?? 1,
+                        'condition' => $condition,
+                        'component' => $partsData['component'][$index] ?? null,
+                    ]);
+
+                    Log::info('✅ Proforma part created for business-owner', [
+                        'part_id' => $part->id, 
+                        'index' => $index,
+                        'part_number' => $part->number
+                    ]);
+
+                    // 🔹 Move temp images and attach them (FilePond async uploads)
+                    if (isset($partsData['photo'][$index]) && is_array($partsData['photo'][$index])) {
+                        foreach ($partsData['photo'][$index] as $photoPath) {
+                            if (!empty($photoPath) && str_contains($photoPath, 'uploads/temp/')) {
+                                $tempPath = $photoPath;
+                                $filename = basename($tempPath);
+                                $finalPath = 'uploads/part-images/' . $filename;
+
+                                // Move the file from temp to permanent location
+                                if (Storage::disk('public')->exists($tempPath)) {
+                                    Storage::disk('public')->move($tempPath, $finalPath);
+
+                                    \App\Models\PartsImage::create([
+                                        'proforma_part_id' => $part->id,
+                                        'image_path' => $finalPath,
+                                    ]);
+
+                                    Log::info('✅ Temp image moved and saved for business-owner', [
+                                        'from' => $tempPath,
+                                        'to' => $finalPath,
+                                        'proforma_part_id' => $part->id,
+                                    ]);
+                                } else {
+                                    Log::warning('⚠️ Temp image not found for business-owner', ['path' => $tempPath]);
+                                }
+                            }
+                        }
+                    } else {
+                        Log::info('ℹ️ No images found for part in business-owner request', ['index' => $index]);
+                    }
+                }
+
+                // 🔹 Step 4 — Voice note (optional)
+                if ($request->filled('voice_note')) {
+                    try {
+                        $base64 = $request->voice_note;
+                        
+                        // Extract the extension from the MIME type (handles codecs like audio/webm;codecs=opus)
+                        if (preg_match('#^data:audio/([^;,]+)#i', $base64, $matches)) {
+                            $extension = $matches[1]; // e.g. webm, mp3, wav
+                        } else {
+                            $extension = 'webm'; // default
+                        }
+                        
+                        // Remove the entire data URI prefix including any codec specifications
+                        $audioData = base64_decode(preg_replace('#^data:audio/[^;]+[^,]*,#i', '', $base64));
+                        
+                        if ($audioData === false) {
+                            Log::error('❌ Voice note base64 decoding failed for business-owner');
+                        } else {
+                            $filename = 'voice_note_' . time() . '_' . uniqid() . '.' . $extension;
+                            Storage::disk('public')->put('voice_notes/' . $filename, $audioData);
+                            $proforma->update(['voice_note_path' => 'voice_notes/' . $filename]);
+                            Log::info('🎤 Voice note saved for business-owner', ['filename' => $filename, 'size' => strlen($audioData)]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('❌ Error saving voice note for business-owner', [
+                            'error' => $e->getMessage()
+                        ]);
+                    }
+                }
+
+                DB::commit();
+
+                // 🔹 Step 5 — Schedule Etera-Chereta AutoSelect
+                if ($isEteraChereta) {
+                    AutoSelectProformaOffers::dispatch($proforma->id)->delay(now()->addMinutes($timerMinutes));
+                    Log::info('⏰ Etera-Chereta scheduled for business-owner', [
+                        'proforma_id' => $proforma->id,
+                        'delay_minutes' => $timerMinutes
+                    ]);
+                }
+
+                return redirect()->back()->with('success', 'Proforma created successfully!');
+            } catch (\Exception $e) {
+                DB::rollBack();
+                Log::error('❌ Proforma creation failed for business-owner', [
+                    'error' => $e->getMessage(),
+                    'trace' => $e->getTraceAsString()
+                ]);
+                return redirect()->back()->withErrors(['general' => 'An unexpected error occurred.'])->withInput();
+            }
+        })->name('business-owner.create-file');
+    });
+
+	// Received Proforma
+Route::get('received-proformas', function () {
+    $user = auth()->user();
+
+    // Mark all new proformas for this user as viewed
+    \App\Models\Proforma::where('poster_id', $user->id)
+        ->where('status', 'completed')
+        ->where('verified', true)
+        ->where('is_new', true)
+        ->update(['is_new' => false]);
+
+    // Fetch updated proformas
+    $proformas = \App\Models\Proforma::with('applications')
+        ->where('status', 'completed')
+        ->where('verified', true)
+        ->where('poster_id', $user->id)
+        ->orderBy('updated_at', 'desc')
+        ->paginate(10);
+
+    return view('business-owner.proformas', compact('proformas'));
+});
+
+
+		// Proforma details
+Route::get('proforma-details', function (Request $request) {
+    $proforma = Proforma::with('proformaInvoice')
+        ->findOrFail($request->query('proforma_id'));
+    
+    // This line fetches the ProformaInvoice and assigns it to a new variable.
+    $reciept = $proforma->proformaInvoice;
+
+    // Sort applications by actual final price
+    $applications = $proforma->applications()->with('prices')->get()->sortBy(function($application) {
+        // For shops: calculate final price from parts minus discount
+        if ($application->from === 'shop' && $application->prices->count() > 0) {
+            $subtotal = $application->prices->sum('part_total');
+            $discountPct = (float)($application->discount ?? 0);
+            $discountAmt = ($subtotal * $discountPct) / 100;
+            return $subtotal - $discountAmt;
+        }
+        // For garages: use amount field
+        return $application->amount ?? 0;
+    });
+
+    // Sort shops separately
+    $shops = $proforma->applications()->where('from', 'shop')->with('prices')->get()->sortBy(function($application) {
+        if ($application->prices->count() > 0) {
+            $subtotal = $application->prices->sum('part_total');
+            $discountPct = (float)($application->discount ?? 0);
+            $discountAmt = ($subtotal * $discountPct) / 100;
+            return $subtotal - $discountAmt;
+        }
+        return $application->amount ?? 0;
+    });
+
+    // Sort garages separately
+    $garages = $proforma->applications()->where('from', 'garage')->get()->sortBy('amount');
+
+    return view(
+        'business-owner.proforma-details',
+        compact('proforma', 'applications', 'shops', 'garages', 'reciept')
+    );
+});
+
+		// Balance
+		Route::get('/balance', function () {
+			return view('business-owner.balance');
+		});
+
+		// Inbox
+		Route::get('/profile', function () {
+		    
+			return view('business-owner.profile');
+		});
+
+		Route::get('/', function () {
+			return view('business-owner.index');
+		});
+
+		/********************FILE RELATED ROUTES*****************************/
+		Route::post('upload/{type}', [TemporaryFileController::class, 'store']);
+		Route::delete('delete', [TemporaryFileController::class, 'destroy']);
+	});
+
+// Etera-Chereta Service Status Route
+Route::get('/etera-chereta/status', function () {
+    try {
+        $cacheKey = 'etera_chereta_service_running';
+        $isRunning = Cache::has($cacheKey);
+        $lastCheck = Cache::get($cacheKey);
+        
+        // Check if the process is actually running
+        $processRunning = false;
+        if (PHP_OS_FAMILY === 'Windows') {
+            if (function_exists('shell_exec')) {
+                $output = shell_exec('tasklist /FI "IMAGENAME eq php.exe" /FO CSV 2>nul');
+                $processRunning = strpos($output, 'etera-chereta:check-expiration') !== false;
+            } else {
+                $processRunning = false;
+            }
+        } else {
+            if (function_exists('shell_exec')) {
+                $output = shell_exec('ps aux | grep "etera-chereta:check-expiration" | grep -v grep');
+                $processRunning = !empty($output);
+            } else {
+                $processRunning = false;
+            }
+        }
+        
+        $status = [
+            'status' => $isRunning && $processRunning ? 'running' : 'stopped',
+            'last_check' => $lastCheck ? $lastCheck->toISOString() : null,
+            'auto_start_enabled' => true,
+            'platform' => PHP_OS_FAMILY,
+            'process_running' => $processRunning,
+            'cache_status' => $isRunning ? 'active' : 'inactive',
+            'timestamp' => now()->toISOString(),
+        ];
+        
+        return response()->json($status);
+        
+    } catch (\Exception $e) {
+        return response()->json([
+            'status' => 'error',
+            'error' => $e->getMessage(),
+            'timestamp' => now()->toISOString(),
+        ], 500);
+    }
+})->name('etera-chereta.status');
+
+
+
+
+// =====================
+// Accountant Dashboard
+// =====================
+Route::middleware(['auth'])->group(function () {
+
+    Route::get('/finance',
+        [App\Http\Controllers\AdminAnalyticsController::class, 'index']
+    )->name('accountant.dashboard');
+
+    Route::get('/finance/mark-paid/{userId}',
+        [App\Http\Controllers\AdminAnalyticsController::class, 'markPaid']
+    )->name('finance.markPaid');
+    
+        Route::post('/finance/receieve/{userId}', [App\Http\Controllers\AdminAnalyticsController::class, 'receivePayment'])
+        ->name('finance.receivePayment');
+
+});
+
+
+
+
+Route::prefix('role')
+    ->middleware(['auth'])
+    ->group(function () {
+        Route::get('/proformas', function () {
+            $user = auth()->user();
+            
+            if ($user->role === 'garage') {
+                return redirect('/garage/proformas');
+            } elseif ($user->role === 'shop') {
+                return redirect('/spare-part-shops/proformas');
+            } elseif ($user->role === 'insurance') {
+                return redirect('/insurance/received-proformas');
+            } else {
+                return redirect('/');
+            }
+        })->name('role.proformas');
+    });
+
+    // Temporary file upload routes
+    Route::post('/upload-temp', function(\Illuminate\Http\Request $request) {
+        try {
+            $tempService = new \App\Services\TemporaryFileService();
+            $folder = $tempService->storeFile($request->file('filepond'), $request->input('type', 'file'));
+            
+            return response()->json(['folder' => $folder]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Temporary file upload error: ' . $e->getMessage());
+            return response()->json(['error' => 'Upload failed'], 500);
+        }
+    })->name('upload.temp');
+    
+    Route::delete('/upload-temp', function(\Illuminate\Http\Request $request) {
+        try {
+            $tempService = new \App\Services\TemporaryFileService();
+            $tempService->deleteFile($request->input('folder'));
+            
+            return response()->json(['success' => true]);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error('Temporary file delete error: ' . $e->getMessage());
+            return response()->json(['error' => 'Delete failed'], 500);
+        }
+    })->name('delete.temp');
+    
+    // Debug route for testing part prices
+    Route::get('/debug/part-prices/{applicationId}', function($applicationId) {
+        $application = \App\Models\ProformaApplication::with('prices', 'proforma.parts')->findOrFail($applicationId);
+        
+        return response()->json([
+            'application_id' => $application->id,
+            'proforma_id' => $application->proforma_id,
+            'from' => $application->from,
+            'amount' => $application->amount,
+            'discount' => $application->discount,
+            'prices_count' => $application->prices->count(),
+            'prices' => $application->prices->map(function($price) {
+                return [
+                    'id' => $price->id,
+                    'car_part_id' => $price->car_part_id,
+                    'quantity' => $price->quantity,
+                    'unit_price' => $price->unit_price,
+                    'part_total' => $price->part_total,
+                ];
+            }),
+            'proforma_parts' => $application->proforma->parts->map(function($part) {
+                return [
+                    'id' => $part->id,
+                    'component' => $part->component,
+                    'quantity' => $part->quantity,
+                ];
+            })
+        ]);
+    })->name('debug.part-prices');
+    
+    // Debug route for testing voice notes
+    Route::get('/debug/voice-notes/{applicationId}', function($applicationId) {
+        $application = \App\Models\ProformaApplication::with('media', 'applicationBy')->findOrFail($applicationId);
+        
+        return response()->json([
+            'application_id' => $application->id,
+            'applicant_name' => $application->applicationBy->name,
+            'applicant_role' => $application->applicationBy->role,
+            'voice_notes_count' => $application->getMedia('voice_notes')->count(),
+            'voice_notes' => $application->getMedia('voice_notes')->map(function($voiceNote) {
+                return [
+                    'id' => $voiceNote->id,
+                    'file_name' => $voiceNote->file_name,
+                    'mime_type' => $voiceNote->mime_type,
+                    'size' => $voiceNote->size,
+                    'url' => $voiceNote->getUrl(),
+                    'created_at' => $voiceNote->created_at,
+                ];
+            }),
+            'all_media_count' => $application->getMedia()->count(),
+            'all_media' => $application->getMedia()->map(function($media) {
+                return [
+                    'id' => $media->id,
+                    'collection_name' => $media->collection_name,
+                    'file_name' => $media->file_name,
+                    'mime_type' => $media->mime_type,
+                    'url' => $media->getUrl(),
+                ];
+            })
+        ]);
+    })->name('debug.voice-notes');
+
+// Include Manager & Operator Routes
+require __DIR__.'/manager_operator_routes.php';

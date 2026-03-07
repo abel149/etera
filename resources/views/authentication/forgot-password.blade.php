@@ -1,0 +1,111 @@
+@extends('layouts.authentication')
+
+@section('title', 'Forgot Password — ETERA')
+
+@section('branding')
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
+        Reset Your Password
+    </h2>
+    <p class="etera-subtext" style="text-align:center; max-width: 360px;">
+        Enter your registered email and we'll send you a reset link to get back into your account.
+    </p>
+@endsection
+
+@section('content')
+<div id="forgot-password-app"></div>
+
+<script>
+    window.__ETERA__ = {
+        csrfToken: @json(csrf_token()),
+        forgotPasswordUrl: @json(url('/forgot-password')),
+        loginUrl: '/login',
+        oldEmail: @json(old('email', '')),
+        logoUrl: @json(asset('assets/images/transparent.svg')),
+    };
+</script>
+
+@verbatim
+<script type="text/babel">
+    const { useState, useRef } = React;
+
+    function LockIcon() {
+        return (
+            <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" style={{ color: 'rgba(13, 148, 136, 0.8)' }}>
+                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+        );
+    }
+
+    function ForgotPasswordForm() {
+        const data = window.__ETERA__;
+        const [email, setEmail] = useState(data.oldEmail);
+        const [isSubmitting, setIsSubmitting] = useState(false);
+
+        const handleSubmit = () => {
+            setIsSubmitting(true);
+        };
+
+        return (
+            <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
+                <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
+                    <img src={data.logoUrl} alt="ETERA" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
+                    <div style={{ marginBottom: '1rem' }}>
+                        <LockIcon />
+                    </div>
+                    <h2 className="etera-heading" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
+                        Forgot Password?
+                    </h2>
+                    <p className="etera-subtext" style={{ maxWidth: '320px', margin: '0 auto' }}>
+                        Enter your registered email to receive a password reset link
+                    </p>
+                </div>
+
+                <form action={data.forgotPasswordUrl} method="POST" onSubmit={handleSubmit}>
+                    <input type="hidden" name="_token" value={data.csrfToken} />
+
+                    <div className="etera-input-group">
+                        <label>Email Address</label>
+                        <input
+                            type="email"
+                            name="email"
+                            className="etera-input"
+                            placeholder="example@user.com"
+                            value={email}
+                            onChange={(e) => setEmail(e.target.value)}
+                            required
+                            autoFocus
+                        />
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <button
+                            type="submit"
+                            className={`etera-btn etera-btn-primary etera-btn-block ${isSubmitting ? 'etera-btn-loading' : ''}`}
+                            disabled={isSubmitting}
+                        >
+                            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                        </button>
+
+                        <a href={data.loginUrl} className="etera-btn etera-btn-outline etera-btn-block" style={{ textAlign: 'center' }}>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                <line x1="19" y1="12" x2="5" y2="12"/>
+                                <polyline points="12 19 5 12 12 5"/>
+                            </svg>
+                            Back to Login
+                        </a>
+                    </div>
+                </form>
+            </div>
+        );
+    }
+
+    // Mount
+    const root = document.getElementById('forgot-password-app');
+    if (root) {
+        ReactDOM.createRoot(root).render(<ForgotPasswordForm />);
+    }
+</script>
+@endverbatim
+@endsection
