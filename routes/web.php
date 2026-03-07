@@ -382,9 +382,17 @@ Route::post('/telegram/webhook', function (\Illuminate\Http\Request $request) {
             $chatId = $data['message']['chat']['id'];
             $user = \App\Models\User::find($userId);
             if ($user) {
+                // Check if this telegram account is already linked to another user
+                $existing = \App\Models\User::where('telegram_chat_id', (string) $chatId)
+                    ->where('id', '!=', $userId)
+                    ->first();
+                if ($existing) {
+                    (new \App\Services\TelegramService())->sendMessage($chatId, "You've registered using this account please use other account");
+                    return response()->json(['ok' => true]);
+                }
                 $user->telegram_chat_id = $chatId;
                 $user->save();
-                (new \App\Services\TelegramService())->sendMessage($chatId, "✅ Connected! You'll now receive notifications from ETERA.");
+                (new \App\Services\TelegramService())->sendMessage($chatId, "✅ Connected! You'll now receive notifications from etera.");
             }
         }
         return response()->json(['ok' => true]);
@@ -3460,8 +3468,12 @@ Route::middleware(['auth'])->group(function () {
 
 
 // Telegram Routes
-Route::get('/telegram-connect', function () {
+Route::get('/telegram-connect', function (Request $request) {
     $user = auth()->user();
+    // Allow guest access with userId query parameter (after signup)
+    if (!$user && $request->query('userId')) {
+        $user = \App\Models\User::find($request->query('userId'));
+    }
     if (!$user || $user->telegram_chat_id) {
         return redirect('/');
     }
@@ -3469,7 +3481,7 @@ Route::get('/telegram-connect', function () {
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = in_array($user->role, ['garage']) ? '/garage/proformas' : '/spare-part-shops/proformas';
     return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl'));
-})->middleware('auth')->name('telegram.connect');
+})->name('telegram.connect');
 
 // Telegram Webhook handler (called by Telegram servers — no CSRF, no session needed)
 Route::post('/api/telegram/webhook', [\App\Http\Controllers\TelegramWebhookController::class, 'handle'])
