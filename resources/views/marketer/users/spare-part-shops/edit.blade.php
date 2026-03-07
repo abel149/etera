@@ -329,7 +329,7 @@
                         <input name="license_image" type="file" class="form-control" id="license_image">
                         @if($shop->license_image)
                             <p>Current Image: 
-                                <a href="{{ asset('storage/licenses/' . basename($shop->license_image)) }}">View Image</a>
+                                <a href="{{ asset('storage/' . $shop->license_image) }}">View Image</a>
                             </p>
                         @endif
                     </div>
@@ -343,7 +343,7 @@
                         <input name="stamp_image" type="file" class="form-control" id="stamp_image">
                         @if($shop->stamp_image)
                             <p>Current Image: 
-                                <a href="{{ asset('storage/stamps/' . basename($shop->stamp_image)) }}">View Image</a>
+                                <a href="{{ asset('storage/' . $shop->stamp_image) }}">View Image</a>
                             </p>
                         @endif
                     </div>

@@ -187,7 +187,7 @@
                     @if($shop->license_image)
                     <div class="col-md-6 mb-3">
                         <p class="font-weight-semibold"><strong>Business License:</strong></p>
-                        <img src="{{ asset('storage/licenses/' . basename($shop->license_image)) }}" alt="Business License Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <img src="{{ asset('storage/' . $shop->license_image) }}" alt="Business License Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
                     </div>
                     @else
                     <div class="col-md-6 mb-3">
@@ -199,7 +199,7 @@
                     @if($shop->stamp_image)
                     <div class="col-md-6 mb-3">
                         <p class="font-weight-semibold"><strong>Stamp:</strong></p>
-                        <img src="{{ asset('storage/stamps/' . basename($shop->stamp_image)) }}" alt="Stamp Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <img src="{{ asset('storage/' . $shop->stamp_image) }}" alt="Stamp Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
                     </div>
                     @else
                     <div class="col-md-6 mb-3">
