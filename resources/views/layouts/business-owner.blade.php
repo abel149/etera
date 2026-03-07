@@ -747,9 +747,7 @@
 					@endif
 				</a>
 			</li>
-			<li><a href="/business-owner/proformas" class="sp-nav-link @yield('proformas')">Proformas</a></li>
-			<li><a href="/business-owner/balance" class="sp-nav-link @yield('balance')">Balance</a></li>
-			<li><a href="/business-owner/partners" class="sp-nav-link @yield('partners')">Partners</a></li>
+			<li><a href="/business-owner/received-proformas" class="sp-nav-link @yield('proformas')">Proformas</a></li>
 		</ul>
 
 		<!-- User Menu -->
