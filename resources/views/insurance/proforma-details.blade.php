@@ -290,13 +290,13 @@
                          data-location="{{ $application->applicationBy->location }}"
                          data-garage-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
-                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . ($application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-discount="{{ $application->discount ?? 0 }}"
                          data-amount="{{ $application->amount ?? 0 }}">
 
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
-                            <img class="profile-pic stamp-image" src="{{ asset('storage/' . ($application->applicationBy->stamp_image) }}" alt="Stamp" />
+                            <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
                             @else
                             <img class="profile-pic stamp-image" src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
                             @endif

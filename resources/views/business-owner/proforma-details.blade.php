@@ -395,7 +395,7 @@
                             {{-- Stamp Overlay --}}
                             <div class="stamp-overlay">
                                 @if($application->applicationBy->stamp_image)
-                                    <img src="{{ asset('storage/' . ($application->applicationBy->stamp_image) }}" alt="Stamp" />
+                                    <img src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
                                 @else
                                     <img src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp" />
                                 @endif

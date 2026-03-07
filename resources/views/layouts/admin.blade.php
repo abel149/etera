@@ -252,13 +252,6 @@
 @endif
 @endauth
 
-<li>
-    <a href="/admin/sent-emails">
-        <div class="parent-icon"><i class="bx bx-envelope"></i></div>
-        <div class="menu-title">Sent Emails</div>
-    </a>
-</li>
-
 				<li>
 
 
