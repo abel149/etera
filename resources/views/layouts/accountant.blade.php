@@ -16,7 +16,7 @@
 
 	<!--favicon-->
 	<link rel="icon" href="{{asset('favicon.ico')}}" type="image/x-icon"/>
-	<link rel="icon" href="{{asset('assets/images/transparent.jpg')}}" type="image/jpeg"/>
+	<link rel="icon" href="{{asset('assets/images/transparent.svg')}}" type="image/jpeg"/>
 
 	<!--plugins-->
 

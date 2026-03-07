@@ -8,7 +8,7 @@
 	<meta name="csrf-token" content="{{ csrf_token() }}">
 	<!--favicon-->
 	<link rel="icon" href="{{asset('favicon.ico')}}" type="image/x-icon"/>
-	<link rel="icon" href="{{asset('assets/images/transparent.jpg')}}" type="image/jpeg"/>
+	<link rel="icon" href="{{asset('assets/images/transparent.svg')}}" type="image/jpeg"/>
 	<!--plugins-->
 	<link rel="stylesheet" href="{{asset('assets/plugins/notifications/css/lobibox.min.css')}}" />
 	<link href="{{asset('assets/plugins/vectormap/jquery-jvectormap-2.0.2.css')}}" rel="stylesheet"/>
