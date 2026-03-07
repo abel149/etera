@@ -151,15 +151,15 @@
                          data-location="{{ $application->applicationBy->location }}"
                          data-shop-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
-                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/stamps/' . basename($application->applicationBy->stamp_image)) : asset('assets/images/stamp.png') }}"
+                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-discount="{{ $application->discount ?? 0 }}">
 
                          
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
-                                <img src="{{ asset('storage/stamps/' . basename($application->applicationBy->stamp_image)) }}" alt="Stamp" />
+                            <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
                             @else
-                                <img src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
+                            <img class="profile-pic stamp-image" src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
                             @endif
                         </div>
                         <div class="card-header">
