@@ -738,7 +738,7 @@
 			<li><a href="/business-owner/create-file" class="sp-nav-link @yield('create')">Request Proforma</a></li>
 			<li>
 				<a href="/business-owner/received-proformas" class="sp-nav-link @yield('received')">
-					Received
+					Received Proformas
 					@if(auth()->user()->getReceivedProformasCount() > 0)
 						<span class="sp-badge sp-badge-primary">{{ auth()->user()->getReceivedProformasCount() }}</span>
 					@endif
@@ -747,7 +747,6 @@
 					@endif
 				</a>
 			</li>
-			<li><a href="/business-owner/received-proformas" class="sp-nav-link @yield('proformas')">Proformas</a></li>
 		</ul>
 
 		<!-- User Menu -->
