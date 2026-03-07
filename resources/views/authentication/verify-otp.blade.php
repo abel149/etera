@@ -16,7 +16,7 @@
 <div id="verify-otp-app"></div>
 
 <script>
-    window.##etera_PLACEHOLDER## = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         verifyOtpUrl: @json(url('/verify-otp')),
         resendOtpUrl: @json(url('/resend-otp')),
@@ -85,7 +85,7 @@
     }
 
     function VerifyOtpPage() {
-        const data = window.##etera_PLACEHOLDER##;
+        const data = window.__ETERA__ ;
         const [otp, setOtp] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [countdown, setCountdown] = useState(60);

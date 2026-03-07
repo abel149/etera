@@ -16,7 +16,7 @@
 <div id="reset-password-app"></div>
 
 <script>
-    window.##etera_PLACEHOLDER## = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         resetPasswordUrl: @json(url('/reset-password')),
         loginUrl: '/login',
@@ -63,7 +63,7 @@
     }
 
     function ResetPasswordForm() {
-        const data = window.##etera_PLACEHOLDER##;
+        const data = window.__ETERA__ ;
         const [password, setPassword] = useState('');
         const [confirmPassword, setConfirmPassword] = useState('');
         const [showPwd, setShowPwd] = useState(false);

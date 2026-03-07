@@ -16,7 +16,7 @@
 <div id="forgot-password-app"></div>
 
 <script>
-    window.##etera_PLACEHOLDER## = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         forgotPasswordUrl: @json(url('/forgot-password')),
         loginUrl: '/login',
@@ -39,7 +39,7 @@
     }
 
     function ForgotPasswordForm() {
-        const data = window.##etera_PLACEHOLDER##;
+        const data = window.__ETERA__ ;
         const [email, setEmail] = useState(data.oldEmail);
         const [isSubmitting, setIsSubmitting] = useState(false);
 

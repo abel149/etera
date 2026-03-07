@@ -38,7 +38,7 @@
 <div id="login-app"></div>
 
 <script>
-    window.##etera_PLACEHOLDER## = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         loginUrl: @json(route('login')),
         signupUrl: '/signup',
@@ -73,7 +73,7 @@
     }
 
     function LoginForm() {
-        const data = window.##etera_PLACEHOLDER##;
+        const data = window.__ETERA__ ;
         const [emailOrPhone, setEmailOrPhone] = useState(data.oldInput);
         const [password, setPassword] = useState('');
         const [showPassword, setShowPassword] = useState(false);

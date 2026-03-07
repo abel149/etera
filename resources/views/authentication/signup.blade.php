@@ -18,7 +18,7 @@
 <div id="signup-app"></div>
 
 <script>
-    window.##etera_PLACEHOLDER## = {
+    window.__ETERA__  = {
         logoUrl: @json(asset('assets/images/transparent.svg')),
         signupBusinessOwnerUrl: @json(route('signup.business-owner')),
         signupGarageSparepartUrl: @json(route('signup.garage-sparepart')),
@@ -56,7 +56,7 @@
     }
 
     function SignupPage() {
-        const data = window.##etera_PLACEHOLDER##;
+        const data = window.__ETERA__ ;
 
         return (
             <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
