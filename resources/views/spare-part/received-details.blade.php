@@ -376,7 +376,7 @@
 					<meta charset="utf-8" />
 					<meta http-equiv="X-UA-Compatible" content="IE=edge">
 					<meta name="viewport" content="width=device-width, initial-scale=1">
-					<title>ETERA - Invoice</title>
+					<title>etera - Invoice</title>
 					<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700' type='text/css'>
 					<link rel="stylesheet" href="{{ asset('assets/invoice/vendor/bootstrap/css/bootstrap.min.css') }}"/>
 					<link rel="stylesheet" href="{{ asset('assets/invoice/vendor/font-awesome/css/all.min.css') }}"/>
@@ -421,7 +421,7 @@
 								<div class="col-sm-6 text-sm-end">
 									<strong>Author:</strong>
 									<address>
-										ETERA<br />
+										etera<br />
 										portal.eteraet.com<br />
 										Addis Ababa, Ethiopia
 									</address>
@@ -498,7 +498,7 @@
 			`);
 			printWindow.document.close();
 		} else {
-			// This part is for the ETERA Receipt
+			// This part is for the etera Receipt
 			let customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
 			let customerPhone = "{{ $proforma->customer_phone_number ?? 'N/A' }}";
 			let createdAt = "{{ $proforma->proformaInvoice?->created_at->format('M d, Y') ?? 'N/A' }}";
@@ -511,7 +511,7 @@
 					<meta charset="utf-8" />
 					<meta http-equiv="X-UA-Compatible" content="IE=edge">
 					<meta name="viewport" content="width=device-width, initial-scale=1">
-					<title>ETERA - Receipt</title>
+					<title>etera - Receipt</title>
 					<link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700' type='text/css'>
 					<link rel="stylesheet" href="{{ asset('assets/invoice/vendor/bootstrap/css/bootstrap.min.css') }}"/>
 					<link rel="stylesheet" href="{{ asset('assets/invoice/vendor/font-awesome/css/all.min.css') }}"/>
@@ -525,10 +525,10 @@
 						<header>
 							<div class="row align-items-center gy-3">
 								<div class="col-sm-7 text-center text-sm-start">
-									<img id="logo" src="{{ asset('assets/invoice/images/transparent.png') }}" height="70" width="200" alt="ETERA" />
+									<img id="logo" src="{{ asset('assets/invoice/images/transparent.png') }}" height="70" width="200" alt="etera" />
 								</div>
 								<div class="col-sm-5 text-center text-sm-end">
-									<h4 class="text-7 mb-0">ETERA - Receipt<br>(Official Hard copy is availabe at the office)</h4>
+									<h4 class="text-7 mb-0">etera - Receipt<br>(Official Hard copy is availabe at the office)</h4>
 								</div>
 							</div>
 							<hr>
@@ -537,7 +537,7 @@
 						<main>
 							<div class="row gy-3 align-items-start">
 								<div class="col-sm-6">
-									<p class="mb-1"><strong>ETERA:</strong></p>
+									<p class="mb-1"><strong>etera:</strong></p>
 									<p class="mb-1"><strong>Phone:</strong> 011-470-7566</p>
 									<p class="mb-1"><strong>TIN:</strong> 0094205503</p>
 									<p class="mb-1"><strong>Date:</strong> ${createdAt}</p>

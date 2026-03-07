@@ -92,7 +92,7 @@
 
 	<meta name="csrf-token" content="{{ csrf_token() }}">
 
-	<title> ETERA | Admin</title>
+	<title> etera | Admin</title>
 
 	@include('partials.green-theme')
 
@@ -114,7 +114,7 @@
 
 				<div>
 
-					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="ETERA">
+					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="etera">
 
 				</div>
 
@@ -1161,7 +1161,7 @@ auth()->user()->unreadNotifications->count()}}</span>
 })();
 </script>
 
-<!-- ETERA AJAX Handler & Status Poller -->
+<!-- etera AJAX Handler & Status Poller -->
 <script src="{{ asset('js/ajax-handler.js') }}"></script>
 <script src="{{ asset('js/status-poller.js') }}"></script>
 @include('partials.notification-polling')

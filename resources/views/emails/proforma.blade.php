@@ -1,4 +1,4 @@
-<h2>ETERA – Proforma Billing Information</h2>
+<h2>etera – Proforma Billing Information</h2>
 
 <p>Dear Customer,</p>
 
@@ -27,4 +27,4 @@
 
 <p>Your invoice will be available once the proforma is completed.</p>
 
-<p>Thank you for using ETERA!</p>
+<p>Thank you for using etera!</p>

@@ -330,7 +330,7 @@
 
     }
 </style>
-	<title> ETERA | Marketer</title>
+	<title> etera | Marketer</title>
 @include('partials.green-theme')
 </head>
 
@@ -342,7 +342,7 @@
 			<div class="sidebar-header">
 				<div>
 
-					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="ETERA">
+					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="etera">
 
 				</div>
 				<div class="toggle-icon ms-auto"><i class='bx bx-arrow-back'></i>

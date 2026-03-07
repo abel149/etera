@@ -26,7 +26,7 @@
 	<link rel="stylesheet" href="{{asset('assets/css/header-colors.css')}}"/>
 	@livewireStyles
 
-	<title>ETERA | Manager</title>
+	<title>etera | Manager</title>
 @include('partials.green-theme')
 </head>
 
@@ -36,7 +36,7 @@
 		<div class="sidebar-wrapper" data-simplebar="true">
 			<div class="sidebar-header">
 				<div>
-					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="ETERA">
+					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="etera">
 				</div>
 				<div class="toggle-icon ms-auto"><i class='bx bx-arrow-back'></i></div>
 			</div>

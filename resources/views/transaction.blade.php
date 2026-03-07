@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ETERA Invoice – {{ $invoice->sku }}</title>
+    <title>etera Invoice – {{ $invoice->sku }}</title>
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
@@ -48,7 +48,7 @@
 
     <!-- Header -->
     <div class="brand-header text-center">
-        <h2 class="mb-1">ETERA</h2>
+        <h2 class="mb-1">etera</h2>
         <p class="mb-2 opacity-75">Platform Service Invoice</p>
         <span class="sku-badge">SKU: {{ $invoice->sku }}</span>
     </div>
@@ -150,7 +150,7 @@
 
     <!-- Footer -->
     <div class="card-footer text-center text-muted small py-3">
-        © <script>document.write(new Date().getFullYear())</script> ETERA. All rights reserved.
+        © <script>document.write(new Date().getFullYear())</script> etera. All rights reserved.
     </div>
 
 </div>

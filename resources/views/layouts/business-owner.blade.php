@@ -9,7 +9,7 @@
 	<link rel="icon" href="{{asset('favicon.ico')}}" type="image/x-icon"/>
 	<link rel="icon" href="{{asset('assets/images/transparent.jpg')}}" type="image/jpeg"/>
 
-	<!-- ETERA Modern Design System -->
+	<!-- etera Modern Design System -->
 	<link href="{{ asset('assets/css/etera-modern.css') }}" rel="stylesheet">
 
 	<!-- Bootstrap CSS -->
@@ -702,7 +702,7 @@
 		.bg-dark-primary { background-color: #3B5998; }
 	</style>
 
-	<title>ETERA - Business Owner</title>
+	<title>etera - Business Owner</title>
 
 	<!-- React + Babel CDN -->
 	@include('partials.react-head')
@@ -724,7 +724,7 @@
 	<div class="sp-header-inner">
 		<!-- Logo -->
 		<a href="/business-owner" class="sp-logo">
-			<img src="{{asset('assets/images/transparent.svg')}}" alt="ETERA">
+			<img src="{{asset('assets/images/transparent.svg')}}" alt="etera">
 		</a>
 
 		<!-- Mobile Toggle -->
@@ -783,7 +783,7 @@
 <!-- Footer -->
 <footer class="sp-footer">
 	<div class="sp-footer-inner">
-		<span class="sp-footer-brand">ETERA</span>
+		<span class="sp-footer-brand">etera</span>
 		<span class="sp-footer-copy">© <script>document.write(new Date().getFullYear())</script>. All rights reserved.</span>
 		<ul class="sp-footer-social">
 			<li><a href="#"><i class="bi bi-facebook"></i></a></li>

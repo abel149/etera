@@ -9,10 +9,10 @@
     <link rel="icon" href="{{ asset('favicon.ico') }}" type="image/x-icon"/>
     <link rel="icon" href="{{ asset('assets/images/transparent.jpg') }}" type="image/jpeg" />
 
-    <!-- ETERA Modern Design System -->
+    <!-- etera Modern Design System -->
     <link href="{{ asset('assets/css/etera-modern.css') }}" rel="stylesheet">
 
-    <!-- ETERA White & Green Auth Theme -->
+    <!-- etera White & Green Auth Theme -->
     <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap');
     :root {
@@ -129,7 +129,7 @@
     display: none;
 }
     </style>
-    <title>@yield('title', 'ETERA — Auto Parts Sourcing')</title>
+    <title>@yield('title', 'etera — Auto Parts Sourcing')</title>
 </head>
 <body class="etera-dark-body">
 

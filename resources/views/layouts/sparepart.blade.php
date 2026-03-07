@@ -9,7 +9,7 @@
 	<link rel="icon" href="{{asset('favicon.ico')}}" type="image/x-icon"/>
 	<link rel="icon" href="{{asset('assets/images/transparent.jpg')}}" type="image/jpeg"/>
 
-	<!-- ETERA Modern Design System -->
+	<!-- etera Modern Design System -->
 	<link href="{{ asset('assets/css/etera-modern.css') }}" rel="stylesheet">
 
 	<!-- Bootstrap CSS -->
@@ -714,9 +714,9 @@
 	</style>
 
 	@if(auth()->user()->role == 'garage')
-		<title>ETERA - Garages</title>
+		<title>etera - Garages</title>
 	@elseif(auth()->user()->role == 'shop')
-		<title>ETERA - Spare Part Shops</title>
+		<title>etera - Spare Part Shops</title>
 	@endif
 
 	<!-- React + Babel CDN -->
@@ -724,9 +724,9 @@
 	@include('partials.green-theme')
 
 	@if(auth()->user()->role == 'garage')
-		<title>ETERA - Garages</title>
+		<title>etera - Garages</title>
 	@elseif(auth()->user()->role == 'shop')
-		<title>ETERA - Spare Part Shops</title>
+		<title>etera - Spare Part Shops</title>
 	@endif
 
 	<!-- React + Babel CDN -->
@@ -758,7 +758,7 @@
 	<div class="sp-header-inner">
 		<!-- Logo -->
 		<a href="/spare-part-shops/proformas" class="sp-logo">
-			<img src="{{asset('assets/images/transparent.svg')}}" alt="ETERA">
+			<img src="{{asset('assets/images/transparent.svg')}}" alt="etera">
 		</a>
 
 		<!-- Mobile Toggle -->
@@ -857,7 +857,7 @@
 <!-- Footer -->
 <footer class="sp-footer">
 	<div class="sp-footer-inner">
-		<span class="sp-footer-brand">ETERA</span>
+		<span class="sp-footer-brand">etera</span>
 		<span class="sp-footer-copy">© <script>document.write(new Date().getFullYear())</script>. All rights reserved.</span>
 		<ul class="sp-footer-social">
 			<li><a href="#"><i class="bi bi-facebook"></i></a></li>

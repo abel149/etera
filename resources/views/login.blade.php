@@ -26,7 +26,7 @@
             </div>
         </div>
     <div>
-        <img src="{{ asset('assets/images/transparent.svg') }}" class="logo-text mb-4" style="max-width: 7.5rem;" alt="ETERA">
+        <img src="{{ asset('assets/images/transparent.svg') }}" class="logo-text mb-4" style="max-width: 7.5rem;" alt="etera">
     </div>
     
     <p class="mb-0">Please fill in the below details to login to your account</p>

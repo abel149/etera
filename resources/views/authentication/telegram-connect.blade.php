@@ -1,10 +1,10 @@
 @extends('layouts.authentication')
 
-@section('title', 'Connect Telegram — ETERA')
+@section('title', 'Connect Telegram — etera')
 
 @section('branding')
 <div class="text-center">
-    <img src="{{ asset('assets/images/transparent.jpg') }}" alt="ETERA" style="width: 120px; border-radius: 20px;" class="mb-3">
+    <img src="{{ asset('assets/images/transparent.jpg') }}" alt="etera" style="width: 120px; border-radius: 20px;" class="mb-3">
     <h2 style="color: #fff; font-weight: 700;">Connect Telegram</h2>
     <p style="color: rgba(255,255,255,0.85);">Get instant notifications on your phone</p>
 </div>

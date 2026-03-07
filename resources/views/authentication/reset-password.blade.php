@@ -1,9 +1,9 @@
 @extends('layouts.authentication')
 
-@section('title', 'Reset Password — ETERA')
+@section('title', 'Reset Password — etera')
 
 @section('branding')
-    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
         Create New Password
     </h2>
@@ -16,7 +16,7 @@
 <div id="reset-password-app"></div>
 
 <script>
-    window.__ETERA__ = {
+    window.##etera_PLACEHOLDER## = {
         csrfToken: @json(csrf_token()),
         resetPasswordUrl: @json(url('/reset-password')),
         loginUrl: '/login',
@@ -63,7 +63,7 @@
     }
 
     function ResetPasswordForm() {
-        const data = window.__ETERA__;
+        const data = window.##etera_PLACEHOLDER##;
         const [password, setPassword] = useState('');
         const [confirmPassword, setConfirmPassword] = useState('');
         const [showPwd, setShowPwd] = useState(false);
@@ -81,7 +81,7 @@
         return (
             <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={data.logoUrl} alt="ETERA" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
+                    <img src={data.logoUrl} alt="etera" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
                     <div style={{ marginBottom: '0.5rem' }}>
                         <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: 'rgba(13, 148, 136, 0.8)' }}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 5.25a3 3 0 0 1 3 3m3 0a6 6 0 0 1-7.029 5.912c-.563-.097-1.159.026-1.563.43L10.5 17.25H8.25v2.25H6v2.25H2.25v-2.818c0-.597.237-1.17.659-1.591l6.499-6.499c.404-.404.527-1 .43-1.563A6 6 0 1 1 21.75 8.25Z"/>

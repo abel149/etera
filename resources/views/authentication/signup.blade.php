@@ -1,11 +1,11 @@
 @extends('layouts.authentication')
 
-@section('title', 'Sign Up — ETERA')
+@section('title', 'Sign Up — etera')
 
 @section('branding')
-    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
-        Join the ETERA Network
+        Join the etera Network
     </h2>
     <p class="etera-subtext" style="text-align:center; max-width: 360px; color: rgba(255,255,255,0.85);">
         Choose the account type that best describes your business to get started.
@@ -18,7 +18,7 @@
 <div id="signup-app"></div>
 
 <script>
-    window.__ETERA__ = {
+    window.##etera_PLACEHOLDER## = {
         logoUrl: @json(asset('assets/images/transparent.svg')),
         signupBusinessOwnerUrl: @json(route('signup.business-owner')),
         signupGarageSparepartUrl: @json(route('signup.garage-sparepart')),
@@ -56,12 +56,12 @@
     }
 
     function SignupPage() {
-        const data = window.__ETERA__;
+        const data = window.##etera_PLACEHOLDER##;
 
         return (
             <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={data.logoUrl} alt="ETERA" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
+                    <img src={data.logoUrl} alt="etera" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
                     <h2 className="etera-heading" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>
                         Create an Account
                     </h2>
