@@ -1611,11 +1611,14 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
         // View Proforma
         // admin proformas
         Route::get('/proforma', function () {
+            // Show pending proformas to all admins + non-pending filtered by processed_by
             $proformas = \App\Models\Proforma::fromInsurances()
+                ->where(function ($query) {
+                    $query->where('status', 'pending')
+                          ->orWhere('processed_by', auth()->id());
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
-
-                // dd($proformas);
 
             return view('admin.proforma.view', compact('proformas'));
         })->name('admin.proformas.index');
@@ -1633,7 +1636,12 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
         });
 
         Route::get('/others-proforma', function () {
+            // Show pending proformas to all admins + non-pending filtered by processed_by
             $proformas = \App\Models\Proforma::fromOthers()
+                ->where(function ($query) {
+                    $query->where('status', 'pending')
+                          ->orWhere('processed_by', auth()->id());
+                })
                 ->orderBy('created_at', 'desc')
                 ->get();
 
