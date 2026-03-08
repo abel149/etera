@@ -3562,7 +3562,17 @@ Route::get('/telegram-connect', function (Request $request) {
     }
     $telegramService = app(\App\Services\TelegramService::class);
     $telegramLink = $telegramService->generateStartLink($user->id);
-    $skipUrl = in_array($user->role, ['garage']) ? '/garage/proformas' : '/spare-part-shops/proformas';
+    $skipUrl = match($user->role) {
+        'garage' => '/garage/proformas',
+        'shop' => '/spare-part-shops/proformas',
+        'admin' => '/admin',
+        'insurance' => '/insurance',
+        'others' => '/business-owner',
+        'marketer' => '/marketer',
+        'operator' => '/operator/dashboard',
+        'employee' => '/employee',
+        default => '/',
+    };
     return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl'));
 })->name('telegram.connect');
 

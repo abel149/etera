@@ -599,6 +599,7 @@
 	</script>
 @include('partials.etera-scripts')
 @stack('scripts')
+@include('partials.telegram-popup')
 </body>
 
 </html>
