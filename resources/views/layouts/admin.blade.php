@@ -1158,7 +1158,6 @@ auth()->user()->unreadNotifications->count()}}</span>
 <script src="{{ asset('js/ajax-handler.js') }}"></script>
 <script src="{{ asset('js/status-poller.js') }}"></script>
 @include('partials.notification-polling')
-@include('partials.telegram-popup')
 @stack('scripts')
 </body>
 

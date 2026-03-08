@@ -313,7 +313,6 @@
 
 @include('partials.etera-scripts')
 @include('partials.notification-polling')
-@include('partials.telegram-popup')
 @stack('scripts')
 </body>
 

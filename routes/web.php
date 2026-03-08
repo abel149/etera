@@ -229,6 +229,11 @@ Route::post('/login', function (Request $request) {
 
         Session::put('last_activity', time());
 
+        // Redirect ALL roles to telegram-connect if not connected
+        if (!$user->telegram_chat_id && app(\App\Services\TelegramService::class)->isConfigured()) {
+            return redirect('/telegram-connect');
+        }
+
         switch ($user->role) {
             case 'admin':
                 return redirect()->intended('/admin');
@@ -243,14 +248,8 @@ Route::post('/login', function (Request $request) {
             case 'others':
                 return redirect()->intended('/business-owner');
             case 'garage':
-                if (!$user->telegram_chat_id && app(\App\Services\TelegramService::class)->isConfigured()) {
-                    return redirect('/telegram-connect');
-                }
                 return redirect()->intended('/garage/proformas');
             case 'shop':
-                if (!$user->telegram_chat_id && app(\App\Services\TelegramService::class)->isConfigured()) {
-                    return redirect('/telegram-connect');
-                }
                 return redirect()->intended('/spare-part-shops/proformas');
             case 'marketer':
                 return redirect()->intended('/marketer');
