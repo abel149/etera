@@ -1167,6 +1167,89 @@ Route::prefix('/admin')
         Route::get('/', function () {
             return view('admin.index');
         })->name('admin.dashboard');
+
+        // Create a new admin user
+        Route::post('/create-admin', function (Request $request) {
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'phone_number' => 'required|unique:users,phone_number',
+                'email' => 'nullable|email|unique:users,email',
+            ]);
+
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone_number' => $request->phone_number,
+                'password' => bcrypt('123456'),
+                'role' => 'admin',
+                'approved' => true,
+                'registered_by' => auth()->id(),
+            ]);
+
+            return redirect()->back()->with('admin_created', 'Admin "' . $user->name . '" created successfully! Default password: 123456');
+        })->name('admin.create-admin');
+
+        // Proforma timeline API
+        Route::get('/proforma/{id}/timeline', function ($id) {
+            $proforma = \App\Models\Proforma::with(['poster', 'processedBy', 'activityLogs.user'])->findOrFail($id);
+
+            $timeline = [];
+
+            // Created
+            $timeline[] = [
+                'action' => 'Created',
+                'date' => $proforma->created_at?->format('d M Y, h:i A'),
+                'user' => $proforma->poster?->name ?? 'Unknown',
+                'icon' => 'bx-file',
+                'color' => '#6c757d',
+            ];
+
+            // Activity logs
+            foreach ($proforma->activityLogs->sortBy('created_at') as $log) {
+                $timeline[] = [
+                    'action' => ucfirst($log->action),
+                    'date' => $log->created_at?->format('d M Y, h:i A'),
+                    'user' => $log->user?->name ?? 'System',
+                    'details' => $log->details,
+                    'icon' => match(strtolower($log->action)) {
+                        'floated' => 'bx-send',
+                        'closed' => 'bx-lock',
+                        'completed' => 'bx-check-circle',
+                        'rejected' => 'bx-x-circle',
+                        'sent_to_owner' => 'bx-share',
+                        default => 'bx-right-arrow-alt',
+                    },
+                    'color' => match(strtolower($log->action)) {
+                        'floated' => '#0dcaf0',
+                        'closed' => '#dc3545',
+                        'completed' => '#198754',
+                        'rejected' => '#dc3545',
+                        'sent_to_owner' => '#0d6efd',
+                        default => '#6c757d',
+                    },
+                ];
+            }
+
+            // Current status if not reflected in logs
+            $timeline[] = [
+                'action' => 'Current Status: ' . ucfirst(str_replace('_', ' ', $proforma->status)),
+                'date' => $proforma->updated_at?->format('d M Y, h:i A'),
+                'user' => $proforma->processedBy?->name ?? 'System',
+                'icon' => 'bx-flag',
+                'color' => '#ffc107',
+                'is_current' => true,
+            ];
+
+            return response()->json([
+                'file_number' => $proforma->file_number,
+                'customer_name' => $proforma->customer_name,
+                'brand' => $proforma->brand?->name ?? 'N/A',
+                'model' => $proforma->model,
+                'year' => $proforma->year,
+                'timeline' => $timeline,
+            ]);
+        })->name('admin.proforma.timeline');
+
         Route::get('/profile', function () {
             return view('admin.profile.profile');
         });

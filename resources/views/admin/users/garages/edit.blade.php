@@ -264,19 +264,6 @@
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
 
-                    <div class="col-md-4">
-                        <label for="input8" class="form-label">Password</label>
-                        <input name="password" type="password" class="form-control" id="input8" placeholder="********">
-                    </div>
-                    @error('password')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
-
-                    <div class="col-md-4">
-                        <label for="input10" class="form-label">Confirm Password</label>
-                        <input name="password_confirmation" type="password" class="form-control" id="input10" placeholder="Confirm Password">
-                    </div>
-
                     <hr/>
                     
                     <!-- File Inputs for Business License and Stamp Images -->

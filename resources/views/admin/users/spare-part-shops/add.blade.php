@@ -60,8 +60,8 @@
               
                     <!-- Business License Image -->
                     <div class="col-md-6">
-                        <label for="licenseShop" class="form-label">Business License Image</label>
-                        <input type="file" name="license_image" class="form-control" accept="image/*" required>
+                        <label for="license_image_fp" class="form-label">Business License Image</label>
+                        <input type="file" name="license_image" id="license_image_fp" class="filepond-upload" accept="image/*" required>
                         @error('license_image')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
@@ -69,8 +69,8 @@
 
                     <!-- Stamp Image -->
                     <div class="col-md-6">
-                        <label for="stampShop" class="form-label">Stamp Image</label>
-                        <input type="file" name="stamp_image" class="form-control" accept="image/*" required>
+                        <label for="stamp_image_fp" class="form-label">Stamp Image</label>
+                        <input type="file" name="stamp_image" id="stamp_image_fp" class="filepond-upload" accept="image/*" required>
                         @error('stamp_image')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
@@ -79,7 +79,7 @@
                     <!-- Email Field -->
                     <div class="col-md-4">
                         <label for="input8" class="form-label">Email</label>
-                        <input name="email" type="email" class="form-control" id="input8" placeholder="Your Email" required>
+                        <input name="email" type="email" class="form-control" id="input8" placeholder="Your Email">
                         @error('email')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
@@ -97,6 +97,13 @@
     </div>
 </div>
 <!-- end page wrapper -->
+
+<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet" />
+<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet" />
+
+<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+<script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
 
 <script>
 $(document).ready(function () {
@@ -136,6 +143,18 @@ $(document).ready(function () {
                 $select.val(allBrandValues).trigger('change.select2');
             }
         }
+    });
+
+    // Initialize FilePond
+    FilePond.registerPlugin(FilePondPluginImagePreview, FilePondPluginFileValidateType);
+    document.querySelectorAll('.filepond-upload').forEach(el => {
+        FilePond.create(el, {
+            allowMultiple: false,
+            acceptedFileTypes: ['image/*'],
+            labelIdle: 'Drag & drop an image or <span class="filepond--label-action">Browse</span>',
+            credits: false,
+            storeAsFile: true,
+        });
     });
 
 });

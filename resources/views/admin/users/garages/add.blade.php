@@ -38,26 +38,10 @@
                                     <span class="text-danger">{{$message}}</span>
                                     @enderror
                                     </div>
-                                    {{-- <div class="col-md-6">
-                                        <label for="input6" class="form-label">Business License Proc. Number</label>
-                                        <input name="business_license_number" type="text" class="form-control" id="input6" placeholder="Proclamation Number">
-                                     @error('business_license_number')
-                                    <span class="text-danger">{{$message}}</span>
-                                    @enderror
-                                    </div>
-                                    <div class="col-md-6">
-                                        <label for="input6" class="form-label">Business License Expiry Date</label>
-                                        <input name="license_expire_date" type="date" class="form-control" id="input6" placeholder="Select Date">
-                                     @error('license_expire_date')
-                                    <span class="text-danger">{{$message}}</span>
-                                    @enderror
-                                    </div> --}}
-
-                                
 
                                     <div class="col-md-6">
-                                        <label for="licenseShop" class="form-label">Business License Image</label>
-                                        <input type="file" name="license_image" class="form-control" accept="image/*" required> <!-- Standard file input -->
+                                        <label for="license_image_fp" class="form-label">Business License Image</label>
+                                        <input type="file" name="license_image" id="license_image_fp" class="filepond" accept="image/*" required>
                                         @error('license_image')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
@@ -65,24 +49,12 @@
                 
                                     <!-- Stamp Image -->
                                     <div class="col-md-6">
-                                        <label for="stampShop" class="form-label">Stamp Image</label>
-                                        <input type="file"  name="stamp_image" class="form-control" accept="image/*" required> <!-- Standard file input -->
+                                        <label for="stamp_image_fp" class="form-label">Stamp Image</label>
+                                        <input type="file" name="stamp_image" id="stamp_image_fp" class="filepond" accept="image/*" required>
                                         @error('stamp_image')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-
-
-
-
-
-
-
-
-
-
-
-
 
                                     <div class="col-md-4">
                                         <label for="input7" class="form-label">Email</label>
@@ -92,7 +64,6 @@
                                     @enderror
                                     </div>
                                     
-                                  
                                     <hr/>
                                     <div class="my-0">
                                         <button type="submit" class="btn btn-primary radius-30 px-4" onclick="notification('Garage Added Successfully')"> Add
@@ -110,4 +81,27 @@
             </div>
         </div>
         <!--end page wrapper -->
+
+<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet" />
+<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet" />
+
+<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
+<script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
+<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    FilePond.registerPlugin(FilePondPluginImagePreview, FilePondPluginFileValidateType);
+
+    document.querySelectorAll('.filepond').forEach(el => {
+        FilePond.create(el, {
+            allowMultiple: false,
+            acceptedFileTypes: ['image/*'],
+            labelIdle: 'Drag & drop an image or <span class="filepond--label-action">Browse</span>',
+            credits: false,
+            storeAsFile: true,
+        });
+    });
+});
+</script>
+
 @endsection

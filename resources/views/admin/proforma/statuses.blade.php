@@ -119,9 +119,9 @@
                                         </td>
                                         <td>{{ $proforma->updated_at?->format('d M Y, h:i A') }}</td>
                                         <td>
-                                            <a href="/admin/proforma-details/{{ $proforma->id }}" class="btn btn-sm btn-outline-primary">
+                                            <button type="button" class="btn btn-sm btn-outline-primary" onclick="showTimeline({{ $proforma->id }})">
                                                 <i class="bx bx-show"></i> View
-                                            </a>
+                                            </button>
                                         </td>
                                     </tr>
                                     @empty
@@ -145,4 +145,212 @@
         </div>
     </div>
 </div>
+
+<!-- Timeline Modal -->
+<div class="modal fade" id="timelineModal" tabindex="-1" aria-labelledby="timelineModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content" style="border:none; border-radius:16px; overflow:hidden;">
+            <div class="modal-header" style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); border:none;">
+                <h5 class="modal-title text-white" id="timelineModalLabel">
+                    <i class="bx bx-history me-2"></i>Proforma Lifecycle
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4" id="timelineBody" style="background: #fafbff;">
+                <div class="text-center py-5">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Loading...</span>
+                    </div>
+                    <p class="mt-2 text-muted">Loading timeline...</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline-container {
+    position: relative;
+    padding: 0;
+}
+.timeline-header-card {
+    background: linear-gradient(135deg, #f8f9ff 0%, #eef1ff 100%);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    border: 1px solid #e2e6f5;
+}
+.timeline-header-card h6 {
+    margin: 0;
+    color: #333;
+    font-weight: 600;
+}
+.timeline-header-card .text-muted {
+    font-size: 0.85rem;
+}
+.timeline-track {
+    position: relative;
+    padding-left: 40px;
+}
+.timeline-track::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 3px;
+    background: linear-gradient(to bottom, #667eea, #764ba2, #e0e0e0);
+    border-radius: 3px;
+}
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+    animation: fadeInUp 0.4s ease forwards;
+    opacity: 0;
+}
+.timeline-item:nth-child(1) { animation-delay: 0.05s; }
+.timeline-item:nth-child(2) { animation-delay: 0.1s; }
+.timeline-item:nth-child(3) { animation-delay: 0.15s; }
+.timeline-item:nth-child(4) { animation-delay: 0.2s; }
+.timeline-item:nth-child(5) { animation-delay: 0.25s; }
+.timeline-item:nth-child(6) { animation-delay: 0.3s; }
+.timeline-item:nth-child(7) { animation-delay: 0.35s; }
+.timeline-item:nth-child(8) { animation-delay: 0.4s; }
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.timeline-dot {
+    position: absolute;
+    left: -33px;
+    top: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #fff;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    z-index: 2;
+}
+.timeline-card {
+    background: #fff;
+    border-radius: 10px;
+    padding: 14px 18px;
+    box-shadow: 0 2px 12px rgba(0,0,0,0.06);
+    border: 1px solid #eee;
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.timeline-card:hover {
+    transform: translateX(4px);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+}
+.timeline-card.current {
+    border-left: 4px solid #ffc107;
+    background: linear-gradient(135deg, #fffdf0 0%, #fff9e6 100%);
+}
+.timeline-action {
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: #333;
+}
+.timeline-meta {
+    display: flex;
+    gap: 16px;
+    margin-top: 4px;
+    font-size: 0.82rem;
+    color: #888;
+}
+.timeline-meta i {
+    font-size: 12px;
+    margin-right: 3px;
+}
+.timeline-details {
+    margin-top: 6px;
+    font-size: 0.82rem;
+    color: #666;
+    padding: 6px 10px;
+    background: #f7f8fc;
+    border-radius: 6px;
+}
+</style>
+
+<script>
+function showTimeline(proformaId) {
+    const modal = new bootstrap.Modal(document.getElementById('timelineModal'));
+    const body = document.getElementById('timelineBody');
+    
+    body.innerHTML = `
+        <div class="text-center py-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Loading...</span>
+            </div>
+            <p class="mt-2 text-muted">Loading timeline...</p>
+        </div>`;
+    
+    modal.show();
+
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.content;
+
+    fetch('/admin/proforma/' + proformaId + '/timeline', {
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+            'X-CSRF-TOKEN': csrfToken,
+            'Accept': 'application/json'
+        }
+    })
+    .then(r => r.json())
+    .then(data => {
+        let html = `
+            <div class="timeline-header-card">
+                <h6><i class="bx bx-file me-2"></i>File #${data.file_number}</h6>
+                <div class="text-muted mt-1">
+                    <span class="me-3"><i class="bx bx-user me-1"></i>${data.customer_name}</span>
+                    <span class="me-3"><i class="bx bx-car me-1"></i>${data.brand} ${data.model} (${data.year})</span>
+                </div>
+            </div>
+            <div class="timeline-container">
+                <div class="timeline-track">`;
+        
+        data.timeline.forEach(item => {
+            const isCurrent = item.is_current ? 'current' : '';
+            html += `
+                <div class="timeline-item">
+                    <div class="timeline-dot" style="background: ${item.color};">
+                        <i class="bx ${item.icon}"></i>
+                    </div>
+                    <div class="timeline-card ${isCurrent}">
+                        <div class="timeline-action">${item.action}</div>
+                        <div class="timeline-meta">
+                            <span><i class="bx bx-calendar"></i>${item.date || 'N/A'}</span>
+                            <span><i class="bx bx-user"></i>${item.user}</span>
+                        </div>
+                        ${item.details ? `<div class="timeline-details">${item.details}</div>` : ''}
+                    </div>
+                </div>`;
+        });
+
+        html += '</div></div>';
+        body.innerHTML = html;
+    })
+    .catch(err => {
+        body.innerHTML = `
+            <div class="text-center py-5 text-danger">
+                <i class="bx bx-error-circle" style="font-size:3rem;"></i>
+                <p class="mt-2">Failed to load timeline. Please try again.</p>
+            </div>`;
+        console.error('Timeline error:', err);
+    });
+}
+</script>
 @endsection

@@ -10,7 +10,7 @@
 						<div class="d-flex align-items-center justify-content-between">
 							<div>
 								<p class="mb-0">Total Proformas from Insurances</p>
-								<h5 class="mb-0" id="stat-insurance-total">{{\App\Models\Proforma::fromInsurances()->count()}}</h5>
+								<h5 class="mb-0" id="stat-insurance-total">{{\App\Models\Proforma::fromInsurances()->where('processed_by', auth()->id())->count()}}</h5>
 							</div>
 							<div id="chart4"></div>
 						</div>
@@ -23,7 +23,7 @@
 						<div class="d-flex align-items-center justify-content-between">
 							<div>
 								<p class="mb-0">Total Completed Proformas from Insurances</p>
-								<h5 class="mb-0" id="stat-insurance-completed">{{\App\Models\Proforma::fromInsurances()->where('status', 'completed')->count()}}</h5>
+								<h5 class="mb-0" id="stat-insurance-completed">{{\App\Models\Proforma::fromInsurances()->where('processed_by', auth()->id())->where('status', 'completed')->count()}}</h5>
 							</div>
 							<div id="chart4"></div>
 						</div>
@@ -36,7 +36,7 @@
 						<div class="d-flex align-items-center justify-content-between">
 							<div>
 								<p class="mb-0">Total Proformas from Others</p>
-								<h5 class="mb-0" id="stat-others-total">{{\App\Models\Proforma::fromOthers()->count()}}</h5>
+								<h5 class="mb-0" id="stat-others-total">{{\App\Models\Proforma::fromOthers()->where('processed_by', auth()->id())->count()}}</h5>
 							</div>
 							<div id="chart4"></div>
 						</div>
@@ -49,7 +49,7 @@
 						<div class="d-flex align-items-center justify-content-between">
 							<div>
 								<p class="mb-0">Total Completed Proformas from Others</p>
-								<h5 class="mb-0" id="stat-others-completed">{{\App\Models\Proforma::fromOthers()->where('status', 'completed')->count()}}</h5>
+								<h5 class="mb-0" id="stat-others-completed">{{\App\Models\Proforma::fromOthers()->where('processed_by', auth()->id())->where('status', 'completed')->count()}}</h5>
 							</div>
 							<div id="chart4"></div>
 						</div>
@@ -164,6 +164,57 @@
 		</div>
 		<!--end row-->
 
+		<!-- Create Admin Card -->
+		<div class="card radius-10 mb-3">
+			<div class="card-header d-flex align-items-center justify-content-between">
+				<h5 class="mb-0"><i class="bx bx-user-plus me-2"></i>Create New Admin</h5>
+				<button class="btn btn-sm btn-outline-primary" type="button" data-bs-toggle="collapse" data-bs-target="#createAdminCollapse">
+					<i class="bx bx-plus me-1"></i>Expand
+				</button>
+			</div>
+			<div class="collapse" id="createAdminCollapse">
+				<div class="card-body">
+					@if(session('admin_created'))
+						<div class="alert alert-success alert-dismissible fade show" role="alert">
+							{{ session('admin_created') }}
+							<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+						</div>
+					@endif
+					@if($errors->any())
+						<div class="alert alert-danger alert-dismissible fade show" role="alert">
+							<ul class="mb-0">
+								@foreach($errors->all() as $error)
+									<li>{{ $error }}</li>
+								@endforeach
+							</ul>
+							<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+						</div>
+					@endif
+					<form class="row g-3" action="{{ url('/admin/create-admin') }}" method="POST">
+						@csrf
+						<div class="col-md-4">
+							<label for="admin-name" class="form-label">Name <span class="text-danger">*</span></label>
+							<input type="text" name="name" class="form-control" id="admin-name" placeholder="Admin Name" required value="{{ old('name') }}">
+						</div>
+						<div class="col-md-4">
+							<label for="admin-phone" class="form-label">Phone Number <span class="text-danger">*</span></label>
+							<input type="text" name="phone_number" class="form-control" id="admin-phone" placeholder="09..." required value="{{ old('phone_number') }}">
+						</div>
+						<div class="col-md-4">
+							<label for="admin-email" class="form-label">Email <small class="text-muted">(optional)</small></label>
+							<input type="email" name="email" class="form-control" id="admin-email" placeholder="Email..." value="{{ old('email') }}">
+						</div>
+						<div class="col-md-12 d-flex justify-content-end">
+							<button type="submit" class="btn btn-primary radius-30 px-4">
+								<i class="bx bx-user-plus me-1"></i> Create Admin
+							</button>
+						</div>
+					</form>
+					<p class="text-muted mt-2 mb-0"><small>Default password: <code>123456</code></small></p>
+				</div>
+			</div>
+		</div>
+
 		<!--end row-->
 		<div class="card radius-10">
 			<div class="card-body">
@@ -187,9 +238,9 @@
 								<th>Created At</th>
 							</tr>
 						</thead>
-											@php
-												$allProformas = \App\Models\Proforma::with('poster')->whereHas('poster')->orderBy('created_at', 'desc')->get();
-											@endphp
+									@php
+										$allProformas = \App\Models\Proforma::with('poster')->whereHas('poster')->where('processed_by', auth()->id())->orderBy('created_at', 'desc')->get();
+									@endphp
 						<tbody id="proformaTableBody">
 						@foreach($allProformas as $proforma)
 							@php try { @endphp
@@ -210,10 +261,10 @@
                 					<td>{{$proforma->applicationsFromGarages ? $proforma->applicationsFromGarages->count() : 0}} Garages Applied</td>
                                 @endif
                 					<td>{{$proforma->applicationsFromShops ? $proforma->applicationsFromShops->count() : 0}} Shops Applied</td>
-                								<td>
+                						<td>
                                 @if($proforma->status == 'completed')
-               								<div class="badge rounded-pill bg-secondary w-100">{{ucfirst($proforma->status)}}</div>
-               						@elseif($proforma->status == 'published')
+               						<div class="badge rounded-pill bg-secondary w-100">{{ucfirst($proforma->status)}}</div>
+               					@elseif($proforma->status == 'published')
                                 <div class="badge rounded-pill bg-info w-100">{{ucfirst($proforma->status)}}</div>
                                 @elseif($proforma->status == 'pending' || $proforma->status == 'opened')
                                 <div class="badge rounded-pill bg-warning w-100">{{($proforma->selected() && $proforma->status == 'pending') ? "File Assigned" : ucfirst($proforma->status)}}</div>
@@ -222,7 +273,7 @@
                                 @elseif($proforma->status == 'rejected')
                                 <div class="badge rounded-pill bg-danger w-100">{{ucfirst($proforma->status)}}</div>
                                 @endif
-                								</td>
+                						</td>
 								<td>
 									@if($proforma->isEteraCheretaMode())
 										<span class="badge rounded-pill bg-primary w-100" 
@@ -234,10 +285,10 @@
 									@endif
 								</td>
                                 <td>{{$proforma->created_at ? $proforma->created_at->format('D M d, Y h:i A') : 'N/A'}}</td>
-             						</tr>
+             					</tr>
 							@php } catch (Exception $e) { /* skip */ } @endphp
                             @endforeach
-										</tbody>
+									</tbody>
 						</table>
 					</div>
 				</div>
@@ -360,4 +411,3 @@ document.addEventListener('DOMContentLoaded', function() {
 </script>
 
 @endsection
-
