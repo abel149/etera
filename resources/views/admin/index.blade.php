@@ -3,167 +3,196 @@
 <!--start page wrapper -->
 <div class="page-wrapper">
 	<div class="page-content">
-		    <div class="row">
-		    <div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Proformas from Insurances</p>
-								<h5 class="mb-0" id="stat-insurance-total">{{\App\Models\Proforma::fromInsurances()->where('processed_by', auth()->id())->count()}}</h5>
-							</div>
-							<div id="chart4"></div>
-						</div>
-					</div>
-				</div>
+		<!-- Stats Section (Collapsible) -->
+		<div class="card radius-10 mb-3">
+			<div class="card-header d-flex align-items-center justify-content-between py-2" style="cursor:pointer;" data-bs-toggle="collapse" data-bs-target="#statsRowCollapse" aria-expanded="false">
+				<h6 class="mb-0"><i class="bx bx-bar-chart-alt-2 me-2"></i>Dashboard Statistics</h6>
+				<i class="bx bx-chevron-down fs-4 stats-chevron" style="transition:transform 0.3s ease;"></i>
 			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Completed Proformas from Insurances</p>
-								<h5 class="mb-0" id="stat-insurance-completed">{{\App\Models\Proforma::fromInsurances()->where('processed_by', auth()->id())->where('status', 'completed')->count()}}</h5>
+			<div class="collapse" id="statsRowCollapse">
+				<div class="card-body pb-1">
+					<div class="row">
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Proformas from Insurances</p>
+										@if(auth()->user()->is_superadmin == 1)
+										<h5 class="mb-0" id="stat-insurance-total">{{\App\Models\Proforma::fromInsurances()->count()}}</h5>
+										@else
+										<h5 class="mb-0" id="stat-insurance-total">{{\App\Models\Proforma::fromInsurances()->where('processed_by', auth()->id())->count()}}</h5>
+										@endif
+									</div>
+									<div id="chart4"></div>
+								</div>
 							</div>
-							<div id="chart4"></div>
 						</div>
 					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Completed Proformas from Insurances</p>
+										@if(auth()->user()->is_superadmin == 1)
+										<h5 class="mb-0" id="stat-insurance-completed">{{\App\Models\Proforma::fromInsurances()->where('status', 'completed')->count()}}</h5>
+										@else
+										<h5 class="mb-0" id="stat-insurance-completed">{{\App\Models\Proforma::fromInsurances()->where('processed_by', auth()->id())->where('status', 'completed')->count()}}</h5>
+										@endif
+									</div>
+									<div id="chart4"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Proformas from Others</p>
+										@if(auth()->user()->is_superadmin == 1)
+										<h5 class="mb-0" id="stat-others-total">{{\App\Models\Proforma::fromOthers()->count()}}</h5>
+										@else
+										<h5 class="mb-0" id="stat-others-total">{{\App\Models\Proforma::fromOthers()->where('processed_by', auth()->id())->count()}}</h5>
+										@endif
+									</div>
+									<div id="chart4"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Completed Proformas from Others</p>
+										@if(auth()->user()->is_superadmin == 1)
+										<h5 class="mb-0" id="stat-others-completed">{{\App\Models\Proforma::fromOthers()->where('status', 'completed')->count()}}</h5>
+										@else
+										<h5 class="mb-0" id="stat-others-completed">{{\App\Models\Proforma::fromOthers()->where('processed_by', auth()->id())->where('status', 'completed')->count()}}</h5>
+										@endif
+									</div>
+									<div id="chart4"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					
+					@if(auth()->user()->is_superadmin == 1)
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Users</p>
+										<h5 class="mb-0">{{\App\Models\User::count()}}</h5>
+									</div>
+									<div id="chart1"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Admins</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','admin')->count()}}</h5>
+									</div>
+									<div id="chart2"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Operators</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','employee')->count()}}</h5>
+									</div>
+									<div id="chart1"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Insurances</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','insurance')->count()}}</h5>
+									</div>
+									<div id="chart2"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Customers</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','others')->count()}}</h5>
+									</div>
+									<div id="chart1"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Marketers</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','marketer')->count()}}</h5>
+									</div>
+									<div id="chart2"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Garages</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','garage')->count()}}</h5>
+									</div>
+									<div id="chart3"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					<div class="col-12 col-md-4 col-sm-6 col-lg-4">
+						<div class="card radius-10">
+							<div class="card-body">
+								<div class="d-flex align-items-center justify-content-between">
+									<div>
+										<p class="mb-0">Total Sparepart Shops</p>
+										<h5 class="mb-0">{{\App\Models\User::where('role','shop')->count()}}</h5>
+									</div>
+									<div id="chart4"></div>
+								</div>
+							</div>
+						</div>
+					</div>
+					@endif
 				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Proformas from Others</p>
-								<h5 class="mb-0" id="stat-others-total">{{\App\Models\Proforma::fromOthers()->where('processed_by', auth()->id())->count()}}</h5>
-							</div>
-							<div id="chart4"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Completed Proformas from Others</p>
-								<h5 class="mb-0" id="stat-others-completed">{{\App\Models\Proforma::fromOthers()->where('processed_by', auth()->id())->where('status', 'completed')->count()}}</h5>
-							</div>
-							<div id="chart4"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Users</p>
-								<h5 class="mb-0">{{\App\Models\User::count()}}</h5>
-							</div>
-							<div id="chart1"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Admins</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','admin')->count()}}</h5>
-							</div>
-							<div id="chart2"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Operators</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','employee')->count()}}</h5>
-							</div>
-							<div id="chart1"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Insurances</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','insurance')->count()}}</h5>
-							</div>
-							<div id="chart2"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Business Owners</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','business_owner')->count()}}</h5>
-							</div>
-							<div id="chart1"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Marketers</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','marketer')->count()}}</h5>
-							</div>
-							<div id="chart2"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Garages</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','garage')->count()}}</h5>
-							</div>
-							<div id="chart3"></div>
-						</div>
-					</div>
-				</div>
-			</div>
-			<div class="col-12 col-md-4 col-sm-6 col-lg-4">
-				<div class="card radius-10">
-					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between">
-							<div>
-								<p class="mb-0">Total Sparepart Shops</p>
-								<h5 class="mb-0">{{\App\Models\User::where('role','shop')->count()}}</h5>
-							</div>
-							<div id="chart4"></div>
-						</div>
-					</div>
 				</div>
 			</div>
 		</div>
-		<!--end row-->
-
+		<!--end stats row-->
+		@if(auth()->user()->is_superadmin == 1)
 		<!-- Create Admin Card -->
 		<div class="card radius-10 mb-3">
 			<div class="card-header d-flex align-items-center justify-content-between">
@@ -214,6 +243,7 @@
 				</div>
 			</div>
 		</div>
+		@endif
 
 		<!--end row-->
 		<div class="card radius-10">
@@ -407,6 +437,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Poll every 30 seconds
     setInterval(pollProformas, 30000);
     console.log('✅ Admin dashboard polling started (every 30s)');
+});
+</script>
+
+<script>
+// Rotate chevron on stats collapse toggle
+document.getElementById('statsRowCollapse')?.addEventListener('show.bs.collapse', function() {
+    document.querySelector('.stats-chevron').style.transform = 'rotate(180deg)';
+});
+document.getElementById('statsRowCollapse')?.addEventListener('hide.bs.collapse', function() {
+    document.querySelector('.stats-chevron').style.transform = 'rotate(0deg)';
 });
 </script>
 
