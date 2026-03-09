@@ -14,6 +14,10 @@
 
 - [Overview](#overview)
 - [Tech Stack](#tech-stack)
+- [Use Cases](#use-cases)
+- [Object Model](#object-model)
+- [Activity Diagrams](#activity-diagrams)
+- [Sequence Diagrams](#sequence-diagrams)
 - [System Requirements](#system-requirements)
 - [Installation](#installation)
 - [Environment Configuration](#environment-configuration)
@@ -28,6 +32,548 @@
 - [Testing](#testing)
 - [Deployment](#deployment)
 - [Troubleshooting](#troubleshooting)
+
+---
+
+## Use Cases
+
+### Use Case Diagram — Insurance / Business Owner
+
+```mermaid
+graph LR
+    subgraph "Insurance / Business Owner"
+        A["👤 Insurance Company"]
+        B["👤 Business Owner"]
+    end
+
+    UC1["Create Proforma"]
+    UC2["Upload Vehicle Images"]
+    UC3["Add Spare Parts List"]
+    UC4["Record Voice Note"]
+    UC5["View Proforma Status"]
+    UC6["Receive Bid Results"]
+    UC7["Connect Telegram"]
+    UC8["View Notifications"]
+
+    A --> UC1
+    A --> UC2
+    A --> UC3
+    A --> UC4
+    A --> UC5
+    A --> UC6
+    A --> UC7
+    A --> UC8
+    B --> UC1
+    B --> UC2
+    B --> UC3
+    B --> UC5
+    B --> UC6
+    B --> UC7
+```
+
+### Use Case Diagram — Admin
+
+```mermaid
+graph LR
+    subgraph "Admin Actors"
+        SA["👤 Superadmin"]
+        AD["👤 Admin"]
+    end
+
+    UC1["View Dashboard Statistics"]
+    UC2["Float Proforma to Market"]
+    UC3["Close Bidding"]
+    UC4["Verify & Send to Owner"]
+    UC5["Manage Users"]
+    UC6["Create Admin"]
+    UC7["View Proforma Timeline"]
+    UC8["View Analytics"]
+    UC9["Manage Settings"]
+    UC10["Approve / Reject Users"]
+    UC11["View All Proformas"]
+    UC12["View Own Proformas Only"]
+
+    AD --> UC1
+    AD --> UC2
+    AD --> UC3
+    AD --> UC4
+    AD --> UC5
+    AD --> UC7
+    AD --> UC10
+    AD --> UC12
+
+    SA --> UC1
+    SA --> UC2
+    SA --> UC3
+    SA --> UC4
+    SA --> UC5
+    SA --> UC6
+    SA --> UC7
+    SA --> UC8
+    SA --> UC9
+    SA --> UC10
+    SA --> UC11
+```
+
+### Use Case Diagram — Garage / Spare Part Shop
+
+```mermaid
+graph LR
+    subgraph "Service Providers"
+        G["👤 Garage"]
+        S["👤 Spare Part Shop"]
+    end
+
+    UC1["View Floated Proformas"]
+    UC2["Submit Bid / Application"]
+    UC3["Set Part Prices"]
+    UC4["View Application Status"]
+    UC5["Receive Telegram Notifications"]
+    UC6["Connect Telegram"]
+    UC7["View Assigned Proformas"]
+    UC8["Request Close"]
+
+    G --> UC1
+    G --> UC2
+    G --> UC3
+    G --> UC4
+    G --> UC5
+    G --> UC6
+    G --> UC7
+    G --> UC8
+    S --> UC1
+    S --> UC2
+    S --> UC3
+    S --> UC4
+    S --> UC5
+    S --> UC6
+```
+
+### Use Case Diagram — Operator / Employee / Marketer
+
+```mermaid
+graph LR
+    subgraph "Internal Users"
+        OP["👤 Operator"]
+        EM["👤 Employee"]
+        MK["👤 Marketer"]
+    end
+
+    UC1["Take Pending Files"]
+    UC2["Process Proforma"]
+    UC3["View Assigned Proformas"]
+    UC4["Register New Business"]
+    UC5["Track Commissions"]
+    UC6["View Referral Dashboard"]
+
+    OP --> UC2
+    OP --> UC3
+    EM --> UC1
+    EM --> UC3
+    MK --> UC4
+    MK --> UC5
+    MK --> UC6
+```
+
+---
+
+## Object Model
+
+### Class Diagram
+
+```mermaid
+classDiagram
+    class User {
+        +int id
+        +string name
+        +string phone_number
+        +string email
+        +string role
+        +string password
+        +bool approved
+        +bool is_superadmin
+        +string telegram_chat_id
+        +string license_image
+        +string stamp_image
+        +float balance
+        +proformas()
+        +brands()
+        +applications()
+        +notifications()
+    }
+
+    class Proforma {
+        +int id
+        +int user_id
+        +int car_brand_id
+        +string file_number
+        +string status
+        +int processed_by
+        +string customer_name
+        +string customer_phone_number
+        +string license_plate_number
+        +string model
+        +string chassis_number
+        +bool insured
+        +bool close_request
+        +datetime timer_expires_at
+        +string voice_note
+        +poster()
+        +brand()
+        +parts()
+        +applications()
+        +selections()
+        +activityLogs()
+        +images()
+        +videos()
+        +scopeFromInsurances()
+        +scopeFromOthers()
+        +isEteraCheretaMode()
+    }
+
+    class ProformaPart {
+        +int id
+        +int proforma_id
+        +string name
+        +int quantity
+        +string condition
+        +string component
+    }
+
+    class ProformaApplication {
+        +int id
+        +int proforma_id
+        +int user_id
+        +string status
+        +float discount
+        +partPrices()
+    }
+
+    class ProformaPartPrice {
+        +int id
+        +int application_id
+        +int car_part_id
+        +float price
+        +string notes
+    }
+
+    class ProformaSelection {
+        +int id
+        +int proforma_id
+        +int employee_id
+    }
+
+    class ProformaActivityLog {
+        +int id
+        +int proforma_id
+        +int user_id
+        +string action
+        +string details
+        +user()
+    }
+
+    class Brand {
+        +int id
+        +string name
+        +users()
+        +proformas()
+    }
+
+    class Commission {
+        +int id
+        +int user_id
+        +int proforma_id
+        +float amount
+        +string type
+    }
+
+    class Transaction {
+        +int id
+        +int user_id
+        +float amount
+        +string type
+        +string description
+    }
+
+    class WithdrawalRequest {
+        +int id
+        +int user_id
+        +float amount
+        +string status
+        +string bank_info
+    }
+
+    class Inbox {
+        +int id
+        +int sender_id
+        +int receiver_id
+        +string message
+        +bool is_read
+    }
+
+    User "1" --> "*" Proforma : creates
+    User "1" --> "*" ProformaApplication : submits
+    User "1" --> "*" Commission : earns
+    User "1" --> "*" Transaction : has
+    User "1" --> "*" WithdrawalRequest : requests
+    User "*" --> "*" Brand : associated via BrandUser
+    Proforma "1" --> "*" ProformaPart : contains
+    Proforma "1" --> "*" ProformaApplication : receives
+    Proforma "1" --> "*" ProformaSelection : assigned to
+    Proforma "1" --> "*" ProformaActivityLog : tracks
+    Proforma "*" --> "1" Brand : belongs to
+    Proforma "*" --> "1" User : processed_by
+    ProformaApplication "1" --> "*" ProformaPartPrice : includes
+```
+
+---
+
+## Activity Diagrams
+
+### Proforma Lifecycle
+
+```mermaid
+flowchart TD
+    A([Start]) --> B["Insurance/Owner Creates Proforma"]
+    B --> C["Upload Images, Parts, Voice Notes"]
+    C --> D["Proforma Status: PENDING"]
+    D --> E{"Admin Reviews Proforma"}
+    E -->|Approve| F["Admin Clicks FLOAT"]
+    E -->|Reject| R["Status: REJECTED"]
+    R --> Z([End])
+    F --> G["Status: PUBLISHED"]
+    G --> H["Telegram Notification Sent to Garages/Shops"]
+    H --> I["Garages/Shops Submit Bids"]
+    I --> J{"All Bids Received?"}
+    J -->|No| I
+    J -->|Yes| K["Admin Clicks CLOSE"]
+    K --> L["Status: CLOSED"]
+    L --> M["Telegram Notification to Floater Admin"]
+    M --> N["Admin Verifies Bids"]
+    N --> O["Admin Sends to Owner"]
+    O --> P["Status: COMPLETED"]
+    P --> Q["Commission Calculated"]
+    Q --> Z
+
+    style A fill:#4CAF50,color:white
+    style Z fill:#f44336,color:white
+    style D fill:#FF9800,color:white
+    style G fill:#2196F3,color:white
+    style L fill:#f44336,color:white
+    style P fill:#4CAF50,color:white
+    style R fill:#9E9E9E,color:white
+```
+
+### User Registration & Approval
+
+```mermaid
+flowchart TD
+    A([Start]) --> B["User Visits /signup"]
+    B --> C["Selects Role"]
+    C --> D{"Role Type?"}
+    D -->|Insurance| E1["Fill Name, Phone, Optional Email"]
+    D -->|Garage/Shop| E2["Fill Name, Phone, TIN, Location"]
+    D -->|Business Owner| E3["Fill Business Details"]
+    D -->|Marketer| E4["Fill Marketer Info"]
+    E2 --> F["Upload License & Stamp via FilePond"]
+    E1 --> G["Submit Registration"]
+    F --> G
+    E3 --> G
+    E4 --> G
+    G --> H["Account Created - Status: PENDING APPROVAL"]
+    H --> I["Admin Reviews in User Approval Page"]
+    I --> J{"Approved?"}
+    J -->|Yes| K["User Can Log In"]
+    J -->|No| L["User Denied Access"]
+    K --> M{"Telegram Connected?"}
+    M -->|No| N["Redirect to /telegram-connect"]
+    M -->|Yes| O["Redirect to Role Dashboard"]
+    N --> P["User Opens Telegram Bot Link"]
+    P --> Q["Presses START in Telegram"]
+    Q --> O
+
+    style A fill:#4CAF50,color:white
+    style H fill:#FF9800,color:white
+    style K fill:#4CAF50,color:white
+    style L fill:#f44336,color:white
+```
+
+### Bidding Process (Garage / Spare Part Shop)
+
+```mermaid
+flowchart TD
+    A([Proforma Floated]) --> B["Notification Sent to Matching Garages/Shops"]
+    B --> C["Garage/Shop Views Proforma Details"]
+    C --> D["Reviews Spare Parts List"]
+    D --> E["Sets Price for Each Part"]
+    E --> F["Applies Discount if Any"]
+    F --> G["Submits Application / Bid"]
+    G --> H["Application Status: SUBMITTED"]
+    H --> I{"Admin Reviews Bids"}
+    I -->|Accept| J["Application Accepted"]
+    I -->|Compare| K["Admin Compares Multiple Bids"]
+    K --> J
+    J --> L["Admin Closes Proforma"]
+    L --> M["Best Bid Selected"]
+    M --> N([End])
+
+    style A fill:#2196F3,color:white
+    style H fill:#FF9800,color:white
+    style J fill:#4CAF50,color:white
+```
+
+---
+
+## Sequence Diagrams
+
+### Proforma Creation to Completion
+
+```mermaid
+sequenceDiagram
+    actor Insurance as Insurance Company
+    participant App as etera App
+    participant DB as Database
+    participant Admin as Admin
+    participant TG as Telegram Bot
+    participant Garage as Garage/Shop
+
+    Insurance->>App: Create Proforma (vehicle details, parts)
+    App->>DB: Save Proforma (status: pending)
+    App->>Insurance: Proforma Created ✓
+
+    Admin->>App: View Pending Proformas
+    App->>DB: Query pending proformas
+    DB-->>App: Proforma list
+    App-->>Admin: Display proformas
+
+    Admin->>App: Click "Float" on proforma
+    App->>DB: Update status → published, set processed_by
+    App->>DB: Create ActivityLog entry
+    App->>TG: Send notification to matching garages/shops
+    TG-->>Garage: "New proforma available for bidding"
+
+    Garage->>App: View Proforma Details
+    Garage->>App: Submit Bid (part prices)
+    App->>DB: Save ProformaApplication + PartPrices
+
+    Admin->>App: Click "Close" bidding
+    App->>DB: Update status → closed
+    App->>TG: Notify floater admin "Proforma closed"
+    TG-->>Admin: "Proforma {file_number} closed, accept payment"
+
+    Admin->>App: Verify & Send to Owner
+    App->>DB: Update status → completed
+    App->>DB: Calculate commission
+    App-->>Insurance: Results notification
+```
+
+### Telegram Connection Flow
+
+```mermaid
+sequenceDiagram
+    actor User as User (Any Role)
+    participant App as etera App
+    participant TG as Telegram
+    participant WH as Webhook Handler
+
+    User->>App: Login
+    App->>App: Check telegram_chat_id
+    alt Not Connected
+        App-->>User: Redirect to /telegram-connect
+        User->>App: View connect page
+        App-->>User: Show "Open Telegram" button with deep link
+        User->>TG: Click deep link (t.me/bot?start=userId)
+        TG-->>User: Open bot chat
+        User->>TG: Press /start
+        TG->>WH: POST /api/telegram/webhook (chat_id + userId)
+        WH->>App: Save telegram_chat_id to user
+        App-->>User: Connected ✓
+    else Already Connected
+        App-->>User: Redirect to role dashboard
+    end
+```
+
+### Admin Float & Notification Flow
+
+```mermaid
+sequenceDiagram
+    actor Admin as Admin
+    participant App as etera App
+    participant DB as Database
+    participant TG as Telegram Bot
+    actor Garage1 as Garage A
+    actor Garage2 as Garage B
+    actor Shop as Spare Part Shop
+
+    Admin->>App: GET /admin/proforma
+    App->>DB: Query (status=pending OR processed_by=admin_id)
+    DB-->>App: Filtered proforma list
+    App-->>Admin: Display proformas
+
+    Admin->>App: Click "Float" (proforma_id)
+    App->>DB: Set status=published, processed_by=admin_id
+    App->>DB: Log activity "floated"
+
+    par Send Notifications
+        App->>TG: Notify Garage A (matching brands)
+        TG-->>Garage1: "New proforma for Toyota Corolla"
+        App->>TG: Notify Garage B (matching brands)
+        TG-->>Garage2: "New proforma for Toyota Corolla"
+        App->>TG: Notify Shop (matching brands)
+        TG-->>Shop: "New proforma for Toyota Corolla"
+    end
+
+    Garage1->>App: Submit bid ($500)
+    App->>DB: Save application
+
+    Garage2->>App: Submit bid ($450)
+    App->>DB: Save application
+
+    Shop->>App: Submit part prices
+    App->>DB: Save application
+
+    Admin->>App: Click "Close"
+    App->>DB: Set status=closed
+    App->>TG: Notify floater admin
+    TG-->>Admin: "Proforma closed, accept payment"
+```
+
+### User Registration & Approval Sequence
+
+```mermaid
+sequenceDiagram
+    actor User as New User
+    participant App as etera App
+    participant DB as Database
+    actor Admin as Admin
+
+    User->>App: GET /signup
+    App-->>User: Show role selection page
+
+    User->>App: Select "Garage" role
+    App-->>User: Show registration form
+
+    User->>App: Submit form (name, phone, license image, stamp image)
+    App->>DB: Create user (approved=false)
+    App-->>User: "Registration pending approval"
+
+    Admin->>App: GET /admin/user-approval
+    App->>DB: Query unapproved users
+    DB-->>App: Pending users list
+    App-->>Admin: Display pending users
+
+    Admin->>App: Approve user
+    App->>DB: Set approved=true
+    App-->>Admin: "User approved ✓"
+
+    User->>App: Login
+    App->>App: Check approved=true ✓
+    App->>App: Check telegram_chat_id=null
+    App-->>User: Redirect to /telegram-connect
+    User->>App: Connect Telegram (or Skip)
+    App-->>User: Redirect to /garage/proformas
+```
+
 
 ---
 
