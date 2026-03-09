@@ -17,13 +17,11 @@ class RefreshCsrfToken
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if session is expired
-        if ($this->isSessionExpired()) {
-            $this->handleExpiredSession($request);
+        // Only refresh CSRF token if session is still valid
+        // Let AuthenticateUser handle expiration and redirects
+        if (!$this->isSessionExpired()) {
+            $this->refreshCsrfTokenIfNeeded();
         }
-
-        // Refresh CSRF token if needed
-        $this->refreshCsrfTokenIfNeeded();
 
         // Add CSRF token to response headers for AJAX requests
         $response = $next($request);
