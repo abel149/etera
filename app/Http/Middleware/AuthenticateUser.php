@@ -143,7 +143,8 @@ class AuthenticateUser
     protected function redirectToLogin(Request $request): Response
     {
         // Store intended URL for redirect after login
-        if ($request->isMethod('get')) {
+        // Skip API routes so login doesn't redirect to /api/notifications etc.
+        if ($request->isMethod('get') && !str_starts_with($request->path(), 'api/')) {
             Session::put('url.intended', $request->url());
         }
 

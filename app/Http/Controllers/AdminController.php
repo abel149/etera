@@ -319,6 +319,18 @@ class AdminController extends Controller
             \Illuminate\Support\Facades\Log::warning('Failed to send close notification', ['error' => $e->getMessage()]);
         }
 
+        // Notify the admin who floated this proforma via Telegram
+        try {
+            if ($proforma->processedBy && !empty($proforma->processedBy->telegram_chat_id)) {
+                (new TelegramService())->sendFloaterClosedNotification(
+                    $proforma->processedBy->telegram_chat_id,
+                    $proforma
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to send floater close notification', ['error' => $e->getMessage()]);
+        }
+
         return response()->json(['success' => true, 'message' => 'Proforma closed successfully']);
     }
 

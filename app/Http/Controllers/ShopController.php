@@ -286,7 +286,6 @@ public function edit(string $id)
             'email' => 'nullable|email|unique:users,email,' . $id,
             'phone_number' => 'required|unique:users,phone_number,' . $id,
             'location' => 'required',
-            'password' => 'nullable|min:8|confirmed',  // Ensure password and confirmation match
             // 'business_license_number' => 'required|unique:users,business_license_number,' . $id,
             // 'license_expire_date' => 'required|date',
             'tin_number' => 'required|unique:users,tin_number,' . $id,
@@ -301,10 +300,6 @@ public function edit(string $id)
         // Find the shop to update
         $shop = User::findOrFail($id);
     
-        // Handle password update if it's provided
-        if ($request->filled('password')) {
-            $shop->password = bcrypt($request->password);
-        }
     
         // Handle image update if a new image is uploaded
         if ($request->hasFile('license_image')) {

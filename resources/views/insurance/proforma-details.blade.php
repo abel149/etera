@@ -151,12 +151,13 @@
                          data-location="{{ $application->applicationBy->location }}"
                          data-shop-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
-                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/stamps/' . basename($application->applicationBy->stamp_image)) : asset('assets/images/stamp.png') }}"
+                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-discount="{{ $application->discount ?? 0 }}">
 
+                         
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
-                            <img class="profile-pic stamp-image" src="{{ asset('storage/stamps/' . basename($application->applicationBy->stamp_image)) }}" alt="Stamp" />
+                            <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
                             @else
                             <img class="profile-pic stamp-image" src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
                             @endif
@@ -289,13 +290,13 @@
                          data-location="{{ $application->applicationBy->location }}"
                          data-garage-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
-                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/stamps/' . basename($application->applicationBy->stamp_image)) : asset('assets/images/stamp.png') }}"
+                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-discount="{{ $application->discount ?? 0 }}"
                          data-amount="{{ $application->amount ?? 0 }}">
 
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
-                            <img class="profile-pic stamp-image" src="{{ asset('storage/stamps/' . basename($application->applicationBy->stamp_image)) }}" alt="Stamp" />
+                            <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
                             @else
                             <img class="profile-pic stamp-image" src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
                             @endif
@@ -509,7 +510,7 @@ function openPrintPage(card) {
             <meta charset="utf-8" />
             <meta http-equiv="X-UA-Compatible" content="IE=edge">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>ETERA - Spare Parts Invoice</title>
+            <title>etera - Spare Parts Invoice</title>
             <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700' type='text/css'>
             <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/bootstrap/css/bootstrap.min.css') }}"/>
             <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/font-awesome/css/all.min.css') }}"/>
@@ -582,7 +583,7 @@ function openPrintPage(card) {
                             <br><br>
                             <strong>Author:</strong>
                             <address>
-                                ETERA<br />
+                                etera<br />
                                 portal.eteraet.com<br />
                                 Addis Ababa, Ethiopia
                             </address>
@@ -697,7 +698,7 @@ function openPrintPages(card) {
             <meta charset="utf-8" />
             <meta http-equiv="X-UA-Compatible" content="IE=edge">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>ETERA - Garage Service Invoice</title>
+            <title>etera - Garage Service Invoice</title>
             <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700' type='text/css'>
             <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/bootstrap/css/bootstrap.min.css') }}"/>
             <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/font-awesome/css/all.min.css') }}"/>
@@ -770,7 +771,7 @@ function openPrintPages(card) {
                             <br><br>
                             <strong>Author:</strong>
                             <address>
-                                ETERA<br />
+                                etera<br />
                                 portal.eteraet.com<br />
                                 Addis Ababa, Ethiopia
                             </address>
@@ -836,9 +837,9 @@ function openPrintPages(card) {
     printWindow.document.close();
 }
 
-// ETERA Receipt for Insured Proformas
+// etera Receipt for Insured Proformas
 function openPrintingPage() {
-    // This part is for the ETERA Receipt
+    // This part is for the etera Receipt
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
     const customerPhone = "{{ $proforma->customer_phone_number ?? 'N/A' }}";
     const createdAt = "{{ $proforma->proformaInvoice?->created_at->format('M d, Y') }}";
@@ -854,7 +855,7 @@ function openPrintingPage() {
             <meta charset="utf-8" />
             <meta http-equiv="X-UA-Compatible" content="IE=edge">
             <meta name="viewport" content="width=device-width, initial-scale=1">
-            <title>ETERA - Receipt</title>
+            <title>etera - Receipt</title>
             <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700' type='text/css'>
             <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/bootstrap/css/bootstrap.min.css') }}"/>
             <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/font-awesome/css/all.min.css') }}"/>
@@ -882,10 +883,10 @@ function openPrintingPage() {
                 <header>
                     <div class="row align-items-center gy-3">
                         <div class="col-sm-7 text-center text-sm-start">
-                            <img id="logo" src="{{ asset('assets/invoice/images/transparent.png') }}" height="70" width="200" alt="ETERA" />
+                            <img id="logo" src="{{ asset('assets/invoice/images/transparent.png') }}" height="70" width="200" alt="etera" />
                         </div>
                         <div class="col-sm-5 text-center text-sm-end">
-                            <h4 class="text-7 mb-0">ETERA - Receipt</h4>
+                            <h4 class="text-7 mb-0">etera - Receipt</h4>
                         </div>
                     </div>
                     <hr>
@@ -894,7 +895,7 @@ function openPrintingPage() {
                 <main>
                     <div class="row gy-3 align-items-start">
                         <div class="col-sm-6">
-                            <p class="mb-1"><strong>ETERA:</strong></p>
+                            <p class="mb-1"><strong>etera:</strong></p>
                             <p class="mb-1"><strong>Phone:</strong> phone</p>
                             <p class="mb-1"><strong>TIN:</strong> TIN</p>
                             <p class="mb-1"><strong>Date:</strong> ${createdAt}</p>

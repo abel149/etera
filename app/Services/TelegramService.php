@@ -155,4 +155,18 @@ class TelegramService
 
         return $this->sendMessage($chatId, $text);
     }
+
+    /**
+     * Send notification to the admin who floated a proforma when it is closed.
+     */
+    public function sendFloaterClosedNotification(string $chatId, $proforma): bool
+    {
+        $text = "📋 <b>Proforma Closed</b>\n\n"
+            . "The proforma <b>{$proforma->file_number}</b> which you floated is closed.\n"
+            . "Please Accept payment and send it back to owner.\n\n"
+            . "🚗 {$proforma->brand?->name} {$proforma->model} ({$proforma->year})\n"
+            . "🪪 Plate: {$proforma->license_plate_number}";
+
+        return $this->sendMessage($chatId, $text);
+    }
 }

@@ -227,6 +227,32 @@ public function approveFile(Request $request, $selectionId)
             'action' => 'returned',
             'details' => 'Proforma sent back to owner by ' . auth()->user()->name,
         ]);
+
+        // Send database notification (bell icon) to poster
+        try {
+            if ($proforma->poster) {
+                $proforma->poster->notify(
+                    new \App\Notifications\ProformaSentToOwnerNotification($proforma)
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Send-back notification failed', ['error' => $e->getMessage()]);
+        }
+
+        // Send Telegram notification to poster
+        try {
+            if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                (new \App\Services\TelegramService())->sendSentToOwnerNotification(
+                    $proforma->poster->telegram_chat_id,
+                    $proforma
+                );
+            }
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Telegram send-back notification failed', [
+                'proforma_id' => $proforma->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
         
         return redirect()->back()->with('success', 'Proforma sent back to user successfully');
     }

@@ -91,7 +91,6 @@ class GarageController extends Controller
         'business_license_number' => 'nullable|string|max:255',
         'license_expire_date' => 'nullable|date',
         'email' => 'nullable|email|max:255',
-        'password' => 'nullable|confirmed|min:8',
         'license_image' => 'nullable|file|image',
         'stamp_image' => 'nullable|file|image',
     ]);
@@ -102,11 +101,6 @@ class GarageController extends Controller
         'name', 'phone_number', 'tin_number', 'location',
         'business_license_number', 'license_expire_date', 'email'
     ]);
-
-    // Handle password
-    if ($request->filled('password')) {
-        $data['password'] = bcrypt($request->password);
-    }
 
     // Handle license image upload
     if ($request->hasFile('license_image')) {

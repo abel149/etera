@@ -35,20 +35,7 @@
                                     </div>
                                 </div>
 
-                                <div class="col-12">
-                                    <div class="mb-3">
-                                        <label for="password" class="form-label">Password</label>
-                                        <input type="password" name="password" id="password" class="form-control">
-                                        <small class="text-muted">Leave empty to keep the current password.</small>
-                                    </div>
-                                </div>
 
-                                <div class="col-12">
-                                    <div class="mb-3">
-                                        <label for="password_confirmation" class="form-label">Confirm Password</label>
-                                        <input type="password" name="password_confirmation" id="password_confirmation" class="form-control">
-                                    </div>
-                                </div>
 
                                 <div class="col-12">
                                     <button type="submit" class="btn btn-primary">Update Marketer</button>

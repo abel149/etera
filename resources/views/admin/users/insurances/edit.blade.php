@@ -95,18 +95,6 @@
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
 
-                    <div class="col-md-12">
-                        <label for="input8" class="form-label">Password</label>
-                        <input type="password" name="password" class="form-control" id="input8" placeholder="********">
-                    </div>
-                    @error('password')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
-
-                    <div class="col-md-12">
-                        <label for="input8" class="form-label">Confirm Password</label>
-                        <input type="password" name="password_confirmation" class="form-control" id="input8" placeholder="********">
-                    </div>
                     
 
                     <hr/>

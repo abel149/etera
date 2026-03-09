@@ -1,7 +1,7 @@
-{{-- ETERA White & Green Gradient Theme Override --}}
+{{-- etera White & Green Gradient Theme Override --}}
 {{-- Scoped to .wrapper (admin/dashboard layouts) to avoid breaking auth/etera-modern pages --}}
 <style>
-/* ====== ETERA White & Green Gradient Theme (Dashboard Only) ====== */
+/* ====== etera White & Green Gradient Theme (Dashboard Only) ====== */
 
 /* Sidebar */
 .wrapper .sidebar-wrapper { background: linear-gradient(180deg, #ffffff 0%, #e8f5e9 100%) !important; }

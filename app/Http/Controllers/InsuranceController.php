@@ -110,7 +110,6 @@ return redirect()->to('/admin/insurances');
             'name' => $request->name,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
-            "password" => bcrypt($request->password),
         ]);
     
         // return redirect()->to('admin/insurances');

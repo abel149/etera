@@ -1,9 +1,9 @@
 @extends('layouts.authentication')
 
-@section('title', 'Verify Email — ETERA')
+@section('title', 'Verify Email — etera')
 
 @section('branding')
-    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
         Verify Your Email
     </h2>
@@ -16,7 +16,7 @@
 <div id="verify-otp-app"></div>
 
 <script>
-    window.__ETERA__ = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         verifyOtpUrl: @json(url('/verify-otp')),
         resendOtpUrl: @json(url('/resend-otp')),
@@ -85,7 +85,7 @@
     }
 
     function VerifyOtpPage() {
-        const data = window.__ETERA__;
+        const data = window.__ETERA__ ;
         const [otp, setOtp] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
         const [countdown, setCountdown] = useState(60);
@@ -115,7 +115,7 @@
         return (
             <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={data.logoUrl} alt="ETERA" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
+                    <img src={data.logoUrl} alt="etera" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
                     <div style={{ marginBottom: '0.75rem' }}>
                         <svg width="48" height="48" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" style={{ color: 'rgba(13, 148, 136, 0.8)' }}>
                             <path strokeLinecap="round" strokeLinejoin="round" d="M21.75 6.75v10.5a2.25 2.25 0 0 1-2.25 2.25h-15a2.25 2.25 0 0 1-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0 0 19.5 4.5h-15a2.25 2.25 0 0 0-2.25 2.25m19.5 0v.243a2.25 2.25 0 0 1-1.07 1.916l-7.5 4.615a2.25 2.25 0 0 1-2.36 0L3.32 8.91a2.25 2.25 0 0 1-1.07-1.916V6.75"/>

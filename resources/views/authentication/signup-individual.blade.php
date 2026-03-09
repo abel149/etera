@@ -27,7 +27,7 @@
 @section('content')
 <div class="text-center mb-4">
     <div>
-        <img src="{{ asset('assets/images/transparent.svg') }}" class="logo-text mb-4" style="max-width: 7.5rem;" alt="ETERA">
+        <img src="{{ asset('assets/images/transparent.svg') }}" class="logo-text mb-4" style="max-width: 7.5rem;" alt="etera">
     </div>
     <p class="mb-0">Individual Registration - Please fill the below details to create your account</p>
 </div>

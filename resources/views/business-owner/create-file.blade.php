@@ -347,6 +347,25 @@ p { color: #333 !important; }
     border: none !important;
     color: #fff !important;
 }
+
+/* VIN/Chassis counter */
+.vin-single-wrapper {
+    position: relative;
+    max-width: 420px;
+}
+.vin-counter {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+}
+#vin_input {
+    padding-right: 70px;
+    letter-spacing: 2px;
+}
 </style>
 
 <!-- Add FilePond CSS -->
@@ -528,9 +547,10 @@ p { color: #333 !important; }
                class="form-control text-uppercase"
                id="vin_input"
                name="chassis_number"
+               maxlength="17"
                placeholder="Enter Chassis Number"
                value="{{ old('chassis_number') }}">
-
+        <span class="vin-counter" id="vin_counter"></span>
     </div>
 
     @error('chassis_number')
@@ -582,8 +602,8 @@ p { color: #333 !important; }
                                                         </select>
                                                     </div>
                                                     <div class="col-12 col-lg-3">
-                                                        <label for="country_0" class="form-label">Country (Optional)</label>
-                                                        <input name="parts[country][]" type="text" class="form-control" id="country_0">
+                                                        <label for="country_0" class="form-label">Country Part is Manufactured</label>
+                                                        <input name="parts[country][]" type="text" class="form-control" id="country_0" required>
                                                     </div>
                                                     <div class="col-12 col-lg-2">
                                                         <label for="quantity_0" class="form-label">Qty</label>
@@ -869,8 +889,8 @@ p { color: #333 !important; }
                         </select>
                     </div>
                     <div class="col-12 col-lg-3">
-                        <label class="form-label">Country (Optional)</label>
-                        <input name="parts[country][]" type="text" class="form-control">
+                        <label class="form-label">Country Part is Manufactured</label>
+                        <input name="parts[country][]" type="text" class="form-control" required>
                     </div>
                     <div class="col-12 col-lg-2">
                         <label class="form-label">Qty</label>
@@ -973,6 +993,28 @@ p { color: #333 !important; }
         if (boProformaType) {
             boProformaType.addEventListener('change', toggleEteraCheretaDropdown);
             toggleEteraCheretaDropdown();
+        }
+
+        // VIN/Chassis number counter
+        const vinInput = document.getElementById('vin_input');
+        const vinCounter = document.getElementById('vin_counter');
+
+        function updateVinCounter() {
+            if (!vinInput || !vinCounter) return;
+            let val = vinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+            vinInput.value = val;
+            const len = val.length;
+            vinCounter.textContent = len + '/17';
+            if (len === 17) {
+                vinCounter.style.color = '#28a745';
+            } else {
+                vinCounter.style.color = '#dc3545';
+            }
+        }
+
+        if (vinInput) {
+            vinInput.addEventListener('input', updateVinCounter);
+            updateVinCounter();
         }
     }
 

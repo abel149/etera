@@ -1,9 +1,9 @@
 @extends('layouts.authentication')
 
-@section('title', 'Forgot Password — ETERA')
+@section('title', 'Forgot Password — etera')
 
 @section('branding')
-    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
         Reset Your Password
     </h2>
@@ -16,7 +16,7 @@
 <div id="forgot-password-app"></div>
 
 <script>
-    window.__ETERA__ = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         forgotPasswordUrl: @json(url('/forgot-password')),
         loginUrl: '/login',
@@ -39,7 +39,7 @@
     }
 
     function ForgotPasswordForm() {
-        const data = window.__ETERA__;
+        const data = window.__ETERA__ ;
         const [email, setEmail] = useState(data.oldEmail);
         const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -50,7 +50,7 @@
         return (
             <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={data.logoUrl} alt="ETERA" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
+                    <img src={data.logoUrl} alt="etera" style={{ maxWidth: '100px', marginBottom: '1rem' }} className="d-xl-none" />
                     <div style={{ marginBottom: '1rem' }}>
                         <LockIcon />
                     </div>

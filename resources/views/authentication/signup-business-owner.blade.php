@@ -1,9 +1,9 @@
 @extends('layouts.authentication')
 
 @section('branding')
-    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
-        Join ETERA Today
+        Join etera Today
     </h2>
     <p class="etera-subtext" style="text-align:center; max-width: 360px; color: rgba(255,255,255,0.85);">
         Register as a customer and start sourcing auto parts across all brands.
@@ -53,7 +53,7 @@
                 <img src="{{ asset('assets/images/transparent.svg') }}" 
                     class="logo-text mb-4" 
                     style="max-width: 7.5rem;" 
-                    alt="ETERA">
+                    alt="etera">
                 <h3>Create Your account today</h3>
                 <p class="mb-0">Fill the form below to register as a <b>Customers.</b></p>
             </div>
@@ -188,13 +188,13 @@
                     
                 <li>
                     <strong>Acceptance of Terms.</strong>
-                    By using ETERA, you confirm that you have read, understood, and agreed to these Terms and Conditions. 
+                    By using etera, you confirm that you have read, understood, and agreed to these Terms and Conditions. 
                     If you do not agree, you must not use the platform.
                 </li>
 
                 <li>
                     <strong>Eligibility.</strong>
-                    You must be at least 18 years old or have legal parental/guardian consent to use ETERA. 
+                    You must be at least 18 years old or have legal parental/guardian consent to use etera. 
                     You represent that you have the authority to enter into this agreement.
                 </li>
 
@@ -206,22 +206,22 @@
 
                 <li>
                     <strong>Use of the Platform.</strong>
-                    You agree to use ETERA only for lawful purposes and in accordance with these Terms. 
+                    You agree to use etera only for lawful purposes and in accordance with these Terms. 
                     You must not misuse the platform or attempt unauthorized access.
                 </li>
 
                 <li>
                     <strong>Product and Service Descriptions.</strong>
-                    ETERA strives to provide accurate descriptions of products and services. 
+                    etera strives to provide accurate descriptions of products and services. 
                     However, we do not warrant that descriptions or other content are error-free, complete, or current.
                 </li>
 
                 <li>
                     <strong>Platform Role and Provider Responsibility.</strong>
-                    ETERA acts solely as a facilitator of instant price quotes provided by spare part providers registered on our platform. 
+                    etera acts solely as a facilitator of instant price quotes provided by spare part providers registered on our platform. 
                     We do not manufacture, stock, or sell any spare parts directly.<br><br>
                     All products and services listed are offered by independent providers. 
-                    ETERA is not responsible for the quality, condition, availability, or delivery of any parts sold, 
+                    etera is not responsible for the quality, condition, availability, or delivery of any parts sold, 
                     nor for any store’s return, refund, or warranty policies. 
                     Any disputes or claims regarding a product must be resolved directly with the provider.
                 </li>
@@ -234,14 +234,14 @@
 
                 <li>
                     <strong>Intellectual Property.</strong>
-                    All content on ETERA—including logos, text, graphics, and software—is the property of ETERA or its licensors 
+                    All content on etera—including logos, text, graphics, and software—is the property of etera or its licensors 
                     and is protected by applicable intellectual property laws.
                 </li>
 
                 <li>
                     <strong>User Content.</strong>
                     You may submit content such as feedback and reviews. 
-                    By doing so, you grant ETERA a non-exclusive, royalty-free license to use, reproduce, and display such content.
+                    By doing so, you grant etera a non-exclusive, royalty-free license to use, reproduce, and display such content.
                 </li>
 
                 <li>
@@ -257,37 +257,37 @@
 
                 <li>
                     <strong>Third-Party Links.</strong>
-                    ETERA may contain links to third-party websites. 
+                    etera may contain links to third-party websites. 
                     We are not responsible for the content, policies, or practices of those sites.
                 </li>
 
                 <li>
                     <strong>Limitation of Liability.</strong>
-                    ETERA is not liable for any indirect, incidental, or consequential damages arising from your use of the platform. 
+                    etera is not liable for any indirect, incidental, or consequential damages arising from your use of the platform. 
                     Our total liability is limited to the amount paid by you for the relevant product or service.
                 </li>
 
                 <li>
                     <strong>Pricing and Payments.</strong>
-                    All prices on ETERA are subject to change without prior notice. 
+                    All prices on etera are subject to change without prior notice. 
                     The price at checkout is the final price. 
                     Payments must be made using the available payment methods.
                 </li>
 
                 <li>
                     <strong>Refunds and Cancellations.</strong>
-                    ETERA does not sell spare parts directly and is not responsible for providers’ refund or cancellation policies. 
+                    etera does not sell spare parts directly and is not responsible for providers’ refund or cancellation policies. 
                     All refund or cancellation requests must be directed to the provider.
                 </li>
 
                 <li>
                     <strong>Privacy.</strong>
-                    Your use of ETERA is governed by our Privacy Policy, which explains how your information is collected and used.
+                    Your use of etera is governed by our Privacy Policy, which explains how your information is collected and used.
                 </li>
 
                 <li>
                     <strong>Changes to Terms.</strong>
-                    ETERA may update these Terms at any time. 
+                    etera may update these Terms at any time. 
                     Continued use of the platform following changes means you accept the updated Terms.
                 </li>
 

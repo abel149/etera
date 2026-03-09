@@ -1,4 +1,4 @@
-{{-- ETERA Toast Notification System --}}
+{{-- etera Toast Notification System --}}
 {{-- Reads Laravel flash session messages and shows React-based toasts --}}
 
 <div id="etera-toast-root"></div>

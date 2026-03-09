@@ -217,6 +217,7 @@
            class="form-control text-uppercase"
            id="vin_input"
            name="chassis_number"
+           maxlength="17"
            placeholder="Enter Chassis Number"
            value="{{ old('chassis_number') }}">
 
@@ -274,8 +275,8 @@
                                                     @enderror
                                                 </div>
                                                 <div class="col-12 col-lg-3">
-                                                    <label for="inputName1" class="form-label">Country(Optional)</label>
-                                                    <input name="parts[0][country]" type="text" class="form-control" id="inputName1" placeholder="" data-name="name">
+                                                    <label for="inputName1" class="form-label">Country Part is Manufactured</label>
+                                                    <input name="parts[0][country]" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required>
                                                     @error('parts.0.country')
                                                         <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
@@ -535,7 +536,13 @@ const stepper3 = new Stepper(document.getElementById('stepper3'), {
     function updateCounter() {
         let val = vinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
         vinInput.value = val;
-        counter.textContent = val.length > 0 ? `${val.length} characters` : '';
+        const len = val.length;
+        counter.textContent = len + '/17';
+        if (len === 17) {
+            counter.style.color = '#28a745';
+        } else {
+            counter.style.color = '#dc3545';
+        }
     }
 
     vinInput.addEventListener('input', updateCounter);

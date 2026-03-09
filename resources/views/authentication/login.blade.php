@@ -1,9 +1,9 @@
 @extends('layouts.authentication')
 
-@section('title', 'Login — ETERA')
+@section('title', 'Login — etera')
 
 @section('branding')
-    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="ETERA">
+    <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
         One Platform, All Auto Brands.
     </h2>
@@ -38,7 +38,7 @@
 <div id="login-app"></div>
 
 <script>
-    window.__ETERA__ = {
+    window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         loginUrl: @json(route('login')),
         signupUrl: '/signup',
@@ -73,7 +73,7 @@
     }
 
     function LoginForm() {
-        const data = window.__ETERA__;
+        const data = window.__ETERA__ ;
         const [emailOrPhone, setEmailOrPhone] = useState(data.oldInput);
         const [password, setPassword] = useState('');
         const [showPassword, setShowPassword] = useState(false);
@@ -92,9 +92,9 @@
         return (
             <div style={{ animation: 'etera-fade-in 0.6s ease-out' }}>
                 <div style={{ textAlign: 'center', marginBottom: '2rem' }}>
-                    <img src={data.logoUrl} alt="ETERA" style={{ maxWidth: '120px', marginBottom: '1rem' }} className="d-xl-none" />
+                    <img src={data.logoUrl} alt="etera" style={{ maxWidth: '120px', marginBottom: '1rem' }} className="d-xl-none" />
                     <h2 className="etera-heading" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Welcome Back</h2>
-                    <p className="etera-subtext">Sign in to your ETERA account</p>
+                    <p className="etera-subtext">Sign in to your etera account</p>
                 </div>
 
                 <form ref={formRef} action={data.loginUrl} method="POST" onSubmit={handleSubmit}>

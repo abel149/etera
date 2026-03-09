@@ -122,7 +122,7 @@
                                     <div class="col-auto">
                                         <div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Stamp">
                                             @if(auth()->user()->stamp_image)
-                                                <img class="profile-pic stamp-image" src="{{ asset('storage/stamps/' . basename(auth()->user()->stamp_image)) }}" alt="Stamp" />
+                                                <img class="profile-pic stamp-image" src="{{ asset('storage/' . auth()->user()->stamp_image) }}" alt="Stamp" />
                                             @else
                                                 <img class="profile-pic stamp-image" src="{{asset('assets/images/stamp.png')}}" alt="No Stamp Here" />
                                             @endif
@@ -135,7 +135,7 @@
                                     <div class="col-auto">
                                         <div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Business License">
                                             @if(auth()->user()->license_image)
-                                                <img class="pp license-image" src="{{ asset('storage/licenses/' . basename(auth()->user()->license_image)) }}" alt="Business License" />
+                                                <img class="pp license-image" src="{{ asset('storage/' . auth()->user()->license_image) }}" alt="Business License" />
                                             @else
                                                 <img class="pp license-image" src="{{asset('assets/images/license.png')}}" alt="No License Here" />
                                             @endif
@@ -295,7 +295,7 @@
 									<div class="col-auto">
 										<div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Stamp">
 											@if(auth()->user()->stamp_image)
-												<img class="profile-pic stamp-image" src="{{ asset('storage/stamps/' . basename(auth()->user()->stamp_image)) }}" alt="Stamp" />
+												<img class="profile-pic stamp-image" src="{{ asset('storage/' . auth()->user()->stamp_image) }}" alt="Stamp" />
                                         
                                                 @else
 												<img class="profile-pic stamp-image" src="{{asset('assets/images/stamp.png')}}" alt="No Stamp Here" />
@@ -309,7 +309,7 @@
 									<div class="col-auto">
 										<div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Business License">
 											@if(auth()->user()->license_image)
-												<img class="pp license-image" src="{{ asset('storage/licenses/' . basename(auth()->user()->license_image)) }}" alt="Business License" />
+												<img class="pp license-image" src="{{ asset('storage/' . auth()->user()->license_image) }}" alt="Business License" />
 											@else
 												<img class="pp license-image" src="{{asset('assets/images/license.png')}}" alt="No License Here" />
 											@endif

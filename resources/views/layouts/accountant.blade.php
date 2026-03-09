@@ -16,7 +16,7 @@
 
 	<!--favicon-->
 	<link rel="icon" href="{{asset('favicon.ico')}}" type="image/x-icon"/>
-	<link rel="icon" href="{{asset('assets/images/transparent.jpg')}}" type="image/jpeg"/>
+	<link rel="icon" href="{{asset('assets/images/transparent.svg')}}" type="image/jpeg"/>
 
 	<!--plugins-->
 
@@ -81,7 +81,7 @@
 
 </style>
 
-	<title> ETERA | Accountant</title>
+	<title> etera | Accountant</title>
 
 @include('partials.green-theme')
 </head>
@@ -102,7 +102,7 @@
 
 				<div>
 
-					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="ETERA">
+					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="etera">
 
 				</div>
 

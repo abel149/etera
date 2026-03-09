@@ -40,6 +40,25 @@ class TelegramWebhookController extends Controller
             if ($userId) {
                 $user = User::find($userId);
                 if ($user) {
+                    // Check if this telegram account is already linked to another user
+                    $existing = User::where('telegram_chat_id', (string) $chatId)
+                        ->where('id', '!=', $userId)
+                        ->first();
+                    if ($existing) {
+                        // Send error via Telegram
+                        $botToken = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
+                        if ($botToken) {
+                            \Illuminate\Support\Facades\Http::post(
+                                "https://api.telegram.org/bot{$botToken}/sendMessage",
+                                [
+                                    'chat_id' => $chatId,
+                                    'text' => "You've registered using this account please use other account",
+                                ]
+                            );
+                        }
+                        return response()->json(['ok' => true, 'duplicate' => true]);
+                    }
+
                     $user->update(['telegram_chat_id' => (string) $chatId]);
 
                     Log::info('Telegram chat ID linked', [

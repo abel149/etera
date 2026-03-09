@@ -8,7 +8,7 @@
 	<meta name="csrf-token" content="{{ csrf_token() }}">
 	<!--favicon-->
 	<link rel="icon" href="{{asset('favicon.ico')}}" type="image/x-icon"/>
-	<link rel="icon" href="{{asset('assets/images/transparent.jpg')}}" type="image/jpeg"/>
+	<link rel="icon" href="{{asset('assets/images/transparent.svg')}}" type="image/jpeg"/>
 	<!--plugins-->
 	<link rel="stylesheet" href="{{asset('assets/plugins/notifications/css/lobibox.min.css')}}" />
 	<link href="{{asset('assets/plugins/vectormap/jquery-jvectormap-2.0.2.css')}}" rel="stylesheet"/>
@@ -84,7 +84,7 @@
 		.bg-dark-primary { background-color: #3B5998; }
 		.circle { height: 80px; width: 80px; }
 	</style>
-	<title>ETERA - Insurances</title>
+	<title>etera - Insurances</title>
 @include('partials.green-theme')
 </head>
 
@@ -96,7 +96,7 @@
 			<div class="sidebar-header">
 				<div>
 
-					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="ETERA">
+					<img src="{{asset('assets/images/transparent.svg')}}" class="logo-text" style="max-width: 7.5rem;" alt="etera">
 
 				</div>
 				<div class="toggle-icon ms-auto"><i class='bx bx-arrow-back'></i>

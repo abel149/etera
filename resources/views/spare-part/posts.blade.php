@@ -240,8 +240,10 @@ class="current"
                class="form-control text-uppercase"
                id="vin_input"
                name="chassis_number"
+               maxlength="17"
                placeholder="Enter Chassis Number"
                value="{{ old('chassis_number') }}">
+        <span class="vin-counter" id="vin_counter"></span>
     </div>
 
     @error('chassis_number')
@@ -297,8 +299,8 @@ class="current"
                                                     </select>
                                                 </div>
                                                 <div class="col-12 col-lg-3">
-                                                    <label for="inputName1" class="form-label">Country (Optional)</label>
-                                                    <input name="parts[country][]" value="{{old('parts[country][]')}}" type="text" class="form-control" id="inputName1" placeholder="" data-name="name">
+                                                    <label for="inputName1" class="form-label">Country Part is Manufactured</label>
+                                                    <input name="parts[country][]" value="{{old('parts[country][]')}}" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required>
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="inputName1" class="form-label">Qty</label>
@@ -590,8 +592,8 @@ function initializeRepeater() {
                     </select>
                 </div>
                 <div class="col-12 col-lg-3">
-                    <label class="form-label">Country (Optional)</label>
-                    <input name="parts[country][]" type="text" class="form-control">
+                    <label class="form-label">Country Part is Manufactured</label>
+                    <input name="parts[country][]" type="text" class="form-control" required>
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Qty</label>
@@ -1039,16 +1041,46 @@ function validateStep3() {
 document.addEventListener('DOMContentLoaded', function () {
 
     const vinInput = document.getElementById('vin_input');
+    const vinCounter = document.getElementById('vin_counter');
+
+    function updateVinCounter() {
+        if (!vinInput || !vinCounter) return;
+        let val = vinInput.value.toUpperCase().replace(/[^A-Z0-9]/g, '');
+        vinInput.value = val;
+        const len = val.length;
+        vinCounter.textContent = len + '/17';
+        if (len === 17) {
+            vinCounter.style.color = '#28a745';
+        } else {
+            vinCounter.style.color = '#dc3545';
+        }
+    }
+
     if (vinInput) {
-        vinInput.addEventListener('input', function() {
-            // Convert to uppercase and remove invalid characters
-            vinInput.value = vinInput.value
-                .toUpperCase()
-                .replace(/[^A-Z0-9]/g, '');
-        });
+        vinInput.addEventListener('input', updateVinCounter);
+        updateVinCounter();
     }
 });
 </script>
+<style>
+.vin-single-wrapper {
+    position: relative;
+    max-width: 420px;
+}
+.vin-counter {
+    position: absolute;
+    right: 10px;
+    top: 50%;
+    transform: translateY(-50%);
+    font-size: 12px;
+    font-weight: 600;
+    pointer-events: none;
+}
+#vin_input {
+    padding-right: 70px;
+    letter-spacing: 2px;
+}
+</style>
 <style>
 /* Voice recording visibility toggle */
 .voice-animate {

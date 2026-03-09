@@ -264,19 +264,6 @@
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
 
-                    <div class="col-md-4">
-                        <label for="input8" class="form-label">Password</label>
-                        <input name="password" type="password" class="form-control" id="input8" placeholder="********">
-                    </div>
-                    @error('password')
-                        <span class="text-danger">{{ $message }}</span>
-                    @enderror
-
-                    <div class="col-md-4">
-                        <label for="input10" class="form-label">Confirm Password</label>
-                        <input name="password_confirmation" type="password" class="form-control" id="input10" placeholder="Confirm Password">
-                    </div>
-
                     <hr/>
                     
                     <!-- File Inputs for Business License and Stamp Images -->
@@ -284,7 +271,7 @@
                         <label for="license_image" class="form-label">Business License Image</label>
                         <input name="license_image" type="file" class="form-control" id="license_image">
                         @if($garage->license_image)
-                            <p>Current Image: <a href="{{ asset('storage/licenses/' . basename($garage->license_image)) }}" >View Image</a></p>
+                            <p>Current Image: <a href="{{ asset('storage/' . $garage->license_image) }}" >View Image</a></p>
                         @endif
                     </div>
                     @error('license_image')
@@ -295,7 +282,7 @@
                         <label for="stamp_image" class="form-label">Stamp Image</label>
                         <input name="stamp_image" type="file" class="form-control" id="stamp_image">
                         @if($garage->stamp_image)
-                            <p>Current Image: <a href="{{ asset('storage/stamps/' . basename($garage->stamp_image)) }}" >View Image</a></p>
+                            <p>Current Image: <a href="{{ asset('storage/' . $garage->stamp_image) }}" >View Image</a></p>
                         @endif
                     </div>
                     @error('stamp_image')

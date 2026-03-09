@@ -150,7 +150,7 @@
                     @if($garage->license_image)
                     <div class="col-md-6 mb-3">
                         <p class="font-weight-semibold"><strong>Business License:</strong></p>
-                        <img src="{{ asset('storage/licenses/' . basename($garage->license_image)) }}" alt="Business License Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <img src="{{ asset('storage/' . $garage->license_image) }}" alt="Business License Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
                     </div>
                     @else
                     <div class="col-md-6 mb-3">
@@ -162,7 +162,7 @@
                     @if($garage->stamp_image)
                     <div class="col-md-6 mb-3">
                         <p class="font-weight-semibold"><strong>Stamp:</strong></p>
-                        <img src="{{ asset('storage/stamps/' . basename($garage->stamp_image)) }}" alt="Stamp Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
+                        <img src="{{ asset('storage/' . $garage->stamp_image) }}" alt="Stamp Image" class="img-fluid rounded" style="max-width: 100%; height: auto;">
                     </div>
                     @else
                     <div class="col-md-6 mb-3">
