@@ -115,6 +115,32 @@ Route::middleware(['auth'])->group(function () {
                 }
                 
                 $proforma->update(['status' => 'returned']);
+
+                // Send database notification (bell icon) to poster
+                try {
+                    if ($proforma->poster) {
+                        $proforma->poster->notify(
+                            new \App\Notifications\ProformaSentToOwnerNotification($proforma)
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Send-back notification failed', ['error' => $e->getMessage()]);
+                }
+
+                // Send Telegram notification to poster
+                try {
+                    if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                        (new \App\Services\TelegramService())->sendSentToOwnerNotification(
+                            $proforma->poster->telegram_chat_id,
+                            $proforma
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Telegram send-back notification failed', [
+                        'proforma_id' => $proforma->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
                 
                 return redirect()->back()->with('success', 'Proforma sent back to owner successfully');
             })->name('proformas.send-back');
