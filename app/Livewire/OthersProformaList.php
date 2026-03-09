@@ -36,6 +36,14 @@ class OthersProformaList extends Component
     {
         $query = Proforma::fromOthers()->whereHas('poster');
 
+        // Admin: show pending to all, non-pending only to the admin who processed them
+        if (auth()->user()->role === 'admin') {
+            $query->where(function ($q) {
+                $q->where('status', 'pending')
+                  ->orWhere('processed_by', auth()->id());
+            });
+        }
+
         if (! empty($this->search)) {
             $query->where(function($q) {
                 $q->where('file_number', 'like', '%'.$this->search.'%')

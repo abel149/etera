@@ -59,6 +59,14 @@ class ProformaList extends Component
     {
         $query = Proforma::fromInsurances()->whereHas('poster');
 
+        // Admin mode: show pending to all, non-pending only to the admin who processed them
+        if ($this->mode === 'admin') {
+            $query->where(function ($q) {
+                $q->where('status', 'pending')
+                  ->orWhere('processed_by', auth()->id());
+            });
+        }
+
         // Filter for operator mode
         if ($this->mode === 'operator') {
             $user = auth()->user();

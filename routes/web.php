@@ -1611,17 +1611,11 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
         // View Proforma
         // admin proformas
         Route::get('/proforma', function () {
-            // Superadmins see all, regular admins see pending + their own processed
-            $query = \App\Models\Proforma::fromInsurances();
+            $proformas = \App\Models\Proforma::fromInsurances()
+                ->orderBy('created_at', 'desc')
+                ->get();
 
-            if (auth()->user()->is_superadmin != 1) {
-                $query->where(function ($q) {
-                    $q->where('status', 'pending')
-                      ->orWhere('processed_by', auth()->id());
-                });
-            }
-
-            $proformas = $query->orderBy('created_at', 'desc')->get();
+                // dd($proformas);
 
             return view('admin.proforma.view', compact('proformas'));
         })->name('admin.proformas.index');
@@ -1639,17 +1633,9 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
         });
 
         Route::get('/others-proforma', function () {
-            // Superadmins see all, regular admins see pending + their own processed
-            $query = \App\Models\Proforma::fromOthers();
-
-            if (auth()->user()->is_superadmin != 1) {
-                $query->where(function ($q) {
-                    $q->where('status', 'pending')
-                      ->orWhere('processed_by', auth()->id());
-                });
-            }
-
-            $proformas = $query->orderBy('created_at', 'desc')->get();
+            $proformas = \App\Models\Proforma::fromOthers()
+                ->orderBy('created_at', 'desc')
+                ->get();
 
             return view(
                 'admin.proforma.others-proforma.view',
