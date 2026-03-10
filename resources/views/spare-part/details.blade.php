@@ -668,7 +668,7 @@
             <div class="modal-content">
                 <div class="modal-header">
                     <h5 class="modal-title" id="partImageGalleryModalLabel">Part Images (<span id="partImageIndex"></span>)</h5>
-                    <button type="button" class="btn-close" aria-label="Close" onclick="console.log('clicked button Close (Header)'); closePartImageModal();"></button>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="console.log('clicked button Close (Header)'); closePartImageModal();"></button>
                 </div>
                 <div class="modal-body">
                     <div id="partImageCarousel" class="carousel slide" data-bs-ride="false">
@@ -685,7 +685,7 @@
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
                     <small class="text-muted" id="partImageCountText"></small>
-                    <button type="button" class="btn btn-secondary" onclick="console.log('clicked button Close (Footer)'); closePartImageModal();">Close</button>
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" onclick="console.log('clicked button Close (Footer)'); closePartImageModal();">Close</button>
                 </div>
             </div>
         </div>
@@ -998,9 +998,12 @@
          * Explicitly closes the modal using the bootstrap instance.
          */
         function closePartImageModal() {
-            if (partImageModalInstance) {
-                partImageModalInstance.hide();
-            }
+            const modalEl = document.getElementById('partImageGalleryModal');
+            if (!modalEl || typeof bootstrap === 'undefined' || !bootstrap.Modal) return;
+
+            // Use the stored instance if available; otherwise safely get/create an instance.
+            const instance = partImageModalInstance || bootstrap.Modal.getOrCreateInstance(modalEl);
+            instance.hide();
         }
 
         // END: JAVASCRIPT LOGIC
