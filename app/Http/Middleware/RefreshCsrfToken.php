@@ -17,13 +17,11 @@ class RefreshCsrfToken
      */
     public function handle(Request $request, Closure $next): Response
     {
-        // Check if session is expired
-        if ($this->isSessionExpired()) {
-            $this->handleExpiredSession($request);
+        // Only refresh CSRF token if session is still valid
+        // Let AuthenticateUser handle expiration and redirects
+        if (!$this->isSessionExpired()) {
+            $this->refreshCsrfTokenIfNeeded();
         }
-
-        // Refresh CSRF token if needed
-        $this->refreshCsrfTokenIfNeeded();
 
         // Add CSRF token to response headers for AJAX requests
         $response = $next($request);
@@ -41,7 +39,9 @@ class RefreshCsrfToken
     protected function isSessionExpired(): bool
     {
         $lastActivity = Session::get('last_activity');
-        $lifetime = config('session.lifetime', 120) * 60; // Convert to seconds
+        // Use config fallback to avoid reading 0 as infinite
+        $lifetimeMinutes = config('session.lifetime', 120);
+        $lifetime = $lifetimeMinutes * 60; // Convert to seconds
 
         if ($lastActivity && (time() - $lastActivity) > $lifetime) {
             return true;
@@ -55,9 +55,6 @@ class RefreshCsrfToken
      */
     protected function handleExpiredSession(Request $request): void
     {
-        // Clear the expired session
-        Session::flush();
-        
         // Log the session expiration
         Log::info('Session expired for user', [
             'ip' => $request->ip(),
@@ -69,6 +66,7 @@ class RefreshCsrfToken
         if ($request->ajax() || $request->wantsJson()) {
             abort(419, 'Session expired. Please refresh the page and try again.');
         }
+        // For regular requests, let AuthenticateUser middleware handle redirect and logout cleanly
     }
 
     /**

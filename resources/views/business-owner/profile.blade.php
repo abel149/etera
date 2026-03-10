@@ -26,44 +26,60 @@
 								<div class="card">
 									<div class="card-body">
 										<h4 class="text-center mb-4 mt-1">Account Details</h4>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Name</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="{{auth()->user()->name}}" />
-											</div>
+										<form action="{{ route('profile.update') }}" method="POST">
+									@csrf
+									@method('PUT')
+									<div class="row mb-3">
+										<div class="col-sm-3">
+											<h6 class="mb-0">Name</h6>
 										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Email</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="{{auth()->user()->email}}" />
-											</div>
+										<div class="col-sm-9 text-secondary">
+											<input type="text" class="form-control" name="name" value="{{auth()->user()->name}}" />
+											@error('name') <span class="text-danger">{{ $message }}</span> @enderror
 										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Phone</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="{{auth()->user()->phone_number}}" />
-											</div>
+									</div>
+									<div class="row mb-3">
+										<div class="col-sm-3">
+											<h6 class="mb-0">Email</h6>
 										</div>
-										<div class="row mb-3">
-											<div class="col-sm-3">
-												<h6 class="mb-0">Password</h6>
-											</div>
-											<div class="col-sm-9 text-secondary">
-												<input type="text" class="form-control" value="********" />
-											</div>
+										<div class="col-sm-9 text-secondary">
+											<input type="email" class="form-control" name="email" value="{{auth()->user()->email}}" />
+											@error('email') <span class="text-danger">{{ $message }}</span> @enderror
 										</div>
-										<div class="row">
-											<div class="col-sm-3"></div>
-											<div class="col-sm-9 text-secondary">
-												<input type="button" class="btn btn-primary px-4 radius-30" value="Save Changes" />
-											</div>
+									</div>
+									<div class="row mb-3">
+										<div class="col-sm-3">
+											<h6 class="mb-0">Phone</h6>
 										</div>
+										<div class="col-sm-9 text-secondary">
+											<input type="text" class="form-control" name="phone_number" value="{{auth()->user()->phone_number}}" />
+											@error('phone_number') <span class="text-danger">{{ $message }}</span> @enderror
+										</div>
+									</div>
+									<div class="row mb-3">
+										<div class="col-sm-3">
+											<h6 class="mb-0">New Password</h6>
+										</div>
+										<div class="col-sm-9 text-secondary">
+											<input type="password" class="form-control" name="password" placeholder="Enter new password" />
+											@error('password') <span class="text-danger">{{ $message }}</span> @enderror
+										</div>
+									</div>
+									<div class="row mb-3">
+										<div class="col-sm-3">
+											<h6 class="mb-0">Confirm Password</h6>
+										</div>
+										<div class="col-sm-9 text-secondary">
+											<input type="password" name="password_confirmation" class="form-control" placeholder="Confirm new password" />
+										</div>
+									</div>
+									<div class="row">
+										<div class="col-sm-3"></div>
+										<div class="col-sm-9 text-secondary">
+											<button type="submit" class="btn btn-primary px-4 radius-30">Save Changes</button>
+										</div>
+									</div>
+								</form>
 									</div>
 								</div>
 							</div>
