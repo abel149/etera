@@ -169,4 +169,38 @@ class TelegramService
 
         return $this->sendMessage($chatId, $text);
     }
+
+    /**
+     * Send billing details to the poster via Telegram when proforma is closed.
+     */
+    public function sendBillingDetailsNotification(string $chatId, $proforma, float $charge, float $vatAmount, float $total): bool
+    {
+        $text = "🧾 <b>Proforma Billing Information</b>\n\n"
+            . "📋 File: <b>{$proforma->file_number}</b>\n"
+            . "🚗 {$proforma->brand?->name} {$proforma->model} ({$proforma->year})\n"
+            . "🪪 Plate: {$proforma->license_plate_number}\n\n"
+            . "💰 <b>Billing Summary:</b>\n"
+            . "━━━━━━━━━━━━━━━━━━\n"
+            . "Service Charge: " . number_format($charge, 2) . " Birr\n"
+            . "VAT (15%): " . number_format($vatAmount, 2) . " Birr\n"
+            . "━━━━━━━━━━━━━━━━━━\n"
+            . "<b>Total: " . number_format($total, 2) . " Birr</b>\n\n"
+            . "Your proforma has been closed. Thank you for using etera!";
+
+        return $this->sendMessage($chatId, $text);
+    }
+
+    /**
+     * Send notification to processed_by user that proforma is closed and needs payment collection.
+     */
+    public function sendProcessedByClosedNotification(string $chatId, $proforma): bool
+    {
+        $text = "📋 <b>Proforma Closed</b>\n\n"
+            . "The proforma <b>{$proforma->file_number}</b> you processed is closed.\n"
+            . "Please accept payment and send back to owner.\n\n"
+            . "🚗 {$proforma->brand?->name} {$proforma->model} ({$proforma->year})\n"
+            . "🪪 Plate: {$proforma->license_plate_number}";
+
+        return $this->sendMessage($chatId, $text);
+    }
 }
