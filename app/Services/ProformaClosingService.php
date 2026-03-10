@@ -11,6 +11,7 @@ use App\Notifications\ProformaClosed;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\DB;
+use App\Services\TelegramService;
 
 class ProformaClosingService
 {
@@ -33,6 +34,36 @@ class ProformaClosingService
 
             // Send billing information email (no invoice created)
             $this->sendBillingInfoEmail($proforma);
+
+            // Send Telegram billing details to the poster
+            try {
+                if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                    $billingData = $this->calculateBilling($proforma);
+                    if ($billingData) {
+                        (new TelegramService())->sendBillingDetailsNotification(
+                            $proforma->poster->telegram_chat_id,
+                            $proforma,
+                            $billingData['charge'],
+                            $billingData['vatAmount'],
+                            $billingData['total']
+                        );
+                    }
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Failed to send billing Telegram to poster for proforma {$proforma->id}", ['error' => $e->getMessage()]);
+            }
+
+            // Send Telegram notification to the processed_by user
+            try {
+                if ($proforma->processedBy && !empty($proforma->processedBy->telegram_chat_id)) {
+                    (new TelegramService())->sendProcessedByClosedNotification(
+                        $proforma->processedBy->telegram_chat_id,
+                        $proforma
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning("Failed to send processed_by Telegram for proforma {$proforma->id}", ['error' => $e->getMessage()]);
+            }
 
             // Log the action
             Log::info("Proforma {$proforma->id} closed manually by user {$userId}");
@@ -221,6 +252,50 @@ class ProformaClosingService
             'can_apply' => $proforma->status === 'pending' || $proforma->status === 'opened',
             'is_closed' => in_array($proforma->status, ['closed', 'completed']),
         ];
+    }
+
+    /**
+     * Calculate billing amounts for a proforma.
+     * Returns ['charge' => float, 'vatAmount' => float, 'total' => float] or null.
+     */
+    private function calculateBilling(Proforma $proforma): ?array
+    {
+        try {
+            $latestCost = Cost::latest()->first();
+            if (!$latestCost) {
+                return null;
+            }
+
+            $vatRate = 0.15;
+            $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+            $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+            if ($requiredShops > 0 && $requiredGarages == 0) {
+                $count = ProformaApplication::where('proforma_id', $proforma->id)->count();
+                $field = "{$count}_proforma_cost";
+                $total = (float) ($latestCost->$field ?? 0);
+            } elseif ($requiredShops == 3 && $requiredGarages == 3) {
+                $total = (float) ($proforma->insured
+                    ? ($latestCost->insured_cost ?? 0)
+                    : ($latestCost->insurance_proforma ?? 0));
+            } elseif ($requiredShops == 0 && $requiredGarages == 0) {
+                $total = (float) ($latestCost->etera_chereta_cost ?? 0);
+            } else {
+                return null;
+            }
+
+            if ($total <= 0) {
+                return null;
+            }
+
+            $charge = $total / (1 + $vatRate);
+            $vatAmount = $total - $charge;
+
+            return compact('charge', 'vatAmount', 'total');
+        } catch (\Throwable $e) {
+            Log::warning("Failed to calculate billing for proforma {$proforma->id}", ['error' => $e->getMessage()]);
+            return null;
+        }
     }
 
     /**

@@ -1037,6 +1037,12 @@ Route::get('/my-applications', function () {
 })->middleware('auth')->name('my-applications');
 
 Route::get('/float', function (Request $request) {
+    // Require Telegram connection for non-superadmin admins
+    $user = auth()->user();
+    if ($user->role === 'admin' && !$user->is_superadmin && empty($user->telegram_chat_id)) {
+        return redirect('/telegram-connect')->with('error', 'Please connect your Telegram before you process a file!');
+    }
+
     $proforma = \App\Models\Proforma::find($request->query('proforma_id'));
     if (! $proforma || $proforma?->status != 'pending') {
         return redirect()->back();
