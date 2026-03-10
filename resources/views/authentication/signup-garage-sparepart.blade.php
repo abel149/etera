@@ -858,15 +858,15 @@
                 } else { clearFieldError(phoneInput); }
 
                 // Validate email
-                const emailInput = document.querySelector('input[name="email"]');
-                const emailVal = emailInput.value.trim();
-                if (!emailVal) {
-                    showFieldError(emailInput, 'Email address is required.');
-                    hasError = true;
-                } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
-                    showFieldError(emailInput, 'Please enter a valid email address.');
-                    hasError = true;
-                } else { clearFieldError(emailInput); }
+                // const emailInput = document.querySelector('input[name="email"]');
+                // const emailVal = emailInput.value.trim();
+                // if (!emailVal) {
+                //     showFieldError(emailInput, 'Email address is required.');
+                //     hasError = true;
+                // } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(emailVal)) {
+                //     showFieldError(emailInput, 'Please enter a valid email address.');
+                //     hasError = true;
+                // } else { clearFieldError(emailInput); }
 
                 // Validate TIN number
                 const tinInput = document.querySelector('input[name="tin_number"]');
