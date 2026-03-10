@@ -85,6 +85,12 @@
             font-size: 22px;
         }
 
+        .etera-role-card .role-icon svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+        }
+
         .etera-role-card h5 {
             font-size: 1.05rem;
             font-weight: 800;
@@ -155,6 +161,27 @@
 <script type="text/babel">
     const { useState, useEffect } = React;
 
+    function BriefcaseIcon() {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M9 6.5C9 5.67157 9.67157 5 10.5 5H13.5C14.3284 5 15 5.67157 15 6.5V8H9V6.5Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7 8H17C18.1046 8 19 8.89543 19 10V18C19 19.1046 18.1046 20 17 20H7C5.89543 20 5 19.1046 5 18V10C5 8.89543 5.89543 8 7 8Z" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M5 12H19" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M10.5 12V13.5H13.5V12" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        );
+    }
+
+    function WrenchIcon() {
+        return (
+            <svg viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <path d="M14.7 6.3C15.4 8.1 15 10.3 13.5 11.8L8.2 17.1C7.7 17.6 6.9 17.6 6.4 17.1L6.9 16.6L6.4 17.1C5.9 16.6 5.9 15.8 6.4 15.3L11.7 10C13.2 8.5 15.4 8.1 17.2 8.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M17.2 8.8L19.5 6.5C20.1 5.9 20.1 4.9 19.5 4.3C18.9 3.7 17.9 3.7 17.3 4.3L15 6.6" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+                <path d="M7.2 18.8L5.2 20.8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"/>
+            </svg>
+        );
+    }
+
     function RoleCard({ icon, title, description, href, delay }) {
         const [visible, setVisible] = useState(false);
 
@@ -199,14 +226,14 @@
 
                 <div className="etera-role-grid">
                     <RoleCard
-                        icon={<i className="bx bx-briefcase-alt"></i>}
+                        icon={<BriefcaseIcon />}
                         title="Others"
                         description="Register as an individual business owner or general user."
                         href={data.signupBusinessOwnerUrl}
                         delay={100}
                     />
                     <RoleCard
-                        icon={<i className="bx bx-wrench"></i>}
+                        icon={<WrenchIcon />}
                         title="Garage / Spare Part Shop"
                         description="Register your auto repair garage service or auto parts sales business."
                         href={data.signupGarageSparepartUrl}
