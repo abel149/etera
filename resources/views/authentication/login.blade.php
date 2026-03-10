@@ -7,31 +7,9 @@
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
         One Platform, All Auto Brands.
     </h2>
-
-    <section class="world-section">
-
-    <div class="cloud-container">
-        <canvas width="500" height="500" id="brandCanvas">
-            Your browser does not support canvas.
-        </canvas>
-
-        <div id="brandTags">
-            <ul>
-                @foreach($brands as $brand)
-                    <li>
-                        <a href="#">
-                            <img src="{{ asset("assets/images/brands/{$brand}.png") }}"
-                                 alt="{{ ucfirst($brand) }}"
-                                 width="60"
-                                 height="60">
-                        </a>
-                    </li>
-                @endforeach
-            </ul>
-        </div>
-    </div>
-
-</section>
+    <p class="etera-subtext" style="text-align:center; max-width: 360px; color: rgba(255,255,255,0.85);">
+        Sign in to manage your account, track proformas, and receive notifications.
+    </p>
 @endsection
 
 @section('content')

@@ -29,8 +29,8 @@
     .etera-auth-wrapper{display:flex;min-height:100vh;position:relative;z-index:1}
     .etera-auth-branding{flex:0 0 45%;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:3rem;position:relative;overflow:hidden;background:linear-gradient(135deg,#1b5e20,#2e7d32,#43a047)}
     .etera-auth-branding .etera-heading{color:#fff;-webkit-text-fill-color:#fff;background:none}
-    .etera-auth-form-side{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;background:#fff}
-    .etera-auth-card{width:100%;max-width:480px;padding:2.5rem}
+    .etera-auth-form-side{flex:1;display:flex;align-items:center;justify-content:center;padding:2rem;background:linear-gradient(180deg,#ffffff 0%,#f9fafb 100%)}
+    .etera-auth-card{width:100%;max-width:520px;padding:2.75rem}
     .etera-auth-logo{max-width:200px;margin-bottom:2rem;animation:etera-float 3s ease-in-out infinite}
     .etera-glass-card{background:var(--etera-glass-bg);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);border:1px solid var(--etera-glass-border);border-radius:var(--etera-radius);box-shadow:var(--etera-shadow)}
     .etera-heading{font-weight:800;background:var(--etera-gradient);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
@@ -160,8 +160,11 @@
 
     <!-- Page-specific scripts -->
     @yield('scripts')
+@hasSection('brand_canvas')
 <script src="https://www.goat1000.com/tagcanvas.min.js"></script>
+@endif
 </body>
+@hasSection('brand_canvas')
 <script>
 document.addEventListener("DOMContentLoaded", function() {
 
@@ -182,9 +185,13 @@ document.addEventListener("DOMContentLoaded", function() {
             bgRadius: 0
         });
     } catch(e) {
-        document.getElementById('brandCanvas').style.display = 'none';
+        const canvas = document.getElementById('brandCanvas');
+        if (canvas) {
+            canvas.style.display = 'none';
+        }
     }
 
 });
 </script>
+@endif
 </html>
