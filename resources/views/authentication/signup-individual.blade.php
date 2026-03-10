@@ -57,8 +57,8 @@
             </div>
 
             <div class="col-6">
-                <label for="inputEmailAddress" class="form-label">Email Address <span class="text-danger">*</span></label>
-                <input type="email" class="form-control" id="inputEmailAddress" name="email" placeholder="example@user.com" required value="{{ old('email') }}">
+                <label for="inputEmailAddress" class="form-label">Email Address <span class="text-muted">(optional)</span></label>
+                <input type="email" class="form-control" id="inputEmailAddress" name="email" placeholder="example@user.com" value="{{ old('email') }}">
             </div>
         </div>
 

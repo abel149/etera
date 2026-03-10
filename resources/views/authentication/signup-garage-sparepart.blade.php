@@ -97,8 +97,8 @@
                 
                 <!-- Email -->
                 <div class="col-12">
-                    <label class="form-label">Email Address <span class="text-danger">*</span></label>
-                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}" required>
+                    <label class="form-label">Email Address <span class="text-muted">(optional)</span></label>
+                    <input type="email" class="form-control @error('email') is-invalid @enderror" name="email" value="{{ old('email') }}">
                     @error('email') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
