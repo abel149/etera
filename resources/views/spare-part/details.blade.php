@@ -143,14 +143,14 @@
 
         /* --- MODAL FIXES FOR MOBILE (Part Image Gallery) --- */
 
-        /* Ensure modal backdrop covers entire screen and is properly dimmed */
-        #partImageGalleryModal.modal-backdrop {
+        /* Ensure this modal always sits above its backdrop (scope via a custom backdrop class). */
+        .modal-backdrop.part-image-gallery-backdrop {
             z-index: 1040 !important;
             background-color: rgba(0, 0, 0, 0.5) !important;
         }
 
         /* Main modal container - ensure it sits above backdrop */
-        #partImageGalleryModal.modal {
+        #partImageGalleryModal {
             z-index: 1050 !important;
             background-color: transparent !important;
             padding: 0 !important; /* Fix for potential padding issues */
@@ -331,11 +331,6 @@
                 transform: translateY(-50%) scale(0.95) !important;
                 background: rgba(0, 0, 0, 1) !important;
             }
-        }
-
-        /* Ensure no other modals interfere */
-        .modal:not(#partImageGalleryModal) {
-            z-index: auto;
         }
 
         /* Force modal controls to be clickable and above any overlays */
@@ -950,6 +945,15 @@
             }
 
             partImageModalInstance.show();
+
+            // Tag this modal's backdrop so our z-index rules are scoped and don't affect other modals.
+            setTimeout(function() {
+                const backdrops = document.querySelectorAll('.modal-backdrop');
+                const lastBackdrop = backdrops.length ? backdrops[backdrops.length - 1] : null;
+                if (lastBackdrop) {
+                    lastBackdrop.classList.add('part-image-gallery-backdrop');
+                }
+            }, 0);
         }
 
         /**
@@ -988,6 +992,10 @@
          */
         function cleanupPartImageModal() {
             currentPartImages = [];
+            const backdrops = document.querySelectorAll('.modal-backdrop.part-image-gallery-backdrop');
+            backdrops.forEach(function(el) {
+                el.classList.remove('part-image-gallery-backdrop');
+            });
             if (partImageCarouselInstance) {
                 partImageCarouselInstance.dispose();
                 partImageCarouselInstance = null;
@@ -1004,6 +1012,29 @@
             // Use the stored instance if available; otherwise safely get/create an instance.
             const instance = partImageModalInstance || bootstrap.Modal.getOrCreateInstance(modalEl);
             instance.hide();
+
+            // Hard fallback: if something (CSS/z-index/backdrop) prevents bootstrap from closing,
+            // force-remove modal/backdrop state for this specific modal only.
+            setTimeout(function() {
+                if (modalEl.classList.contains('show')) {
+                    try {
+                        modalEl.classList.remove('show');
+                        modalEl.style.display = 'none';
+                        modalEl.setAttribute('aria-hidden', 'true');
+                        modalEl.removeAttribute('aria-modal');
+                        modalEl.removeAttribute('role');
+                    } catch (e) {}
+
+                    document.querySelectorAll('.modal-backdrop.part-image-gallery-backdrop').forEach(function(bd) {
+                        bd.parentNode && bd.parentNode.removeChild(bd);
+                    });
+
+                    // Restore scroll state
+                    document.body.classList.remove('modal-open');
+                    document.body.style.removeProperty('overflow');
+                    document.body.style.removeProperty('padding-right');
+                }
+            }, 150);
         }
 
         // END: JAVASCRIPT LOGIC
