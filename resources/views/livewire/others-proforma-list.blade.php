@@ -171,7 +171,7 @@
                                             </td>
                                             @endif
                                      
-                                            @if(($proforma->status == 'closed') && auth()->user()->role == 'admin'))
+                                            @if(($proforma->status == 'closed') && auth()->user()->role == 'admin')
                                             <td>
                                                 <a href="/admin/verify/{{ $proforma->id }}" class="btn btn-primary">
                                                     Send To Owner
