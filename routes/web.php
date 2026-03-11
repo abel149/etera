@@ -225,6 +225,7 @@ Route::post('/login', function (Request $request) {
         if (!$user->approved) {
             Auth::logout();
             return back()->withErrors(['email_or_phone' => 'Your account is pending approval. Please wait for admin approval.'])->withInput();
+			Session::flush();
         }
 
         Session::put('last_activity', time());
