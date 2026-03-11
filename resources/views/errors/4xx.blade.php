@@ -121,8 +121,7 @@
     </div>
     <div class="container">
         <div class="emoji">🔍</div>
-        <div class="error-code">{{ $exception->getStatusCode() ?? '404' }}</div>
-        <h1 class="error-title">Oops! Page Not Found</h1>
+        <h1 class="error-title">We can’t find that page</h1>
         <p class="error-message">
             The page you're looking for doesn't exist or has been moved. 
             Don't worry — let's get you back on track.
@@ -136,6 +135,10 @@
                 <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><polyline points="10 17 15 12 10 7"/><line x1="15" y1="12" x2="3" y2="12"/></svg>
                 Login
             </a>
+            <button type="button" class="btn btn-outline" onclick="history.back()">
+                <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24"><polyline points="15 18 9 12 15 6"/><line x1="9" y1="12" x2="21" y2="12"/></svg>
+                Go Back
+            </button>
         </div>
     </div>
 </body>
