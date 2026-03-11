@@ -2,137 +2,6 @@
 
 @section('title', 'Sign Up — etera')
 
-@section('styles')
-    <style>
-        :root {
-            --etera-violet: #6d28d9;
-            --etera-violet-dark: #4c1d95;
-            --etera-violet-soft: rgba(109, 40, 217, 0.10);
-            --etera-violet-gradient: linear-gradient(135deg, #6d28d9 0%, #9333ea 45%, #c026d3 100%);
-        }
-
-        .etera-auth-form-side {
-            background: radial-gradient(900px circle at 10% 10%, rgba(109,40,217,0.10), transparent 55%),
-                        radial-gradient(900px circle at 90% 30%, rgba(147,51,234,0.10), transparent 55%),
-                        linear-gradient(180deg, #ffffff 0%, #fbfaff 100%);
-        }
-
-        .etera-role-grid {
-            display: grid;
-            grid-template-columns: repeat(2, minmax(0, 1fr));
-            gap: 18px;
-        }
-
-        @media (max-width: 640px) {
-            .etera-role-grid {
-                grid-template-columns: 1fr;
-            }
-        }
-
-        .etera-role-card {
-            position: relative;
-            border: 1px solid rgba(109, 40, 217, 0.20);
-            background: linear-gradient(180deg, #ffffff 0%, rgba(109, 40, 217, 0.03) 100%);
-            border-radius: 18px;
-            padding: 18px 18px 16px;
-            box-shadow: 0 10px 30px rgba(76, 29, 149, 0.10);
-            overflow: hidden;
-        }
-
-        .etera-role-card::before {
-            content: '';
-            position: absolute;
-            inset: -2px;
-            background: var(--etera-violet-gradient);
-            opacity: 0;
-            transition: opacity 0.25s ease;
-            z-index: 0;
-        }
-
-        .etera-role-card::after {
-            content: '';
-            position: absolute;
-            inset: 1px;
-            background: #fff;
-            border-radius: 17px;
-            z-index: 0;
-        }
-
-        .etera-role-card:hover {
-            transform: translateY(-3px);
-            border-color: rgba(109, 40, 217, 0.55);
-            box-shadow: 0 16px 44px rgba(76, 29, 149, 0.18);
-        }
-
-        .etera-role-card:hover::before {
-            opacity: 1;
-        }
-
-        .etera-role-card > * {
-            position: relative;
-            z-index: 1;
-        }
-
-        .etera-role-card .role-icon {
-            width: 46px;
-            height: 46px;
-            border-radius: 14px;
-            display: grid;
-            place-items: center;
-            background: var(--etera-violet-soft);
-            color: var(--etera-violet);
-            margin-bottom: 12px;
-            font-size: 22px;
-        }
-
-        .etera-role-card .role-icon svg {
-            width: 22px;
-            height: 22px;
-            display: block;
-        }
-
-        .etera-role-card h5 {
-            font-size: 1.05rem;
-            font-weight: 800;
-            margin-bottom: 6px;
-            color: #111827;
-        }
-
-        .etera-role-card p {
-            margin: 0;
-            color: #6b7280;
-            line-height: 1.55;
-            font-size: 0.92rem;
-        }
-
-        .etera-role-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 8px;
-            margin-top: 12px;
-            padding: 8px 12px;
-            border-radius: 999px;
-            border: 1px solid rgba(109, 40, 217, 0.18);
-            background: rgba(109, 40, 217, 0.06);
-            color: var(--etera-violet-dark);
-            font-weight: 700;
-            font-size: 0.82rem;
-        }
-
-        .etera-role-pill i {
-            font-size: 16px;
-        }
-
-        .etera-link {
-            color: var(--etera-violet);
-        }
-
-        .etera-link:hover {
-            color: var(--etera-violet-dark);
-        }
-    </style>
-@endsection
-
 @section('branding')
     <img src="{{ asset('assets/images/transparent.svg') }}" class="etera-auth-logo" alt="etera">
     <h2 class="etera-heading etera-heading-lg" style="text-align:center; margin-bottom: 0.5rem;">
@@ -143,6 +12,105 @@
     </p>
 
     @include('partials.brand-globe')
+@endsection
+
+@section('styles')
+    <style>
+        .etera-role-grid {
+            display: grid;
+            grid-template-columns: repeat(2, minmax(0, 1fr));
+            gap: 18px;
+        }
+        @media (max-width: 640px) {
+            .etera-role-grid { grid-template-columns: 1fr; }
+        }
+
+        .etera-role-card {
+            position: relative;
+            border: 1px solid #c8e6c9;
+            background: linear-gradient(180deg, #ffffff 0%, rgba(40,167,69,0.03) 100%);
+            border-radius: 18px;
+            padding: 22px 20px 18px;
+            box-shadow: 0 6px 24px rgba(40,167,69,0.08);
+            overflow: hidden;
+            text-decoration: none;
+            display: block;
+            transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+        .etera-role-card::before {
+            content: '';
+            position: absolute;
+            inset: -2px;
+            background: var(--etera-gradient, linear-gradient(135deg, #28a745, #20c997));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            z-index: 0;
+            border-radius: 20px;
+        }
+        .etera-role-card::after {
+            content: '';
+            position: absolute;
+            inset: 2px;
+            background: #fff;
+            border-radius: 16px;
+            z-index: 0;
+        }
+        .etera-role-card:hover {
+            transform: translateY(-4px);
+            border-color: rgba(40,167,69,0.5);
+            box-shadow: 0 16px 48px rgba(40,167,69,0.18);
+        }
+        .etera-role-card:hover::before { opacity: 1; }
+        .etera-role-card > * { position: relative; z-index: 1; }
+
+        .etera-role-card .role-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: grid;
+            place-items: center;
+            background: rgba(40,167,69,0.08);
+            color: #28a745;
+            margin-bottom: 14px;
+            font-size: 22px;
+        }
+        .etera-role-card .role-icon svg {
+            width: 22px;
+            height: 22px;
+            display: block;
+        }
+        .etera-role-card h5 {
+            font-size: 1.05rem;
+            font-weight: 800;
+            margin-bottom: 6px;
+            color: #1a1a2e;
+        }
+        .etera-role-card p {
+            margin: 0;
+            color: #6b7280;
+            line-height: 1.55;
+            font-size: 0.92rem;
+        }
+        .etera-role-pill {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            margin-top: 14px;
+            padding: 8px 14px;
+            border-radius: 999px;
+            border: 1px solid rgba(40,167,69,0.2);
+            background: rgba(40,167,69,0.06);
+            color: var(--etera-green-dark, #1e7e34);
+            font-weight: 700;
+            font-size: 0.82rem;
+            transition: all 0.25s ease;
+        }
+        .etera-role-card:hover .etera-role-pill {
+            background: rgba(40,167,69,0.12);
+            border-color: rgba(40,167,69,0.35);
+        }
+        .etera-role-pill i { font-size: 16px; }
+    </style>
 @endsection
 
 @section('content')
