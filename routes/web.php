@@ -217,17 +217,17 @@ Route::post('/login', function (Request $request) {
              ])->withInput();
          }
 
-        // ⭐ Store current session ID
-        $user->session_id = Session::getId();
-        $user->save();
 
         // Role access & approval
         if (!$user->approved) {
             Auth::logout();
             return back()->withErrors(['email_or_phone' => 'Your account is pending approval. Please wait for admin approval.'])->withInput();
-			Session::flush();
         }
 
+        // ⭐ Store current session ID
+        $user->session_id = Session::getId();
+        $user->save();
+		
         Session::put('last_activity', time());
 
         // Redirect ALL roles to telegram-connect if not connected
