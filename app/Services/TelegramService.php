@@ -109,6 +109,22 @@ class TelegramService
     }
 
     /**
+     * Send proforma applications received notification with billing info.
+     */
+    public function sendApplicationReceivedNotification(string $chatId, $proforma): bool
+    {
+        $appCount = $proforma->applications()->count();
+        $required = $proforma->required_number_of_shops ?: '∞';
+        $text = "🔒 <b>Application Received</b>\n\n"
+            . "📋 A new application has been received for your proforma <b>{$proforma->file_number}</b>\n"
+            . "📊 Applications: {$appCount}/{$required} applications received.\n\n"
+            . "You may choose to close the request at any time";
+
+        return $this->sendMessage($chatId, $text);
+    }
+
+    
+    /**
      * Send rejection notification.
      */
     public function sendRejectedNotification(string $chatId, $proforma): bool
@@ -204,3 +220,4 @@ class TelegramService
         return $this->sendMessage($chatId, $text);
     }
 }
+
