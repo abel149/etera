@@ -13,8 +13,11 @@ use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Mail;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Notification;
 use App\Mail\EmailOtpMail;
 use App\Models\SentEmail;
+use App\Notifications\PendingApprovalSignup;
 
 class RegisterController extends Controller
 {
@@ -376,6 +379,37 @@ public function storeGarageSparepart(Request $request)
 
 
         DB::commit();
+
+        // Notify admins that a new garage/shop user signed up and is pending approval.
+        // Rate limit: once per user (24 hours) to avoid duplicates in case of retries.
+        try {
+            $key = 'pending_approval_signup_notified_user_' . $user->id;
+            if (!Cache::has($key)) {
+                $admins = User::whereIn('role', ['admin', 'superadmin'])
+                    ->where('approved', true)
+                    ->get();
+
+                if ($admins->isNotEmpty()) {
+                    Notification::send(
+                        $admins,
+                        new PendingApprovalSignup(
+                            $user->id,
+                            (string) ($user->name ?? 'User'),
+                            $user->role,
+                            $user->email,
+                            $user->phone_number
+                        )
+                    );
+                }
+
+                Cache::put($key, true, now()->addDay());
+            }
+        } catch (\Throwable $e) {
+            Log::warning('Pending approval signup notification failed', [
+                'user_id' => $user->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
 
             // Redirect to Telegram connect page (email OTP disabled)
