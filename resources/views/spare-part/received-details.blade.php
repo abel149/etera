@@ -173,9 +173,9 @@
             </div>
 
             <div class="row">
-                @foreach($applications as $application)
+                @foreach($applications as $index => $application)
                     @if($application->applicationBy->role === 'shop')
-                        <div class="col-12 mb-4">
+                        <div class="col-12 mb-4 application-card" data-index="{{ $index }}" @if(($proforma->required_number_of_shops ?? 0) == 0 && ($proforma->required_number_of_garages ?? 0) == 0 && $index >= 5) style="display:none;" @endif>
                             <div class="card"
                                  style="position: relative; overflow: hidden;"
                                  data-shop-name="{{ $application->applicationBy->name }}"
@@ -307,6 +307,14 @@
                     @endif
                 @endforeach
             </div>
+
+            @if(($proforma->required_number_of_shops ?? 0) == 0 && ($proforma->required_number_of_garages ?? 0) == 0 && $applications->count() > 5)
+            <div class="text-center mt-3 mb-4">
+                <button type="button" class="btn btn-outline-primary rounded-pill px-4" id="viewMoreBtn" onclick="showMoreApplications()">
+                    <i class="bx bx-chevron-down me-1"></i>View More
+                </button>
+            </div>
+            @endif
         </div>
     </div>
 
@@ -319,6 +327,23 @@
         </div>
     @endif
 </div>
+
+<script>
+// View More functionality for Etera Chereta applications
+let visibleApplications = 5;
+function showMoreApplications() {
+    const cards = document.querySelectorAll('.application-card');
+    const nextLimit = visibleApplications + 5;
+    cards.forEach((card, i) => {
+        if (i < nextLimit) card.style.display = '';
+    });
+    visibleApplications = nextLimit;
+    if (visibleApplications >= cards.length) {
+        const btn = document.getElementById('viewMoreBtn');
+        if (btn) btn.style.display = 'none';
+    }
+}
+</script>
 
 <script>
 	function openPrintPage(button) {

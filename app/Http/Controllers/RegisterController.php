@@ -400,6 +400,14 @@ public function storeGarageSparepart(Request $request)
                             $user->phone_number
                         )
                     );
+
+                    // Also notify admins via Telegram if they have it connected
+                    $telegram = new \App\Services\TelegramService();
+                    if ($telegram->isConfigured()) {
+                        foreach ($admins->filter(fn($a) => !empty($a->telegram_chat_id)) as $admin) {
+                            $telegram->sendNewRegistrationNotification($admin->telegram_chat_id, $user);
+                        }
+                    }
                 }
 
                 Cache::put($key, true, now()->addDay());

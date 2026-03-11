@@ -110,15 +110,34 @@ class TelegramService
 
     /**
      * Send proforma applications received notification with billing info.
+     * Shows x/y progress for the applicant's role, with FULL or close messages.
      */
-    public function sendApplicationReceivedNotification(string $chatId, $proforma): bool
+    public function sendApplicationReceivedNotification(string $chatId, $proforma, string $applicantRole = 'shop'): bool
     {
-        $appCount = $proforma->applications()->count();
-        $required = $proforma->required_number_of_shops ?: '∞';
-        $text = "🔒 <b>Application Received</b>\n\n"
+        $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+        $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+
+        if ($applicantRole === 'garage' && $requiredGarages > 0) {
+            $currentCount = $proforma->applications()->where('from', 'garage')->count();
+            $required = $requiredGarages;
+            $roleLabel = 'garages';
+        } else {
+            $currentCount = $proforma->applications()->where('from', 'shop')->count();
+            $required = $requiredShops;
+            $roleLabel = 'shops';
+        }
+
+        $text = "🔔 <b>Application Received</b>\n\n"
             . "📋 A new application has been received for your proforma <b>{$proforma->file_number}</b>\n"
-            . "📊 Applications: {$appCount}/{$required} applications received.\n\n"
-            . "You may choose to close the request at any time";
+            . "📊 {$currentCount}/{$required} {$roleLabel} applied.\n\n";
+
+        if ($required > 0 && $currentCount >= $required) {
+            $text .= "🚫 <b>FULL!!!</b>";
+        } elseif ($required > 0 && $currentCount < $required) {
+            $text .= "✅ You can request close";
+        } else {
+            $text .= "You may choose to close the request at any time";
+        }
 
         return $this->sendMessage($chatId, $text);
     }
@@ -216,6 +235,22 @@ class TelegramService
             . "Please accept payment and send back to owner.\n\n"
             . "🚗 {$proforma->brand?->name} {$proforma->model} ({$proforma->year})\n"
             . "🪪 Plate: {$proforma->license_plate_number}";
+
+        return $this->sendMessage($chatId, $text);
+    }
+
+    /**
+     * Send notification to admins when a new garage/shop registers.
+     */
+    public function sendNewRegistrationNotification(string $chatId, $user): bool
+    {
+        $roleLabel = $user->role === 'garage' ? 'Garage' : 'Spare Part Shop';
+        $text = "🆕 <b>New {$roleLabel} Registered!</b>\n\n"
+            . "👤 Name: <b>{$user->name}</b>\n"
+            . "📞 Phone: {$user->phone_number}\n"
+            . "📍 Location: " . ($user->location ?? 'N/A') . "\n"
+            . "🏷️ TIN: " . ($user->tin_number ?? 'N/A') . "\n\n"
+            . "⏳ Pending approval. Please review in the admin panel.";
 
         return $this->sendMessage($chatId, $text);
     }

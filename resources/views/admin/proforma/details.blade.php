@@ -324,16 +324,17 @@
                         @endif
 
                         <!-- Applications -->
-                        @if($proforma->applications->count() > 0)
+                        @if($applications->count() > 0)
                         <div class="row mt-4">
                             <div class="col-12">
-                                <h5 class="mb-3">Applications ({{ $proforma->applications->count() }})</h5>
+                                <h5 class="mb-3">Applications ({{ $applications->count() }})</h5>
                                 <div class="table-responsive">
                                     <table class="table table-bordered">
                                         <thead>
                                             <tr>
                                                 <th>Applicant</th>
                                                 <th>Role</th>
+                                                <th>Amount</th>
                                                 <th>Applied At</th>
                                                 <th>Voice Note</th>
                                                 <th>Status</th>
@@ -343,10 +344,11 @@
                                             </tr>
                                         </thead>
                                         <tbody>
-                                            @foreach($proforma->applications as $application)
-                                            <tr>
+                                            @foreach($applications as $index => $application)
+                                            <tr class="application-row" data-index="{{ $index }}" @if($proforma->isEteraCheretaMode() && $index >= 5) style="display:none;" @endif>
                                                 <td>{{ $application->applicationBy->name }}</td>
                                                 <td>{{ ucfirst($application->applicationBy->role) }}</td>
+                                                <td><strong>{{ number_format($application->amount, 2) }} Birr</strong></td>
                                                 <td>{{ $application->created_at->format('d M Y, h:i A') }}</td>
                                                 
                                                 <td>
@@ -393,6 +395,13 @@
                                         </tbody>
                                     </table>
                                 </div>
+                                @if($proforma->isEteraCheretaMode() && $applications->count() > 5)
+                                <div class="text-center mt-3">
+                                    <button type="button" class="btn btn-outline-primary" id="viewMoreBtn" onclick="showMoreApplications()">
+                                        <i class="bx bx-chevron-down me-1"></i>View More
+                                    </button>
+                                </div>
+                                @endif
                             </div>
                         </div>
                         @endif
@@ -484,6 +493,21 @@
 {{-- END: NEW PART IMAGE GALLERY MODAL --}}
 
 <script>
+// View More functionality for Etera Chereta applications
+let visibleApplications = 5;
+function showMoreApplications() {
+    const rows = document.querySelectorAll('.application-row');
+    const nextLimit = visibleApplications + 5;
+    rows.forEach((row, i) => {
+        if (i < nextLimit) row.style.display = '';
+    });
+    visibleApplications = nextLimit;
+    if (visibleApplications >= rows.length) {
+        const btn = document.getElementById('viewMoreBtn');
+        if (btn) btn.style.display = 'none';
+    }
+}
+
 // Voice note functionality
 document.addEventListener('DOMContentLoaded', function() {
     // Existing voice note duration logic

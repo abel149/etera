@@ -139,8 +139,17 @@ class AdminController extends Controller
             'applications.prices.part',
         ])
             ->findOrFail($id);
-        
-        return view('admin.proforma.details', compact('proforma'));
+
+        // Sort applications by amount ascending (lowest price first)
+        $applications = $proforma->applications->sortBy('amount');
+
+        // For non-Etera Chereta, show only the requested number of applications
+        $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+        if ($requiredShops > 0) {
+            $applications = $applications->take($requiredShops);
+        }
+
+        return view('admin.proforma.details', compact('proforma', 'applications'));
     }
 
     /**
