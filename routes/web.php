@@ -210,15 +210,15 @@ Route::post('/login', function (Request $request) {
         $user = Auth::user();
 
         // ⭐ Check if user has an active session on another device
-        // if ($user->session_id && $user->session_id !== Session::getId()) {
-        //     Auth::logout();
-        //     return back()->withErrors([
-        //         'email_or_phone' => 'Please log out of all other devices.'
-        //     ])->withInput();
-        // }
+        if ($user->session_id && $user->session_id !== Session::getId()) {
+             Auth::logout();
+             return back()->withErrors([
+                 'email_or_phone' => 'Please log out of all other devices.'
+             ])->withInput();
+         }
 
         // ⭐ Store current session ID
-        // $user->session_id = Session::getId();
+        $user->session_id = Session::getId();
         $user->save();
 
         // Role access & approval
