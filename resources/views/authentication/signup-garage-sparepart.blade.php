@@ -285,6 +285,15 @@
             Already have an account? <a href="{{ route('login') }}" class="etera-link">Login here</a>
         </p>
     </div>
+    
+
+    <div class="etera-divider">or</div>
+
+    <div style="text-align: center;">
+        <p class="etera-subtext" style="font-size: 0.85rem;">
+            <a href="{{ route('signup') }}" class="etera-link">Change role</a>
+        </p>
+    </div>
 </div>
 
 {{-- TERMS MODAL --}}
