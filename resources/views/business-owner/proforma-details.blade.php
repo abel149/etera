@@ -388,8 +388,7 @@
         <div class="row justify-content-center">
             <div class="col-12 col-lg-10 col-xl-8">
                 @php $hasShops = false; @endphp
-                @foreach($proforma->applications as $application)
-                    @if($application->applicationBy->role == 'shop')
+                @foreach($shops as $application)
                         @php $hasShops = true; @endphp
                         <div class="application-card">
                             {{-- Stamp Overlay --}}
@@ -511,7 +510,6 @@
                                 </button>
                             </div>
                         </div>
-                    @endif
                 @endforeach
 
                 @if(!$hasShops)
