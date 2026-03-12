@@ -168,8 +168,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-15deg);
-            width: 220px;
-            height: 220px;
+            width: 150px;
+            height: 150px;
             object-fit: contain;
             opacity: 0.75;
             pointer-events: none;
