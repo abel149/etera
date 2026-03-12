@@ -47,25 +47,10 @@ class ProformaApplicationController extends Controller
                     return redirect($redirectUrl)->with('error', 'This proforma is no longer accepting applications.');
                 }
 
-                // Step 1: Check if application limit is already met BEFORE creating
+                // Step 1: Determine proforma type
                 $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
                 $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
                 $isEteraChereta = ($requiredGarages + $requiredShops) === 0;
-
-                if (!$isEteraChereta) {
-                    $userRole = auth()->user()->role;
-                    if ($userRole === 'garage' && $requiredGarages > 0) {
-                        $garageCount = $proforma->applications()->where('from', 'garage')->count();
-                        if ($garageCount >= $requiredGarages) {
-                            return redirect()->back()->with('error', 'Garage application limit already reached.');
-                        }
-                    } elseif ($userRole === 'shop' && $requiredShops > 0) {
-                        $shopCount = $proforma->applications()->where('from', 'shop')->count();
-                        if ($shopCount >= $requiredShops) {
-                            return redirect()->back()->with('error', 'Shop application limit already reached.');
-                        }
-                    }
-                }
 
                 // Step 1b: Logging
                 Log::info('Price quote submission: started', [
@@ -191,19 +176,22 @@ class ProformaApplicationController extends Controller
                 $totalRequired = $requiredShopsForNotif + $requiredGaragesForNotif;
                 $currentCount = $proforma->applications()->count();
 
-                // Step 6a: Send notification to the proforma's poster (with progress)
-                // if ($proforma->poster && $proforma->poster->id !== auth()->id()) {
-                //     $proforma->poster->notify(new ProformaApplicationReceived(
-                //         $proforma, $application, auth()->user(), $currentCount, $totalRequired
-                //     ));
-                // }
-
-                // Step 6b: Send confirmation to the applicant (except for insurance proformas)
-                // if (!$proforma->isFromInsurance() && 0) {
-                //     auth()->user()->notify(new \App\Notifications\ProformaApplicationSubmitted(
-                //         $proforma, $application, $currentCount, $totalRequired
-                //     ));
-                // }
+                // Step 6a: Send Telegram notification to the poster about the new application
+                try {
+                    if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                        $telegram = new \App\Services\TelegramService();
+                        $telegram->sendApplicationReceivedNotification(
+                            $proforma->poster->telegram_chat_id,
+                            $proforma,
+                            auth()->user()->role
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send application received Telegram notification', [
+                        'proforma_id' => $proforma->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
 
                 // Step 7: Save individual part prices for shops.
                 if (auth()->user()->role === 'shop') {

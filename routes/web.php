@@ -209,8 +209,8 @@ Route::post('/login', function (Request $request) {
 
         $user = Auth::user();
 
-        // ⭐ Check if user has an active session on another device
-        if ($user->session_id && $user->session_id !== Session::getId()) {
+        // ⭐ Check if user has an active session on another device (spare-part shops only)
+        if ($user->role === 'shop' && $user->session_id && $user->session_id !== Session::getId()) {
              Auth::logout();
              return back()->withErrors([
                  'email_or_phone' => 'Please log out of all other devices.'
@@ -667,7 +667,7 @@ Route::get('/received-details', function (Request $request) {
         ->orderBy('updated_at', 'desc')
         ->get();
 
-    // Sort applications by actual final price
+    // Sort applications by actual final price (lowest first)
     $applications = $proforma->applications->sortBy(function($application) {
         if ($application->from === 'shop' && $application->prices->count() > 0) {
             $subtotal = $application->prices->sum('part_total');
@@ -677,6 +677,12 @@ Route::get('/received-details', function (Request $request) {
         }
         return $application->amount ?? 0;
     });
+
+    // Limit to requested number for non-Etera Chereta
+    $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+    if ($requiredShops > 0) {
+        $applications = $applications->take($requiredShops);
+    }
 
     return view('spare-part.received-details', [
         'proforma' => $proforma,
@@ -2707,6 +2713,13 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 // For garages: use amount field
                 return $application->amount ?? 0;
             });
+
+            // Limit to requested number for non-Etera Chereta
+            $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+            if ($requiredShops > 0) {
+                $applications = $applications->take($requiredShops);
+            }
+
             return view('insurance.proforma-details', compact('proforma','applications'));
         });
         Route::get('/add-parts', function () {
@@ -4071,6 +4084,17 @@ Route::get('proforma-details', function (Request $request) {
 
     // Sort garages separately
     $garages = $proforma->applications()->where('from', 'garage')->get()->sortBy('amount');
+
+    // Limit to requested number for non-Etera Chereta
+    $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+    $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+    if ($requiredShops > 0) {
+        $applications = $applications->take($requiredShops);
+        $shops = $shops->take($requiredShops);
+    }
+    if ($requiredGarages > 0) {
+        $garages = $garages->take($requiredGarages);
+    }
 
     return view(
         'business-owner.proforma-details',
