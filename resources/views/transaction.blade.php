@@ -11,7 +11,7 @@
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
         body {
-            font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+            font-family: 'Times New Roman', Times, Georgia, serif;
             background: linear-gradient(135deg, #f0fdf4 0%, #ecfdf5 50%, #f0fdf4 100%);
             min-height: 100vh;
             display: flex;
@@ -234,6 +234,7 @@
             gap: 8px;
             padding: 12px 28px;
             border-radius: 50px;
+            font-family: 'Inter', sans-serif;
             background: linear-gradient(135deg, #16a34a, #10b981);
             color: #fff;
             font-size: 0.9rem;
@@ -274,9 +275,12 @@
                 padding: 0 !important;
                 margin: 0 !important;
                 min-height: auto !important;
+                font-family: 'Times New Roman', Times, Georgia, serif !important;
                 -webkit-print-color-adjust: exact !important;
                 print-color-adjust: exact !important;
             }
+
+            * { font-family: 'Times New Roman', Times, Georgia, serif !important; }
 
             .no-print { display: none !important; }
 

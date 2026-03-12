@@ -57,12 +57,20 @@
         const [showPassword, setShowPassword] = useState(false);
         const [remember, setRemember] = useState(false);
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const [passwordError, setPasswordError] = useState('');
         const formRef = useRef(null);
 
         const hasError = (field) => data.errors && data.errors[field];
         const getError = (field) => data.errors && data.errors[field] ? data.errors[field][0] : '';
 
         const handleSubmit = (e) => {
+            // Client-side password validation: must be at least 6 characters
+            if (password.length < 6) {
+                e.preventDefault();
+                setPasswordError('Password must be at least 6 characters.');
+                return;
+            }
+            setPasswordError('');
             setIsSubmitting(true);
             // Let the form submit normally to Laravel
         };
@@ -101,10 +109,11 @@
                             <input
                                 type={showPassword ? 'text' : 'password'}
                                 name="password"
-                                className="etera-input"
+                                className={`etera-input ${passwordError ? 'error' : ''}`}
                                 placeholder="Enter your password"
                                 value={password}
-                                onChange={(e) => setPassword(e.target.value)}
+                                onChange={(e) => { setPassword(e.target.value); if (e.target.value.length >= 6) setPasswordError(''); }}
+                                minLength={6}
                                 required
                             />
                             <button
@@ -116,7 +125,10 @@
                                 <EyeIcon open={showPassword} />
                             </button>
                         </div>
-                        {hasError('password') && (
+                        {passwordError && (
+                            <div className="etera-error-text">{passwordError}</div>
+                        )}
+                        {!passwordError && hasError('password') && (
                             <div className="etera-error-text">{getError('password')}</div>
                         )}
                     </div>
