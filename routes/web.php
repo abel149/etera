@@ -388,8 +388,18 @@ Route::post('/api/notifications/read', function () {
     if (!auth()->check()) {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
-    auth()->user()->unreadNotifications->markAsRead();
-    return response()->json(['success' => true]);
+    $user = auth()->user();
+
+    // Keep approval-pending notifications unread until the related user is approved.
+    $excludeTypes = ['approval_pending_signup', 'approval_pending_login'];
+    $user->unreadNotifications()
+        ->whereNotIn('data->type', $excludeTypes)
+        ->update(['read_at' => now()]);
+
+    return response()->json([
+        'success' => true,
+        'unread_count' => $user->unreadNotifications()->count(),
+    ]);
 })->middleware('auth.user');
 
 // Close proforma (admin only)
@@ -461,7 +471,7 @@ Route::middleware(['auth.user'])->group(function () {
     })->name('profile.update');
 
     // Logout route
-    Route::delete('/logout', function () {
+    Route::delete('/logout', function (Request $request) {
 
     $user = Auth::user();
 
@@ -472,7 +482,10 @@ Route::middleware(['auth.user'])->group(function () {
     }
 
     Auth::logout();
-    Session::flush();
+
+    // Properly invalidate the session so back/refresh won't reuse cached auth pages.
+    $request->session()->invalidate();
+    $request->session()->regenerateToken();
 
     return redirect()->to('/login')->with('success', 'You have been successfully logged out.');
 })->name('logout');
