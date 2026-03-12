@@ -151,6 +151,7 @@ class AdminController extends Controller
             'parts',
             'applications.applicationBy',
             'applications.prices.part',
+            'inboxes.user',
         ])
             ->findOrFail($id);
 
@@ -163,7 +164,11 @@ class AdminController extends Controller
             $applications = $applications->take($requiredShops);
         }
 
-        return view('admin.proforma.details', compact('proforma', 'applications'));
+        // Shops and garages for the send-to-inbox form
+        $shops = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
+        $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
+
+        return view('admin.proforma.details', compact('proforma', 'applications', 'shops', 'garages'));
     }
 
     /**
