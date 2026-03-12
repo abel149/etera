@@ -44,7 +44,19 @@ class AuthenticateUser
         // Update last activity
         Session::put('last_activity', time());
 
-        return $next($request);
+        $response = $next($request);
+
+        // Prevent caching of authenticated pages so that after logout the browser back button
+        // won't display protected content from cache.
+        try {
+            $response->headers->set('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0');
+            $response->headers->set('Pragma', 'no-cache');
+            $response->headers->set('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
+        } catch (\Throwable $e) {
+            // Ignore header failures to avoid breaking the request flow.
+        }
+
+        return $response;
     }
 
     /**

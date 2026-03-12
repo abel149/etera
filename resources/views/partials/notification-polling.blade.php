@@ -174,23 +174,58 @@
             }
         })
         .then(r => r.json())
-        .then(() => {
-            updateBellCount(0);
+        .then((data) => {
+            // Re-fetch unread notifications so we don't accidentally hide
+            // approval-pending notifications that should remain until approval.
+            return fetch('/api/notifications', {
+                headers: {
+                    'Accept': 'application/json',
+                    'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || ''
+                }
+            }).then(r => r.json());
+        })
+        .then((data) => {
+            const unreadCount = data?.unread_count ?? 0;
+            updateBellCount(unreadCount);
+
             const listContainer = document.querySelector('.header-notifications-list');
             if (listContainer) {
-                listContainer.innerHTML = '<div class="text-center p-3 text-muted">No new notifications</div>';
+                const items = Array.isArray(data?.notifications) ? data.notifications : [];
+                if (items.length === 0) {
+                    listContainer.innerHTML = '<div class="text-center p-3 text-muted">No new notifications</div>';
+                } else {
+                    listContainer.innerHTML = '';
+                    // Render a minimal dropdown list (same info as polling payload)
+                    items.forEach((n) => {
+                        const item = document.createElement('a');
+                        item.className = 'dropdown-item';
+                        item.href = 'javascript:;';
+                        item.setAttribute('data-notification-id', n.id);
+                        item.innerHTML = `
+                            <div class="d-flex align-items-center">
+                                <div class="user-online">
+                                    <span style="font-size:24px;">${getTypeIcon(n.type)}</span>
+                                </div>
+                                <div class="flex-grow-1 ms-2">
+                                    <h6 class="msg-name">${n.file_number ? '#' + n.file_number : 'Notification'}
+                                        <span class="msg-time float-end">${n.created_at || ''}</span>
+                                    </h6>
+                                    <p class="msg-info">${n.message || ''}</p>
+                                </div>
+                            </div>
+                        `;
+                        listContainer.appendChild(item);
+                    });
+                }
             }
+
             const markReadBtn = document.getElementById('mark-all-read-btn');
-            if (markReadBtn) markReadBtn.disabled = true;
+            if (markReadBtn) markReadBtn.disabled = unreadCount === 0;
         });
     };
 
-    // Mark as read when opening the bell dropdown
-    document.addEventListener('shown.bs.dropdown', function(e) {
-        if (e.target && e.target.querySelector('.bx-bell')) {
-            window.markAllNotificationsRead();
-        }
-    });
+    // Do NOT auto-mark notifications as read on bell open.
+    // Users can use the explicit "Mark All As Read" button instead.
 
     // ========== REVERB LISTENERS ==========
 

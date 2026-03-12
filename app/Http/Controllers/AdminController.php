@@ -14,6 +14,7 @@ use App\Events\ProformaStatusChanged;
 use App\Events\NotificationSent;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Notifications\DatabaseNotification;
 
 class AdminController extends Controller
 {
@@ -95,6 +96,19 @@ class AdminController extends Controller
             'approved' => true,
             'approved_at' => now()
         ]);
+
+        // Clear approval-pending notifications related to this user from admin inbox.
+        try {
+            DatabaseNotification::query()
+                ->whereIn('data->type', ['approval_pending_signup', 'approval_pending_login'])
+                ->where('data->user_id', $user->id)
+                ->delete();
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Failed to clear approval pending notifications', [
+                'approved_user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
 
         return redirect()->back()->with('success', 'User approved successfully!');
     }
