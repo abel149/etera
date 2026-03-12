@@ -154,6 +154,8 @@ $(document).ready(function () {
             labelIdle: 'Drag & drop an image or <span class="filepond--label-action">Browse</span>',
             credits: false,
             storeAsFile: true,
+            stylePanelLayout: 'compact',
+            imagePreviewHeight: 150,
         });
     });
 
