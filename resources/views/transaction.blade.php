@@ -168,8 +168,8 @@
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%) rotate(-15deg);
-            width: 120px;
-            height: 120px;
+            width: 220px;
+            height: 220px;
             object-fit: contain;
             opacity: 0.75;
             pointer-events: none;
@@ -396,7 +396,7 @@
     <div class="invoice-header">
         <div class="invoice-logo">etera</div>
         <div class="invoice-subtitle">Platform Service Invoice</div>
-        <span class="invoice-badge">Invoice #{{ $invoice->sku }}</span>
+        <span class="invoice-badge">Invoice #: {{ $invoice->sku }}</span>
     </div>
 
     {{-- Body --}}
