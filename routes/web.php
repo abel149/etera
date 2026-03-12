@@ -4049,49 +4049,58 @@ Route::get('received-proformas', function () {
     return view('business-owner.proformas', compact('proformas'));
 });
 
-
-		// Proforma details
+// Proforma Details 
 Route::get('proforma-details', function (Request $request) {
-    $proforma = Proforma::with('proformaInvoice')
+
+    $proforma = Proforma::with(['proformaInvoice', 'applications.prices'])
         ->findOrFail($request->query('proforma_id'));
-    
-    // This line fetches the ProformaInvoice and assigns it to a new variable.
+
     $reciept = $proforma->proformaInvoice;
 
-    // Sort applications by actual final price
-    $applications = $proforma->applications()->with('prices')->get()->sortBy(function($application) {
-        // For shops: calculate final price from parts minus discount
-        if ($application->from === 'shop' && $application->prices->count() > 0) {
+    // Load applications once
+    $allApplications = $proforma->applications;
+
+    // Attach calculated price
+    $allApplications = $allApplications->map(function ($application) {
+
+        if ($application->from === 'shop' && $application->prices->isNotEmpty()) {
             $subtotal = $application->prices->sum('part_total');
-            $discountPct = (float)($application->discount ?? 0);
-            $discountAmt = ($subtotal * $discountPct) / 100;
-            return $subtotal - $discountAmt;
+            $discount = (float) ($application->discount ?? 0);
+
+            $application->final_price = $subtotal - ($subtotal * $discount / 100);
+        } else {
+            $application->final_price = (float) ($application->amount ?? 0);
         }
-        // For garages: use amount field
-        return $application->amount ?? 0;
+
+        return $application;
     });
 
-    // Sort shops separately
-    $shops = $proforma->applications()->where('from', 'shop')->with('prices')->get()->sortBy(function($application) {
-        if ($application->prices->count() > 0) {
-            $subtotal = $application->prices->sum('part_total');
-            $discountPct = (float)($application->discount ?? 0);
-            $discountAmt = ($subtotal * $discountPct) / 100;
-            return $subtotal - $discountAmt;
-        }
-        return $application->amount ?? 0;
-    });
+    // Sort applications by lowest price
+    $applications = $allApplications
+        ->sortBy('final_price')
+        ->values();
 
-    // Sort garages separately
-    $garages = $proforma->applications()->where('from', 'garage')->get()->sortBy('amount');
+    // Shops sorted by price
+    $shops = $allApplications
+        ->where('from', 'shop')
+        ->sortBy('final_price')
+        ->values();
 
-    // Limit to requested number for non-Etera Chereta
+    // Garages sorted by price
+    $garages = $allApplications
+        ->where('from', 'garage')
+        ->sortBy('final_price')
+        ->values();
+
+    // Apply limits
     $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
     $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
     if ($requiredShops > 0) {
         $applications = $applications->take($requiredShops);
         $shops = $shops->take($requiredShops);
     }
+
     if ($requiredGarages > 0) {
         $garages = $garages->take($requiredGarages);
     }
