@@ -159,6 +159,23 @@
             opacity: 0.85;
         }
 
+        /* ─── Billing table wrapper with watermark ── */
+        .billing-table-wrapper {
+            position: relative;
+        }
+        .table-watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-15deg);
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            opacity: 0.75;
+            pointer-events: none;
+            z-index: 1;
+        }
+
         /* ─── Billing table ─────────────────────── */
         .billing-table {
             width: 100%;
@@ -167,6 +184,8 @@
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid #e5e7eb;
+            position: relative;
+            z-index: 0;
         }
         .billing-table th {
             background: #f9fafb;
@@ -416,12 +435,9 @@
 
         <div class="invoice-divider"></div>
 
-        {{-- Stamp Image --}}
-        <div class="stamp-section">
-            <img src="{{ asset('assets/invoice/images/stamp.png') }}" alt="etera Stamp">
-        </div>
-
-        {{-- Billing Table --}}
+        {{-- Billing Table with Stamp Watermark --}}
+        <div class="billing-table-wrapper">
+        <img src="{{ asset('assets/invoice/images/stamp.png') }}" alt="etera Stamp" class="table-watermark">
         <table class="billing-table">
             <thead>
                 <tr>
@@ -444,6 +460,7 @@
                 </tr>
             </tbody>
         </table>
+        </div>
 
         {{-- QR Code --}}
         <div class="invoice-divider"></div>
