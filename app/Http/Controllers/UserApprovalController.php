@@ -11,6 +11,7 @@ use App\Models\BrandUser;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Notifications\DatabaseNotification;
 
 class UserApprovalController extends Controller
 {
@@ -114,6 +115,22 @@ class UserApprovalController extends Controller
                 'rejected_at' => null, 
                 'rejection_reason' => null
             ]);
+
+            // Clear approval-pending notifications related to this user from admin inbox.
+            try {
+                DatabaseNotification::query()
+                    ->whereIn('data->type', ['approval_pending_signup', 'approval_pending_login'])
+                    ->where(function ($q) use ($user) {
+                        $q->where('data->user_id', (int) $user->id)
+                          ->orWhere('data->user_id', (string) $user->id);
+                    })
+                    ->delete();
+            } catch (\Throwable $e) {
+                Log::warning('[UserApproval] Failed to clear approval pending notifications', [
+                    'approved_user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
 
             Log::info('[UserApproval] User approved', ['target_user_id' => $user->id, 'admin_id' => auth()->id()]);
             DB::commit();

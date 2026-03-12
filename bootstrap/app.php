@@ -31,6 +31,11 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\RefreshCsrfToken::class
         );
 
+        // Prevent caching for authenticated users (fix back-button showing private pages after logout)
+        $middleware->append(
+            \App\Http\Middleware\NoCacheAuthenticated::class
+        );
+
         // Route middleware aliases
         $middleware->alias([
             'auth.user' => \App\Http\Middleware\AuthenticateUser::class,

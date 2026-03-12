@@ -126,6 +126,9 @@ class RegisterController extends Controller
 
             DB::commit();
 
+            // Allow Telegram connect page access for this newly registered user.
+            $request->session()->put('telegram_connect_user_id', $user->id);
+
             // Redirect to Telegram connect page (email OTP disabled)
             return redirect()->route('telegram.connect', ['userId' => $user->id])
                 ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
@@ -186,6 +189,9 @@ class RegisterController extends Controller
             ]);
 
             DB::commit();
+
+            // Allow Telegram connect page access for this newly registered user.
+            $request->session()->put('telegram_connect_user_id', $user->id);
 
             // Redirect to Telegram connect page (email OTP disabled)
             return redirect()->route('telegram.connect', ['userId' => $user->id])
@@ -261,6 +267,9 @@ class RegisterController extends Controller
 
             DB::commit();
             Log::info("STORE BUSINESS OWNER: Transaction committed");
+
+            // Allow Telegram connect page access for this newly registered user.
+            $request->session()->put('telegram_connect_user_id', $user->id);
 
             // Redirect to Telegram connect page (email OTP disabled)
             return redirect()->route('telegram.connect', ['userId' => $user->id])
@@ -379,6 +388,9 @@ public function storeGarageSparepart(Request $request)
 
 
         DB::commit();
+
+        // Allow Telegram connect page access for this newly registered user.
+        $request->session()->put('telegram_connect_user_id', $user->id);
 
         // Notify admins that a new garage/shop user signed up and is pending approval.
         // Rate limit: once per user (24 hours) to avoid duplicates in case of retries.

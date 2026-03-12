@@ -410,7 +410,16 @@ Route::patch('/admin/proforma/{id}/close', [\App\Http\Controllers\AdminControlle
 // Telegram connect page (shown after signup)
 Route::get('/telegram-connect/{userId}', function ($userId) {
     $user = \App\Models\User::findOrFail($userId);
-    return view('authentication.telegram-connect', ['user' => $user]);
+    $sessionUserId = session('telegram_connect_user_id');
+    if (!auth()->check() && (string) $sessionUserId !== (string) $userId) {
+        return redirect('/login');
+    }
+
+    return response()
+        ->view('authentication.telegram-connect', ['user' => $user])
+        ->header('Cache-Control', 'no-store, no-cache, must-revalidate, max-age=0')
+        ->header('Pragma', 'no-cache')
+        ->header('Expires', 'Sat, 01 Jan 2000 00:00:00 GMT');
 })->name('telegram.connect');
 
 // Telegram webhook - receives bot callbacks
