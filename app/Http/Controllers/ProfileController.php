@@ -30,10 +30,17 @@ public function updateSelf(Request $request)
 {
     $user = auth()->user();
 
+    // Normalize empty strings to null (common when email is optional)
+    $request->merge([
+        'email' => $request->filled('email') ? $request->email : null,
+        'phone_number' => $request->filled('phone_number') ? $request->phone_number : null,
+        'tin_number' => $request->filled('tin_number') ? $request->tin_number : null,
+    ]);
+
     $request->validate([
         'name' => 'required|string|max:255',
         'phone_number' => 'nullable|string|max:20',
-        'email' => 'required|email|unique:users,email,' . $user->id,
+        'email' => 'nullable|email|unique:users,email,' . $user->id,
         'tin_number' => 'nullable|string|max:100',
         // 'business_license_number' => 'nullable|string|max:100',
         // 'license_expire_date' => 'nullable|date',
@@ -75,7 +82,7 @@ public function updateSelf(Request $request)
         }
 
         $request->validate([
-            'password' => 'required|string|min:8|confirmed',
+            'password' => 'required|string|min:6|confirmed',
         ]);
 
         $user->password = Hash::make($request->password);
