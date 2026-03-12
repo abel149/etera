@@ -410,6 +410,75 @@
             </div>
         </div>
     </div>
+
+    {{-- Send to Inbox Section --}}
+    <div class="card mt-4">
+        <div class="card-header bg-light">
+            <h5 class="mb-0"><i class="bx bx-inbox me-2"></i>Send to Inbox</h5>
+        </div>
+        <div class="card-body">
+            {{-- Show already inboxed users --}}
+            @if($proforma->inboxes && $proforma->inboxes->count() > 0)
+            <div class="alert alert-info mb-3">
+                <strong>Already sent to:</strong>
+                <ul class="mb-0 mt-1">
+                    @foreach($proforma->inboxes as $inbox)
+                        <li>{{ $inbox->user->name ?? 'N/A' }} ({{ ucfirst($inbox->user->role ?? '') }})</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            <form action="{{ route('proforma.store') }}" method="POST">
+                @csrf
+                <input type="hidden" name="proforma" value="{{ $proforma->id }}">
+
+                <div class="row">
+                    {{-- Spare Part Shops --}}
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Spare Part Shops</h6>
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Shops</label>
+                            <select name="spare_part_partners[]" multiple class="form-select" style="height: 120px;">
+                                <option value="">-- Select Spare Part Shop --</option>
+                                @foreach($shops as $shop)
+                                    <option value="{{ $shop->id }}"
+                                        @if($proforma->inboxes && $proforma->inboxes->contains('user_id', $shop->id)) selected disabled @endif
+                                    >{{ $shop->store_id }} - {{ $shop->name }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+                    </div>
+
+                    {{-- Garages --}}
+                    <div class="col-md-6">
+                        <h6 class="mb-3">Garages</h6>
+
+                        <div class="mb-3">
+                            <label class="form-label">Select Garages</label>
+                            <select name="garage_partners[]" multiple class="form-select" style="height: 120px;">
+                                <option value="">-- Select Garage --</option>
+                                @foreach($garages as $garage)
+                                    <option value="{{ $garage->id }}"
+                                        @if($proforma->inboxes && $proforma->inboxes->contains('user_id', $garage->id)) selected disabled @endif
+                                    >{{ $garage->store_id }} - {{ $garage->name }}</option>
+                                @endforeach
+                            </select>
+                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3">
+                    <button type="submit" class="btn btn-primary radius-30 px-4">
+                        <i class="bx bx-send me-1"></i> Send to Inbox
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>
 
 <!-- Image Modal (Used for general Proforma Images) - KEPT AS IS -->
