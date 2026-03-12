@@ -34,6 +34,17 @@
         .modal-close:hover { color: #1a1a2e; }
         @keyframes fadeIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
 
+        .terms-header-left { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+        .terms-lang-toggle { display: inline-flex; gap: 6px; background: #f3f4f6; border-radius: 999px; padding: 4px; border: 1px solid #e5e7eb; }
+        .terms-lang-btn { border: 0; background: transparent; padding: 6px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; color: #374151; cursor: pointer; }
+        .terms-lang-btn.active { background: rgba(40,167,69,0.14); color: #1a1a2e; }
+
+        .terms-meta { color: #6b7280; font-size: 12px; margin: 0 0 12px; }
+        .terms-body { color: #111827; font-size: 13px; line-height: 1.55; }
+        .terms-body ol { padding-left: 18px; margin: 0; }
+        .terms-body li { margin: 8px 0; }
+        .terms-body hr { border: 0; border-top: 1px solid #e5e7eb; margin: 14px 0; }
+
         /* FilePond Modern Theme */
         .filepond--root { margin-bottom: 0; font-family: 'Inter', sans-serif; }
         .filepond--drop-label {
@@ -300,22 +311,69 @@
 <div id="termsModal" class="modal-overlay">
     <div class="modal-content">
         <div class="modal-header">
-            <h4>Terms and Conditions</h4>
+            <div class="terms-header-left">
+                <h4 style="margin:0;">Terms and Conditions</h4>
+                <div class="terms-lang-toggle" role="tablist" aria-label="Terms language">
+                    <button type="button" class="terms-lang-btn" data-terms-lang="en">EN</button>
+                    <button type="button" class="terms-lang-btn" data-terms-lang="am">አማ</button>
+                </div>
+            </div>
             <button type="button" class="modal-close">&times;</button>
         </div>
         <div class="modal-body">
-            <p style="color:#6b7280;">Last Updated: October 2025</p>
-            <ol>
-                <li><strong>Acceptance of Terms.</strong> By using etera, you confirm that you have read, understood, and agreed to these Terms and Conditions.</li>
-                <li><strong>Eligibility.</strong> You must be at least 18 years old or have legal parental/guardian consent to use etera.</li>
-                <li><strong>Account Registration.</strong> You agree to provide accurate information and to keep your login credentials secure.</li>
-                <li><strong>Use of the Platform.</strong> You agree to use etera only for lawful purposes and in accordance with these Terms.</li>
-                <li><strong>Platform Role.</strong> etera acts solely as a facilitator. We do not manufacture, stock, or sell any spare parts directly.</li>
-                <li><strong>Intellectual Property.</strong> All content on etera is the property of etera or its licensors.</li>
-                <li><strong>Privacy.</strong> Your use of etera is governed by our Privacy Policy.</li>
-                <li><strong>Changes to Terms.</strong> etera may update these Terms at any time. Continued use means you accept the updated Terms.</li>
-                <li><strong>Contact Us.</strong> For questions or concerns, please contact us at the provided contact information.</li>
-            </ol>
+            <p class="terms-meta">Effective Date: October 2025</p>
+
+            <div class="terms-body" data-terms-content="en">
+                <p><strong>Welcome to ETERA.</strong> By accessing or using our platform, you agree to be bound by the following Terms and Conditions. Please read them carefully.</p>
+                <hr>
+                <ol>
+                    <li><strong>Acceptance of Terms</strong><br>By using ETERA, you confirm that you have read, understood, and agreed to these Terms and Conditions. If you do not agree, you must not use the platform.</li>
+                    <li><strong>Eligibility</strong><br>You must be at least 18 years old or have legal parental/guardian consent to use ETERA. You represent that you have the authority to enter into this agreement.</li>
+                    <li><strong>Account Registration</strong><br>To access certain features, you may be required to register an account. You agree to provide accurate information and to keep your login credentials secure.</li>
+                    <li><strong>Use of the Platform</strong><br>You agree to use ETERA only for lawful purposes and in accordance with these Terms. You must not misuse the platform or attempt unauthorized access.</li>
+                    <li><strong>Product and Service Descriptions</strong><br>ETERA strives to provide accurate descriptions of products and services. However, we do not warrant that descriptions or other content are error-free, complete, or current.</li>
+                    <li><strong>Platform Role and Provider Responsibility</strong><br>ETERA acts solely as a facilitator of instant price quotes provided by spare part providers registered on our platform. We do not manufacture, stock, or sell any spare parts directly.<br><br>All products and services listed are offered by independent providers. ETERA is not responsible for the quality, condition, availability, or delivery of any parts sold, nor for any store’s return, refund, or warranty policies. Any disputes or claims regarding a product must be resolved directly with the provider.</li>
+                    <li><strong>Orders and Availability</strong><br>All orders are subject to acceptance and availability. We reserve the right to refuse or cancel any order at our discretion.</li>
+                    <li><strong>Intellectual Property</strong><br>All content on ETERA, including logos, text, graphics, and software, is the property of ETERA or its licensors and is protected by applicable intellectual property laws.</li>
+                    <li><strong>User Content</strong><br>You may submit content (e.g., reviews, feedback). By doing so, you grant ETERA a non-exclusive, royalty-free license to use, reproduce, and display such content.</li>
+                    <li><strong>Prohibited Conduct</strong><br>You agree not to:<br>- Violate any laws or regulations<br>- Infringe on intellectual property rights<br>- Transmit harmful or malicious code<br>- Use automated systems to access the platform</li>
+                    <li><strong>Third-Party Links</strong><br>ETERA may contain links to third-party websites. We are not responsible for the content, policies, or practices of those sites.</li>
+                    <li><strong>Limitation of Liability</strong><br>ETERA is not liable for any indirect, incidental, or consequential damages arising from your use of the platform. Our total liability is limited to the amount paid by you for the relevant product or service.</li>
+                    <li><strong>Pricing and Payments</strong><br>All prices listed on ETERA are subject to change without prior notice. The price applicable to any product or service will be the price in effect at the time your order is placed and will be clearly stated in your order confirmation email.<br><br>Payment must be made using one of the available payment methods indicated on the ETERA website. We reserve the right to modify accepted payment methods at any time without notice.</li>
+                    <li><strong>Refunds and Cancellations</strong><br>ETERA does not sell spare parts directly and is not responsible for refund or cancellation policies set by individual providers. Any requests for refunds, exchanges, or cancellations must be directed to the spare part provider from whom the product was purchased.<br><br>We encourage users to review the provider’s return and refund policy before placing an order. ETERA does not mediate disputes related to refunds or cancellations but may assist in facilitating communication between users and providers when possible.</li>
+                    <li><strong>Privacy</strong><br>Your use of ETERA is also governed by our Privacy Policy. By using the platform, you consent to the collection and use of your information as described therein.</li>
+                    <li><strong>Changes to Terms</strong><br>ETERA reserves the right to update these Terms at any time. Changes will be effective upon posting. Continued use of the platform constitutes acceptance of the revised Terms.</li>
+                    <li><strong>Governing Law</strong><br>These Terms are governed by the laws of Ethiopia. Any disputes shall be resolved in accordance with the law.</li>
+                    <li><strong>Contact Us</strong><br>For questions or concerns, please reach out to us at the address provided on our website.</li>
+                </ol>
+            </div>
+
+            <div class="terms-body" data-terms-content="am" style="display:none;">
+                <p><strong>የኢተራ ደንቦች እና ሁኔታዎች</strong></p>
+                <p class="terms-meta" style="margin-top:6px;">የሥራ መጀመሪያ ቀን፡ ጥቅምት 2018</p>
+                <p>እንኳን ወደ ኢተራ በደህና መጡ። የእኛን ድህረገጽ ለመጠቀም በሚከተሉት ደንቦች እና ሁኔታዎች ላይ ተስማምተዋል። እባክዎ በጥንቃቄ ያንብቧቸው።</p>
+                <hr>
+                <ol>
+                    <li><strong>የደንቦቹ ተቀባይነት</strong><br>ኢተራን በመጠቀምዎ፣ እነዚህን ደንቦች እና ሁኔታዎች እንዳነበቡዋቸው፣ እንደተረዷቸው እና እንደተስማሙባቸው ያረጋግጣሉ። ካልተስማሙ፣ ድህረገጹን መጠቀም የለብዎትም።</li>
+                    <li><strong>ብቁነት</strong><br>ኢተራን ለመጠቀም ቢያንስ 18 ዓመት ወይም ከዚያ በላይ መሆን አለብዎት ወይም የሕግ ወላጅ/አሳዳጊ ፈቃድ ሊኖርዎት ይገባል። ወደዚህ ስምምነት ለመግባት ሥልጣን እንዳለዎት ይወክላሉ።</li>
+                    <li><strong>መለያ ምዝገባ</strong><br>የተወሰኑ መረጃዎችን ለማግኘት፣ መለያ እንዲመዘግቡ ሊጠየቁ ይችላሉ። ትክክለኛ መረጃ ለማቅረብ እና የመግቢያ ማረጋገጫዎን ደህንነቱ በተጠበቀ ሁኔታ ለማቆየት ተስማምተዋል።</li>
+                    <li><strong>የ ድህረገጽ አጠቃቀም</strong><br>ኢተራን ለህጋዊ ዓላማዎች ብቻ እና በነዚህ ደንቦች መሠረት ለመጠቀም ተስማምተዋል። ድህረገጹን አላግባብ መጠቀም ወይም ያልተፈቀደ ተደራሽነት መሞከር የለብዎትም።</li>
+                    <li><strong>የምርት እና የአገልግሎት መግለጫዎች</strong><br>ኢተራ የምርቶችን እና አገልግሎቶችን ትክክለኛ መግለጫዎች ለማቅረብ ይጥራል። ነገር ግን፣ መግለጫዎቹ ወይም ሌላ ይዘቶች ከስህተት ነጻ ናቸው፣ የተሟሉ ናቸው ወይም ወቅታዊ ናቸው ብለን ዋስትና አንሰጥም።</li>
+                    <li><strong>5ሀ. የ ድህረገጹ ሚና እና የአቅራቢ ኃላፊነት</strong><br>ኢተራ በድህረገጻችን ላይ በተመዘገቡ መለዋወጫ አቅራቢዎች የሚሰጡ ፈጣን የዋጋ ጥቆማዎችን ለማቅረብ ብቻ ነው የሚሠራው። እኛ በቀጥታ ምንም አይነት መለዋወጫ አንሠራም፣ አናከማቸም ወይም አንሸጥም።<br><br>የተዘረዘሩት ሁሉም ምርቶች እና አገልግሎቶች የሚቀርቡት በገለልተኛ አቅራቢዎች ነው። ኢተራ ለሚሸጡ ማናቸውም ክፍሎች ጥራት፣ ሁኔታ፣ ተደራሽነት ወይም አቅርቦት፣ እንዲሁም ለማንኛውም ሱቅ የመመለሻ፣ ተመላሽ ገንዘብ ወይም ዋስትና ፖሊሲዎች ኃላፊነት አይወስድም። ስለ ምርት የሚነሱ አለመግባባቶች ወይም የይገባኛል ጥያቄዎች በቀጥታ ከአቅራቢው ጋር መፈታት አለባቸው።</li>
+                    <li><strong>6. ትዕዛዞች እና ተደራሽነት</strong><br>ሁሉም ትዕዛዞች ተቀባይነት እና ተደራሽነት ላይ የተመሰረቱ ናቸው። ማንኛውንም ትዕዛዝ በእኛ ውሳኔ አለመቀበል ወይም መሰረዝ መብታችን የተጠበቀ ነው።</li>
+                    <li><strong>7. የአእምሯዊ ንብረት መብት</strong><br>በኢተራ ላይ ያሉ ሁሉም ይዘቶች፣ አርማዎችን፣ ጽሑፎችን፣ ግራፊክሶችን እና ሶፍትዌሮችን ጨምሮ፣ የኢተራ ወይም የፈቃድ ሰጪዎቹ ንብረት ናቸው እና በሚመለከታቸው የአእምሯዊ ንብረት ሕጎች የተጠበቁ ናቸው።</li>
+                    <li><strong>8. የተጠቃሚ ይዘት</strong><br>ይዘት (ለምሳሌ፣ ግምገማዎች፣ ግብረመልሶች) ማስገባት ይችላሉ። ይህን በማድረግ፣ ኢተራ እንደዚህ አይነት ይዘትን ለመጠቀም፣ ለማባዛት እና ለማሳየት ብቸኛ ያልሆነ፣ ከሮያሊቲ ነፃ የሆነ ፈቃድ ይሰጥዎታል።</li>
+                    <li><strong>9. የተከለከለ ባህሪ</strong><br>የሚከተሉትን ባለማድረግ ተስማምተዋል፡-<br>· ማንኛውንም ሕጎች ወይም ደንቦች መጣስ<br>· በአእምሯዊ ንብረት መብቶች ላይ ጣልቃ መግባት<br>· ጎጂ ወይም አደገኛ ኮድ ማስተላለፍ<br>· ድህረገጹን ለመድረስ አውቶሜትድ ሲስተሞችን መጠቀም</li>
+                    <li><strong>10. የሶስተኛ ወገን አገናኞች</strong><br>ኢተራ ወደ ሶስተኛ ወገን ድረ-ገጽ አገናኞችን ሊይዝ ይችላል። ለእነዚያ ጣቢያዎች ይዘት፣ ፖሊሲዎች ወይም ተግባራት ኃላፊነት አንወስድም።</li>
+                    <li><strong>11. የኃላፊነት ውስንነት</strong><br>ኢተራ ድህረገጽን በመጠቀምዎ ምክንያት ለሚከሰቱ ቀጥተኛ ያልሆኑ፣ ድንገተኛ ወይም ተከታይ ጉዳቶች ተጠያቂ አይደለም። አጠቃላይ ኃላፊነታችን ለሚመለከተው ምርት ወይም አገልግሎት በእርስዎ ለተከፈለው መጠን ብቻ የተወሰነ ነው።</li>
+                    <li><strong>12. ዋጋ አሰጣጥ እና ክፍያዎች</strong><br>በኢተራ ላይ የተዘረዘሩ ሁሉም ዋጋዎች ያለቅድመ ማስታወቂያ ሊለወጡ ይችላሉ። በማንኛውም ምርት ወይም አገልግሎት ላይ የሚተገበረው ዋጋ ትዕዛዝዎን ባስቀመጡበት ጊዜ የነበረው ዋጋ ሲሆን የትዕዛዝ ማረጋገጫ በቴሌግራምዎ ላይ በግልጽ ይገለጻል።<br><br>ክፍያ በኢተራ ድረ-ገጽ ላይ ከተጠቆሙት ክፍያ ዘዴዎች ውስጥ አንዱን በመጠቀም ክፍያ መፈጸም አለበት። ያለማስታወቂያ ተቀባይነት ያላቸውን የክፍያ ዘዴዎች የመቀየር መብታችን የተጠበቀ ነው።</li>
+                    <li><strong>13. ተመላሽ ገንዘቦች እና ስረዛዎች</strong><br>ኢተራ በቀጥታ መለዋወጫዎችን አይሸጥም እና በግለሰብ አቅራቢዎች ለተዘጋጁ የተመላሽ ገንዘብ ወይም ስረዛ ፖሊሲዎች ኃላፊነት አይወስድም። ማንኛውም የተመላሽ ገንዘብ፣ ልውውጥ ወይም ስረዛ ጥያቄዎች ምርቱ ከተገዛበት መለዋወጫ አቅራቢ ማቅረብ አለባቸው።<br><br>ተጠቃሚዎች ትዕዛዝ ከማስቀመጣቸው በፊት የአቅራቢውን የመመለሻ እና ተመላሽ ገንዘብ ፖሊሲ እንዲገመግሙ እናበረታታለን። ኢተራ ከተመላሽ ገንዘቦች ወይም ስረዛዎች ጋር በተያያዙ አለመግባባቶች ውስጥ ጣልቃ አይገባም ነገር ግን በሚቻልበት ጊዜ በተጠቃሚዎች እና አቅራቢዎች መካከል ግንኙነትን በማመቻቸት ሊረዳ ይችላል።</li>
+                    <li><strong>14. ግላዊነት</strong><br>የኢተራ አጠቃቀምዎ በግላዊነት ፖሊሲያችንም ይተዳደራል። ድህረገጹን በመጠቀምዎ፣ እንደተገለጸው መረጃዎን ለመሰብሰብ እና ለመጠቀም ተስማምተዋል።</li>
+                    <li><strong>15. የደንቦች ለውጦች</strong><br>ኢተራ እነዚህን ደንቦች በማንኛውም ጊዜ የማዘመን መብቱ የተጠበቀ ነው። ለውጦች በሚለጠፉበት ጊዜ ሥራ ላይ ይውላሉ። ድህረገጹን መጠቀምዎን መቀጠል የተሻሻሉትን ደንቦች መቀበልን ይመሰክራል።</li>
+                    <li><strong>16. የበላይነት ሕግ</strong><br>እነዚህ ደንቦች የሚተዳደሩት በ ኢትዮጵያ ሕግ  ነው። ማንኛውም አለመግባባቶች በ ሕጉ መሠረት መፈታት አለባቸው።</li>
+                    <li><strong>17. ያግኙን</strong><br>ለጥያቄዎች ወይም አሳሳቢ ጉዳዮች፣ እባክዎን በ ድህረገጻችን ላይ በተቀመጠዉ አድራሻ ያግኙን።</li>
+                </ol>
+            </div>
         </div>
         <div style="padding: 12px 25px; border-top: 1px solid #e5e7eb; text-align: right;">
             <button type="button" class="etera-btn etera-btn-primary" id="acceptTerms" style="padding: 10px 24px; font-size: 0.9rem;">I Accept</button>
@@ -331,6 +389,24 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    // Terms language toggle (persist in localStorage)
+    const langKey = 'etera_terms_lang';
+    function setTermsLang(lang) {
+        const safe = (lang === 'am') ? 'am' : 'en';
+        try { localStorage.setItem(langKey, safe); } catch (e) {}
+        document.querySelectorAll('[data-terms-content="en"]').forEach(el => { el.style.display = safe === 'en' ? '' : 'none'; });
+        document.querySelectorAll('[data-terms-content="am"]').forEach(el => { el.style.display = safe === 'am' ? '' : 'none'; });
+        document.querySelectorAll('.terms-lang-btn').forEach(btn => {
+            btn.classList.toggle('active', btn.getAttribute('data-terms-lang') === safe);
+        });
+    }
+    document.querySelectorAll('.terms-lang-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            setTermsLang(this.getAttribute('data-terms-lang'));
+        });
+    });
+    setTermsLang((function(){ try { return localStorage.getItem(langKey); } catch(e) { return null; } })() || 'en');
 
     // Register FilePond Plugins
     FilePond.registerPlugin(
