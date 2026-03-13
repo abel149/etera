@@ -978,16 +978,7 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 	$resetUrl = url('/reset-password?token=' . $token . '&email=' . urlencode($user->email));
 	$rejectUrl = url('/reset-password-reject?token=' . $token . '&email=' . urlencode($user->email));
 
-	app()->terminating(function () use ($user, $resetUrl, $rejectUrl) {
-		try {
-			app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectUrl);
-		} catch (\Throwable $e) {
-			\Illuminate\Support\Facades\Log::warning('Telegram password reset send failed', [
-				'user_id' => $user->id,
-				'error' => $e->getMessage(),
-			]);
-		}
-	});
+	\App\Jobs\SendTelegramPasswordResetLink::dispatch((string) $user->telegram_chat_id, $resetUrl, $rejectUrl)->afterResponse();
 
 	return redirect('/login')->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
 })->name('password.telegram');
