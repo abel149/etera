@@ -251,6 +251,22 @@ html.dark-theme .badge.bg-light { background: rgba(2,6,23,0.45) !important; colo
 html.dark-theme .list-group-item { background: rgba(17,24,39,0.65) !important; border-color: rgba(148,163,184,0.16) !important; color: rgba(229,231,235,0.88) !important; }
 html.dark-theme .list-group-item:hover { background: rgba(34,197,94,0.08) !important; }
 
+html.dark-theme .text-secondary { color: rgba(148,163,184,0.90) !important; }
+html.dark-theme .text-dark,
+html.dark-theme .text-black { color: rgba(243,244,246,0.95) !important; }
+
+html.dark-theme .btn.btn-white,
+html.dark-theme .btn-white { background: rgba(2,6,23,0.35) !important; color: rgba(229,231,235,0.88) !important; border-color: rgba(148,163,184,0.18) !important; }
+html.dark-theme .btn.btn-white:hover,
+html.dark-theme .btn-white:hover { background: rgba(34,197,94,0.10) !important; border-color: rgba(34,197,94,0.35) !important; color: rgba(243,244,246,0.98) !important; }
+
+html.dark-theme .table-light,
+html.dark-theme thead.table-light,
+html.dark-theme .table thead.table-light th { background: rgba(2,6,23,0.55) !important; color: rgba(243,244,246,0.95) !important; border-color: rgba(148,163,184,0.20) !important; }
+
+html.dark-theme .badge.bg-light.text-dark,
+html.dark-theme .badge.bg-light.text-black { background: rgba(2,6,23,0.45) !important; color: rgba(229,231,235,0.90) !important; border-color: rgba(148,163,184,0.16) !important; }
+
 html.dark-theme .nav-tabs { border-bottom-color: rgba(148,163,184,0.18) !important; }
 html.dark-theme .nav-tabs .nav-link { color: rgba(229,231,235,0.82) !important; border-color: transparent !important; }
 html.dark-theme .nav-tabs .nav-link:hover { color: rgba(243,244,246,0.98) !important; background: rgba(34,197,94,0.08) !important; border-color: rgba(34,197,94,0.25) !important; }
