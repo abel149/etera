@@ -58,6 +58,100 @@ class TelegramService
         }
     }
 
+    public function sendMessageWithButtons(string $chatId, string $text, array $buttons): bool
+    {
+        if (empty($this->botToken) || empty($chatId)) {
+            Log::warning('TelegramService: Missing bot token or chat ID', [
+                'has_token' => !empty($this->botToken),
+                'chat_id' => $chatId,
+            ]);
+            return false;
+        }
+
+        try {
+            $inlineButtons = [];
+            foreach ($buttons as $button) {
+                if (!isset($button['text'], $button['url'])) {
+                    continue;
+                }
+                $inlineButtons[] = ['text' => (string) $button['text'], 'url' => (string) $button['url']];
+            }
+
+            $response = Http::post("{$this->apiBase}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        $inlineButtons,
+                    ],
+                ]),
+                'disable_web_page_preview' => true,
+            ]);
+
+            if ($response->successful() && $response->json('ok')) {
+                Log::info('TelegramService: Message sent (with buttons)', ['chat_id' => $chatId]);
+                return true;
+            }
+
+            Log::warning('TelegramService: API error (with buttons)', [
+                'chat_id' => $chatId,
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('TelegramService: Exception (with buttons)', [
+                'chat_id' => $chatId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    public function sendMessageWithButton(string $chatId, string $text, string $buttonText, string $buttonUrl): bool
+    {
+        if (empty($this->botToken) || empty($chatId)) {
+            Log::warning('TelegramService: Missing bot token or chat ID', [
+                'has_token' => !empty($this->botToken),
+                'chat_id' => $chatId,
+            ]);
+            return false;
+        }
+
+        try {
+            $response = Http::post("{$this->apiBase}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [
+                            ['text' => $buttonText, 'url' => $buttonUrl],
+                        ],
+                    ],
+                ]),
+                'disable_web_page_preview' => true,
+            ]);
+
+            if ($response->successful() && $response->json('ok')) {
+                Log::info('TelegramService: Message sent (with button)', ['chat_id' => $chatId]);
+                return true;
+            }
+
+            Log::warning('TelegramService: API error (with button)', [
+                'chat_id' => $chatId,
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('TelegramService: Exception (with button)', [
+                'chat_id' => $chatId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
     /**
      * Generate a Telegram deep link for user to connect their account.
      * When user clicks this link and sends /start, the bot receives the user ID.
@@ -253,6 +347,18 @@ class TelegramService
             . "⏳ Pending approval. Please review in the admin panel.";
 
         return $this->sendMessage($chatId, $text);
+    }
+
+    public function sendPasswordResetLink(string $chatId, string $resetUrl, string $rejectUrl): bool
+    {
+        $text = "🔐 <b>Password Reset</b>\n\n"
+            . "If this was you, tap <b>Yes, reset</b>. If not, tap <b>No, reject</b>.\n"
+            . "This request expires in <b>5 minutes</b>.";
+
+        return $this->sendMessageWithButtons($chatId, $text, [
+            ['text' => 'Yes, reset', 'url' => $resetUrl],
+            ['text' => 'No, reject', 'url' => $rejectUrl],
+        ]);
     }
 }
 

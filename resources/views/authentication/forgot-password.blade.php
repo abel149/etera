@@ -8,7 +8,7 @@
         Reset Your Password
     </h2>
     <p class="etera-subtext" style="text-align:center; max-width: 360px;">
-        Enter your registered email and we'll send you a reset link to get back into your account.
+        Enter your registered phone number and we'll send you a reset link via Telegram.
     </p>
 @endsection
 
@@ -19,6 +19,7 @@
     window.__ETERA__  = {
         csrfToken: @json(csrf_token()),
         forgotPasswordUrl: @json(url('/forgot-password')),
+        forgotPasswordTelegramUrl: @json(url('/forgot-password-telegram')),
         loginUrl: '/login',
         oldEmail: @json(old('email', '')),
         logoUrl: @json(asset('assets/images/transparent.svg')),
@@ -40,7 +41,7 @@
 
     function ForgotPasswordForm() {
         const data = window.__ETERA__ ;
-        const [email, setEmail] = useState(data.oldEmail);
+        const [phone, setPhone] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
 
         const handleSubmit = () => {
@@ -58,25 +59,28 @@
                         Forgot Password?
                     </h2>
                     <p className="etera-subtext" style={{ maxWidth: '320px', margin: '0 auto' }}>
-                        Enter your registered email to receive a password reset link
+                        Enter your registered phone number to receive a password reset link
                     </p>
                 </div>
 
-                <form action={data.forgotPasswordUrl} method="POST" onSubmit={handleSubmit}>
+                <form action={data.forgotPasswordTelegramUrl} method="POST" onSubmit={handleSubmit}>
                     <input type="hidden" name="_token" value={data.csrfToken} />
 
                     <div className="etera-input-group">
-                        <label>Email Address</label>
+                        <label>Phone Number</label>
                         <input
-                            type="email"
-                            name="email"
+                            type="text"
+                            name="phone_number"
                             className="etera-input"
-                            placeholder="example@user.com"
-                            value={email}
-                            onChange={(e) => setEmail(e.target.value)}
+                            placeholder="2519..."
+                            value={phone}
+                            onChange={(e) => setPhone(e.target.value)}
                             required
                             autoFocus
                         />
+                        <div className="etera-subtext" style={{ marginTop: '6px', fontSize: '0.85rem' }}>
+                            You must have Telegram connected to your account.
+                        </div>
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', marginTop: '0.5rem' }}>
@@ -85,7 +89,7 @@
                             className={`etera-btn etera-btn-primary etera-btn-block ${isSubmitting ? 'etera-btn-loading' : ''}`}
                             disabled={isSubmitting}
                         >
-                            {isSubmitting ? 'Sending...' : 'Send Reset Link'}
+                            {isSubmitting ? 'Sending...' : 'Send Telegram Reset Link'}
                         </button>
 
                         <a href={data.loginUrl} className="etera-btn etera-btn-outline etera-btn-block" style={{ textAlign: 'center' }}>

@@ -38,6 +38,7 @@ use App\Models\ProformaApplication;
 use App\Models\ProformaInvoice;
 use App\Services\AudioService;
 use App\Services\ImageService;
+use App\Services\TelegramService;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -956,6 +957,53 @@ Route::post('/forgot-password', function (Request $request) {
     return back()->with('success', 'If an account exists with that email, a password reset link has been sent.');
 })->name('password.email');
 
+Route::post('/forgot-password-telegram', function (Request $request) {
+	$request->validate([
+		'phone_number' => 'required|string|max:20',
+	]);
+
+	$user = User::where('phone_number', $request->phone_number)->first();
+	if (! $user || empty($user->telegram_chat_id)) {
+		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+	}
+
+	$token = \Illuminate\Support\Str::random(64);
+	DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+	DB::table('password_reset_tokens')->insert([
+		'email' => $user->email,
+		'token' => Hash::make($token),
+		'created_at' => now(),
+	]);
+
+	$resetUrl = url('/reset-password?token=' . $token . '&email=' . urlencode($user->email));
+	$rejectUrl = url('/reset-password-reject?token=' . $token . '&email=' . urlencode($user->email));
+
+	try {
+		app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectUrl);
+	} catch (\Throwable $e) {
+		\Illuminate\Support\Facades\Log::warning('Telegram password reset send failed', [
+			'user_id' => $user->id,
+			'error' => $e->getMessage(),
+		]);
+	}
+
+	return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+})->name('password.telegram');
+
+Route::get('/reset-password-reject', function (Request $request) {
+	$request->validate([
+		'token' => 'required',
+		'email' => 'required|email',
+	]);
+
+	$record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
+	if ($record && Hash::check($request->token, $record->token)) {
+		DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+	}
+
+	return redirect('/login')->with('success', 'Password reset request rejected. If you did not request this, your account is safe.');
+})->name('password.reset.reject');
+
 Route::get('/reset-password', function (Request $request) {
     return view('authentication.reset-password', [
         'token' => $request->query('token'),
@@ -976,8 +1024,8 @@ Route::post('/reset-password', function (Request $request) {
         return back()->withErrors(['email' => 'Invalid or expired reset token.']);
     }
 
-    // Check if token is older than 60 minutes
-    if (now()->diffInMinutes($record->created_at) > 60) {
+    // Check if token is older than 5 minutes
+    if (now()->diffInMinutes($record->created_at) > 5) {
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
         return back()->withErrors(['email' => 'This reset link has expired. Please request a new one.']);
     }
