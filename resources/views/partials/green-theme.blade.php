@@ -139,6 +139,16 @@ html.dark-theme .sp-nav-link:hover,
 html.dark-theme .nav-item:hover { background: rgba(34,197,94,0.12) !important; color: rgba(243,244,246,0.98) !important; }
 html.dark-theme .sp-nav-link.active { background: rgba(34,197,94,0.18) !important; color: rgba(243,244,246,0.98) !important; }
 
+html.dark-theme .mobile-toggle-menu,
+html.dark-theme .toggle-icon,
+html.dark-theme .toggle-icon i,
+html.dark-theme .mobile-toggle-menu i,
+html.dark-theme .sp-mobile-toggle,
+html.dark-theme .sp-mobile-toggle i { color: rgba(243,244,246,0.92) !important; }
+html.dark-theme .mobile-toggle-menu:hover i,
+html.dark-theme .toggle-icon:hover i,
+html.dark-theme .sp-mobile-toggle:hover i { color: rgba(34,197,94,0.95) !important; }
+
 html.dark-theme .sp-footer { background: rgba(11,18,32,0.82) !important; backdrop-filter: blur(10px); border-top: 1px solid rgba(148,163,184,0.18) !important; }
 html.dark-theme .sp-footer-brand { color: rgba(243,244,246,0.95) !important; }
 html.dark-theme .sp-footer-copy { color: rgba(229,231,235,0.70) !important; }
@@ -187,6 +197,41 @@ html.dark-theme .button:hover,
 html.dark-theme .button.ripple-effect:hover { filter: brightness(0.96); }
 html.dark-theme .list-apply-button { background: rgba(34,197,94,0.14) !important; color: rgba(229,231,235,0.92) !important; border-color: rgba(34,197,94,0.30) !important; }
 html.dark-theme .list-apply-button:hover { background: rgba(34,197,94,0.20) !important; }
+
+html.dark-theme .bg-white,
+html.dark-theme .bg-light { background-color: rgba(17,24,39,0.72) !important; }
+
+html.dark-theme .card { background: rgba(17,24,39,0.72) !important; border: 1px solid rgba(148,163,184,0.16) !important; box-shadow: 0 12px 28px rgba(0,0,0,0.35) !important; }
+html.dark-theme .card-header,
+html.dark-theme .card-footer { background: rgba(17,24,39,0.55) !important; border-color: rgba(148,163,184,0.16) !important; }
+html.dark-theme .card-body { color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .card-title,
+html.dark-theme .card h1,
+html.dark-theme .card h2,
+html.dark-theme .card h3,
+html.dark-theme .card h4,
+html.dark-theme .card h5,
+html.dark-theme .card h6 { color: rgba(243,244,246,0.95) !important; }
+
+html.dark-theme .table { color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .table thead th { background: rgba(2,6,23,0.55) !important; color: rgba(243,244,246,0.95) !important; border-color: rgba(148,163,184,0.20) !important; }
+html.dark-theme .table td,
+html.dark-theme .table th { border-color: rgba(148,163,184,0.12) !important; }
+html.dark-theme .table-striped > tbody > tr:nth-of-type(odd) > * { background-color: rgba(2,6,23,0.30) !important; color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .table-hover tbody tr:hover > * { background-color: rgba(34,197,94,0.08) !important; color: rgba(243,244,246,0.98) !important; }
+
+html.dark-theme .bs-stepper,
+html.dark-theme .bs-stepper-content { color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .bs-stepper .step-trigger { background: transparent !important; color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .bs-stepper .step-trigger:hover { background: rgba(34,197,94,0.10) !important; }
+html.dark-theme .bs-stepper .bs-stepper-circle { background: rgba(34,197,94,0.14) !important; color: rgba(243,244,246,0.95) !important; box-shadow: inset 0 0 0 1px rgba(34,197,94,0.28) !important; }
+html.dark-theme .steper-title { color: rgba(243,244,246,0.95) !important; }
+html.dark-theme .steper-sub-title { color: rgba(229,231,235,0.68) !important; }
+
+html.dark-theme .part-item { background-color: rgba(2,6,23,0.40) !important; border-color: rgba(148,163,184,0.18) !important; }
+html.dark-theme .part-item:hover { background-color: rgba(2,6,23,0.52) !important; box-shadow: 0 12px 28px rgba(0,0,0,0.35) !important; }
+html.dark-theme .image-upload-section { border-color: rgba(148,163,184,0.30) !important; background: rgba(2,6,23,0.28) !important; }
+html.dark-theme .image-upload-section:hover { border-color: rgba(34,197,94,0.55) !important; }
 
 html.dark-theme .wrapper .back-to-top { background: linear-gradient(135deg, #22c55e, #10b981) !important; box-shadow: 0 12px 22px rgba(16,185,129,0.22); }
 
