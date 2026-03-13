@@ -159,6 +159,11 @@ html.dark-theme .sp-nav-link:hover,
 html.dark-theme .nav-item:hover { background: rgba(34,197,94,0.12) !important; color: rgba(243,244,246,0.98) !important; }
 html.dark-theme .sp-nav-link.active { background: rgba(34,197,94,0.18) !important; color: rgba(243,244,246,0.98) !important; }
 
+html.dark-theme .sp-nav { background: rgba(11,18,32,0.96) !important; border-bottom: 1px solid rgba(148,163,184,0.18) !important; box-shadow: 0 18px 44px rgba(0,0,0,0.45) !important; }
+html.dark-theme .sp-nav.open { background: rgba(11,18,32,0.96) !important; }
+html.dark-theme .sp-nav.open .sp-nav-link { color: rgba(243,244,246,0.92) !important; }
+html.dark-theme .sp-nav.open .sp-nav-link:hover { background: rgba(34,197,94,0.12) !important; }
+
 html.dark-theme .mobile-toggle-menu,
 html.dark-theme .toggle-icon,
 html.dark-theme .toggle-icon i,
@@ -240,6 +245,12 @@ html.dark-theme .table th { border-color: rgba(148,163,184,0.12) !important; }
 html.dark-theme .table-striped > tbody > tr:nth-of-type(odd) > * { background-color: rgba(2,6,23,0.30) !important; color: rgba(229,231,235,0.88) !important; }
 html.dark-theme .table-hover tbody tr:hover > * { background-color: rgba(34,197,94,0.08) !important; color: rgba(243,244,246,0.98) !important; }
 
+html.dark-theme .table-responsive,
+html.dark-theme .lead-table { background: transparent !important; }
+
+html.dark-theme .page-breadcrumb { color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .page-breadcrumb .product-show i { color: rgba(148,163,184,0.85) !important; }
+
 html.dark-theme .breadcrumb,
 html.dark-theme .breadcrumb-item { color: rgba(148,163,184,0.9) !important; }
 html.dark-theme .breadcrumb-item.active { color: rgba(243,244,246,0.92) !important; }
@@ -259,6 +270,12 @@ html.dark-theme .btn.btn-white,
 html.dark-theme .btn-white { background: rgba(2,6,23,0.35) !important; color: rgba(229,231,235,0.88) !important; border-color: rgba(148,163,184,0.18) !important; }
 html.dark-theme .btn.btn-white:hover,
 html.dark-theme .btn-white:hover { background: rgba(34,197,94,0.10) !important; border-color: rgba(34,197,94,0.35) !important; color: rgba(243,244,246,0.98) !important; }
+
+html.dark-theme .dropdown-menu { background: rgba(15,23,42,0.96) !important; border: 1px solid rgba(148,163,184,0.18) !important; box-shadow: 0 18px 40px rgba(0,0,0,0.45) !important; }
+html.dark-theme .dropdown-item { color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .dropdown-item:hover,
+html.dark-theme .dropdown-item:focus { background: rgba(34,197,94,0.12) !important; color: rgba(243,244,246,0.98) !important; }
+html.dark-theme .dropdown-divider { border-top-color: rgba(148,163,184,0.16) !important; }
 
 html.dark-theme .table-light,
 html.dark-theme thead.table-light,
