@@ -145,3 +145,62 @@ html.dark-theme .ep-sidebar { background: linear-gradient(180deg, #0b1220 0%, #0
 html.dark-theme .ep-topbar { background: rgba(11,18,32,0.82) !important; backdrop-filter: blur(10px); border-bottom: 1px solid rgba(148,163,184,0.18) !important; }
 html.dark-theme .ep-main-content { background: radial-gradient(1200px circle at 10% 0%, rgba(34,197,94,0.10), transparent 45%), linear-gradient(180deg, #0b1220 0%, #070b13 100%) !important; }
 </style>
+
+<script>
+(function () {
+	var STORAGE_KEY = 'etera-theme';
+	var THEMES = { light: 'light', dark: 'dark-theme', semidark: 'semi-dark' };
+
+	function normalizeTheme(value) {
+		if (value === THEMES.dark || value === 'dark') return THEMES.dark;
+		if (value === THEMES.semidark || value === 'semidark') return THEMES.semidark;
+		return THEMES.light;
+	}
+
+	function applyTheme(theme) {
+		var t = normalizeTheme(theme);
+		var html = document.documentElement;
+		html.classList.remove(THEMES.light, THEMES.dark, THEMES.semidark);
+		html.classList.add(t);
+		try { localStorage.setItem(STORAGE_KEY, t); } catch (e) {}
+
+		var lightRadio = document.getElementById('lightmode');
+		var darkRadio = document.getElementById('darkmode');
+		var semiRadio = document.getElementById('semidark');
+		if (lightRadio) lightRadio.checked = (t === THEMES.light);
+		if (darkRadio) darkRadio.checked = (t === THEMES.dark);
+		if (semiRadio) semiRadio.checked = (t === THEMES.semidark);
+	}
+
+	function getStoredTheme() {
+		try { return normalizeTheme(localStorage.getItem(STORAGE_KEY)); } catch (e) { return THEMES.light; }
+	}
+
+	applyTheme(getStoredTheme());
+
+	if (document.readyState === 'loading') {
+		document.addEventListener('DOMContentLoaded', init);
+	} else {
+		init();
+	}
+
+	function init() {
+		var lightRadio = document.getElementById('lightmode');
+		var darkRadio = document.getElementById('darkmode');
+		var semiRadio = document.getElementById('semidark');
+
+		if (lightRadio) lightRadio.addEventListener('change', function () { if (this.checked) applyTheme(THEMES.light); });
+		if (darkRadio) darkRadio.addEventListener('change', function () { if (this.checked) applyTheme(THEMES.dark); });
+		if (semiRadio) semiRadio.addEventListener('change', function () { if (this.checked) applyTheme(THEMES.semidark); });
+
+		var toggles = document.querySelectorAll('.dark-mode-icon');
+		for (var i = 0; i < toggles.length; i++) {
+			toggles[i].addEventListener('click', function (e) {
+				e.preventDefault();
+				var current = normalizeTheme(document.documentElement.classList.contains(THEMES.dark) ? THEMES.dark : (document.documentElement.classList.contains(THEMES.semidark) ? THEMES.semidark : THEMES.light));
+				applyTheme(current === THEMES.dark ? THEMES.light : THEMES.dark);
+			});
+		}
+	}
+})();
+</script>
