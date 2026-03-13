@@ -411,74 +411,124 @@
         </div>
     </div>
 
-    {{-- Send to Inbox Section --}}
-    <div class="card mt-4">
-        <div class="card-header bg-light">
-            <h5 class="mb-0"><i class="bx bx-inbox me-2"></i>Send to Inbox</h5>
-        </div>
-        <div class="card-body">
-            {{-- Show already inboxed users --}}
-            @if($proforma->inboxes && $proforma->inboxes->count() > 0)
-            <div class="alert alert-info mb-3">
-                <strong>Already sent to:</strong>
-                <ul class="mb-0 mt-1">
-                    @foreach($proforma->inboxes as $inbox)
-                        <li>{{ $inbox->user->name ?? 'N/A' }} ({{ ucfirst($inbox->user->role ?? '') }})</li>
-                    @endforeach
-                </ul>
-            </div>
-            @endif
+    {{-- Send to Inbox — Floating Button + Modal --}}
+    @php
+        $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+        $isEteraChereta = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
+        $alreadyInboxed = $proforma->inboxes ? $proforma->inboxes->pluck('user_id')->toArray() : [];
+    @endphp
 
-            <form action="{{ route('proforma.store') }}" method="POST">
-                @csrf
-                <input type="hidden" name="proforma" value="{{ $proforma->id }}">
+    @if(!$isEteraChereta && $requiredShops > 0)
+    {{-- Floating Action Button --}}
+    <button type="button" class="btn btn-primary rounded-circle shadow-lg" id="inboxFab"
+        data-bs-toggle="modal" data-bs-target="#inboxModal"
+        style="position: fixed; bottom: 2rem; right: 2rem; width: 56px; height: 56px; font-size: 1.4rem; z-index: 1050; display: flex; align-items: center; justify-content: center;">
+        <i class="bx bx-send"></i>
+    </button>
 
-                <div class="row">
-                    {{-- Spare Part Shops --}}
-                    <div class="col-md-6">
-                        <h6 class="mb-3">Spare Part Shops</h6>
+    {{-- Inbox Modal --}}
+    <div class="modal fade" id="inboxModal" tabindex="-1" aria-labelledby="inboxModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="inboxModalLabel">
+                        <i class="bx bx-send me-2"></i>Send to Inbox
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <form action="{{ route('proforma.store') }}" method="POST">
+                    @csrf
+                    <input type="hidden" name="proforma" value="{{ $proforma->id }}">
+                    <div class="modal-body">
 
+                        {{-- Already sent --}}
+                        @if(count($alreadyInboxed) > 0)
+                        <div class="alert alert-info py-2 mb-3">
+                            <small><strong>Already sent to:</strong></small>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                @foreach($proforma->inboxes as $inbox)
+                                    <span class="badge bg-primary">{{ $inbox->user->name ?? 'N/A' }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Dynamic dropdowns: one per required shop --}}
+                        @for($i = 1; $i <= $requiredShops; $i++)
                         <div class="mb-3">
-                            <label class="form-label">Select Shops</label>
-                            <select name="spare_part_partners[]" multiple class="form-select" style="height: 120px;">
+                            <label class="form-label fw-semibold">Shop Slot {{ $i }}</label>
+                            <select name="spare_part_partners[]" class="form-select inbox-shop-select" data-slot="{{ $i }}">
                                 <option value="">-- Select Spare Part Shop --</option>
                                 @foreach($shops as $shop)
-                                    <option value="{{ $shop->id }}"
-                                        @if($proforma->inboxes && $proforma->inboxes->contains('user_id', $shop->id)) selected disabled @endif
-                                    >{{ $shop->store_id }} - {{ $shop->name }}</option>
+                                    @if(!in_array($shop->id, $alreadyInboxed))
+                                    <option value="{{ $shop->id }}">{{ $shop->store_id }} - {{ $shop->name }}</option>
+                                    @endif
                                 @endforeach
                             </select>
-                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
                         </div>
+                        @endfor
+
                     </div>
-
-                    {{-- Garages --}}
-                    <div class="col-md-6">
-                        <h6 class="mb-3">Garages</h6>
-
-                        <div class="mb-3">
-                            <label class="form-label">Select Garages</label>
-                            <select name="garage_partners[]" multiple class="form-select" style="height: 120px;">
-                                <option value="">-- Select Garage --</option>
-                                @foreach($garages as $garage)
-                                    <option value="{{ $garage->id }}"
-                                        @if($proforma->inboxes && $proforma->inboxes->contains('user_id', $garage->id)) selected disabled @endif
-                                    >{{ $garage->store_id }} - {{ $garage->name }}</option>
-                                @endforeach
-                            </select>
-                            <small class="text-muted">Hold Ctrl/Cmd to select multiple</small>
-                        </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">
+                            <i class="bx bx-send me-1"></i> Send
+                        </button>
                     </div>
-                </div>
-
-                <div class="mt-3">
-                    <button type="submit" class="btn btn-primary radius-30 px-4">
-                        <i class="bx bx-send me-1"></i> Send to Inbox
-                    </button>
-                </div>
-            </form>
+                </form>
+            </div>
         </div>
     </div>
+
+    {{-- Dynamic dropdown filtering JS --}}
+    <script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const selects = document.querySelectorAll('.inbox-shop-select');
+        if (!selects.length) return;
+
+        // Store all original options (from the first select, they're all identical)
+        const allOptions = [];
+        selects[0].querySelectorAll('option').forEach(opt => {
+            allOptions.push({ value: opt.value, text: opt.textContent });
+        });
+
+        selects.forEach(sel => {
+            sel.addEventListener('change', () => updateDropdowns());
+        });
+
+        function updateDropdowns() {
+            // Gather currently selected values
+            const selected = {};
+            selects.forEach(sel => {
+                const val = sel.value;
+                if (val) selected[sel.dataset.slot] = val;
+            });
+
+            selects.forEach(sel => {
+                const currentVal = sel.value;
+                const slot = sel.dataset.slot;
+
+                // Values selected in OTHER dropdowns
+                const otherSelected = Object.entries(selected)
+                    .filter(([s]) => s !== slot)
+                    .map(([, v]) => v);
+
+                // Rebuild options
+                sel.innerHTML = '';
+                allOptions.forEach(opt => {
+                    if (opt.value === '' || !otherSelected.includes(opt.value)) {
+                        const o = document.createElement('option');
+                        o.value = opt.value;
+                        o.textContent = opt.text;
+                        if (opt.value === currentVal) o.selected = true;
+                        sel.appendChild(o);
+                    }
+                });
+            });
+        }
+    });
+    </script>
+    @endif
 </div>
 
 <!-- Image Modal (Used for general Proforma Images) - KEPT AS IS -->

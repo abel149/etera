@@ -2743,6 +2743,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 $applications = $applications->take($requiredShops);
             }
 
+            // Etera Chereta (0 shops requested): show only top 5 lowest price
+            if ($requiredShops === 0) {
+                $applications = $applications->take(5);
+            }
+
             return view('insurance.proforma-details', compact('proforma','applications'));
         });
         Route::get('/add-parts', function () {
@@ -4126,6 +4131,13 @@ Route::get('proforma-details', function (Request $request) {
 
     if ($requiredGarages > 0) {
         $garages = $garages->take($requiredGarages);
+    }
+
+    // Etera Chereta (both 0): show only top 5 lowest price
+    if ($requiredShops === 0 && $requiredGarages === 0) {
+        $applications = $applications->take(5);
+        $shops = $shops->take(5);
+        $garages = $garages->take(5);
     }
 
     return view(
