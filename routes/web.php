@@ -461,11 +461,17 @@ Route::middleware(['auth.user'])->group(function () {
 
     Route::put('/profile/update', function (Request $request) {
         $user = Auth::user();
+
+        // Normalize empty strings to null (email can be optional for some roles)
+        $request->merge([
+            'email' => $request->filled('email') ? $request->email : null,
+        ]);
+
         $request->validate([
             'name' => 'required|string|max:255',
-            'email' => 'required|email|unique:users,email,' . $user->id,
+            'email' => 'nullable|email|unique:users,email,' . $user->id,
             'phone_number' => 'nullable|string|max:20',
-            'password' => 'nullable|min:8|confirmed',
+            'password' => 'nullable|min:6|confirmed',
         ]);
 
         // Update user details
@@ -739,14 +745,17 @@ Route::get('/received-details', function (Request $request) {
 Route::put('/profile/update', function (Request $request) {
     $user = Auth::user();
 
-    
+    // Normalize empty strings to null (email can be optional for some roles)
+    $request->merge([
+        'email' => $request->filled('email') ? $request->email : null,
+    ]);
 
     // Validate the request
     $request->validate([
         'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
+        'email' => 'nullable|email|unique:users,email,' . $user->id,
         'phone_number' => 'nullable|string|max:20',
-        'password' => 'nullable|min:8|confirmed',
+        'password' => 'nullable|min:6|confirmed',
         'stamp_image' => 'nullable|image|mimes:jpg,png,jpeg,gif,svg|max:2048',
         'license_image' => 'nullable|image|mimes:jpg,png,jpeg,gif,svg|max:2048',
     ]);
@@ -833,11 +842,16 @@ Route::get('/profile', function () {
 Route::put('/profile/update', function (Request $request) {
     $user = Auth::user();
 
+    // Normalize empty strings to null (email can be optional for some roles)
+    $request->merge([
+        'email' => $request->filled('email') ? $request->email : null,
+    ]);
+
     $request->validate([
         'name' => 'required|string|max:255',
-        'email' => 'required|email|unique:users,email,' . $user->id,
+        'email' => 'nullable|email|unique:users,email,' . $user->id,
         'phone_number' => 'nullable|string|max:20',
-        'password' => 'nullable|min:8|confirmed',
+        'password' => 'nullable|min:6|confirmed',
     ]);
 
     // Update user details
