@@ -962,7 +962,53 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 		'phone_number' => 'required|string|max:20',
 	]);
 
-	$user = User::where('phone_number', $request->phone_number)->first();
+	$rawPhone = (string) $request->phone_number;
+	$rawPhone = preg_replace('/\s+/', '', $rawPhone);
+	$rawPhone = preg_replace('/[^0-9\+]/', '', $rawPhone);
+
+	$candidates = [];
+	$local = null;
+	$intl = null;
+
+	if (str_starts_with($rawPhone, '+251')) {
+		$rest = substr($rawPhone, 4);
+		$local = '0' . $rest;
+		$intl = '+251' . $rest;
+	} elseif (str_starts_with($rawPhone, '251')) {
+		$rest = substr($rawPhone, 3);
+		$local = '0' . $rest;
+		$intl = '+251' . $rest;
+	} elseif (str_starts_with($rawPhone, '0')) {
+		$local = $rawPhone;
+		$intl = '+251' . substr($rawPhone, 1);
+	} else {
+		$local = '0' . $rawPhone;
+		$intl = '+251' . $rawPhone;
+	}
+
+	if (preg_match('/^09\d{8}$/', (string) $local)) {
+		$candidates[] = $local;
+	}
+	if (preg_match('/^\+2519\d{8}$/', (string) $intl)) {
+		$candidates[] = $intl;
+	}
+	$candidates[] = $rawPhone;
+	$candidates = array_values(array_unique(array_filter($candidates)));
+
+	$rawNoPlus = ltrim($rawPhone, '+');
+	$isRawOk = preg_match('/^09\d{8}$/', $rawPhone)
+		|| preg_match('/^\+2519\d{8}$/', $rawPhone)
+		|| preg_match('/^2519\d{8}$/', $rawNoPlus);
+
+	$isNormalizedOk = preg_match('/^09\d{8}$/', (string) $local) || preg_match('/^\+2519\d{8}$/', (string) $intl);
+
+	if (! $isRawOk && ! $isNormalizedOk) {
+		return back()->withErrors([
+			'phone_number' => 'Invalid phone number format. Use +2519XXXXXXXX or 09XXXXXXXX.',
+		]);
+	}
+
+	$user = User::whereIn('phone_number', $candidates)->first();
 	if (! $user || empty($user->telegram_chat_id)) {
 		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
 	}
