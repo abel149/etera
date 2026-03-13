@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="light">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -17,6 +17,8 @@
     <meta name="csrf-token" content="{{ csrf_token() }}">
 
     @stack('styles')
+
+    @include('partials.green-theme')
 </head>
 
 <body>
@@ -29,7 +31,11 @@
             {{ config('app.name', 'Laravel') }}
         </a>
 
-        <div class="ms-auto">
+        <div class="ms-auto d-flex align-items-center gap-2">
+            <a class="nav-link dark-mode-icon" href="javascript:;" aria-label="Toggle dark mode">
+                <i class="fa-solid fa-moon"></i>
+            </a>
+
             @auth
                 <span class="text-white me-3">
                     {{ auth()->user()->email }}

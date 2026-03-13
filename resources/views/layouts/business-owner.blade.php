@@ -749,6 +749,12 @@
 			</li>
 		</ul>
 
+		<div class="nav-item dark-mode d-sm-flex" style="margin-left: 10px;">
+			<a class="nav-link dark-mode-icon" href="javascript:;" aria-label="Toggle dark mode">
+				<i class='bx bx-moon'></i>
+			</a>
+		</div>
+
 		<!-- User Menu -->
 		<div class="sp-user-menu">
 			<a href="#" class="sp-user-trigger">
