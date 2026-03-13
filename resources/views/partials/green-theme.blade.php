@@ -42,6 +42,26 @@ html.dark-theme body { background: radial-gradient(1200px circle at 10% 0%, rgba
 html.dark-theme a { color: rgba(167,243,208,0.95); }
 html.dark-theme a:hover { color: rgba(229,231,235,0.98); }
 
+html.dark-theme p,
+html.dark-theme span,
+html.dark-theme li,
+html.dark-theme td,
+html.dark-theme th,
+html.dark-theme label,
+html.dark-theme .form-label { color: rgba(229,231,235,0.88); }
+html.dark-theme small,
+html.dark-theme .small,
+html.dark-theme .text-muted,
+html.dark-theme .form-text { color: rgba(148,163,184,0.85) !important; }
+html.dark-theme h1,
+html.dark-theme h2,
+html.dark-theme h3,
+html.dark-theme h4,
+html.dark-theme h5,
+html.dark-theme h6,
+html.dark-theme .page-title { color: rgba(243,244,246,0.97) !important; letter-spacing: 0.2px; }
+html.dark-theme hr { border-color: rgba(148,163,184,0.18) !important; opacity: 1; }
+
 html.dark-theme .wrapper .page-wrapper { background: radial-gradient(1200px circle at 10% 0%, rgba(34,197,94,0.10), transparent 45%), radial-gradient(900px circle at 90% 10%, rgba(16,185,129,0.10), transparent 40%), linear-gradient(180deg, #0b1220 0%, #070b13 100%) !important; min-height: 100vh; }
 html.dark-theme .wrapper .page-content { color: #e5e7eb; }
 html.dark-theme .wrapper .page-footer { background: transparent !important; color: rgba(229,231,235,0.70) !important; border-top: 1px solid rgba(148,163,184,0.18); }
@@ -219,6 +239,22 @@ html.dark-theme .table td,
 html.dark-theme .table th { border-color: rgba(148,163,184,0.12) !important; }
 html.dark-theme .table-striped > tbody > tr:nth-of-type(odd) > * { background-color: rgba(2,6,23,0.30) !important; color: rgba(229,231,235,0.88) !important; }
 html.dark-theme .table-hover tbody tr:hover > * { background-color: rgba(34,197,94,0.08) !important; color: rgba(243,244,246,0.98) !important; }
+
+html.dark-theme .breadcrumb,
+html.dark-theme .breadcrumb-item { color: rgba(148,163,184,0.9) !important; }
+html.dark-theme .breadcrumb-item.active { color: rgba(243,244,246,0.92) !important; }
+html.dark-theme .breadcrumb-item + .breadcrumb-item::before { color: rgba(148,163,184,0.65) !important; }
+
+html.dark-theme .badge { border: 1px solid rgba(148,163,184,0.16); }
+html.dark-theme .badge.bg-light { background: rgba(2,6,23,0.45) !important; color: rgba(229,231,235,0.88) !important; }
+
+html.dark-theme .list-group-item { background: rgba(17,24,39,0.65) !important; border-color: rgba(148,163,184,0.16) !important; color: rgba(229,231,235,0.88) !important; }
+html.dark-theme .list-group-item:hover { background: rgba(34,197,94,0.08) !important; }
+
+html.dark-theme .nav-tabs { border-bottom-color: rgba(148,163,184,0.18) !important; }
+html.dark-theme .nav-tabs .nav-link { color: rgba(229,231,235,0.82) !important; border-color: transparent !important; }
+html.dark-theme .nav-tabs .nav-link:hover { color: rgba(243,244,246,0.98) !important; background: rgba(34,197,94,0.08) !important; border-color: rgba(34,197,94,0.25) !important; }
+html.dark-theme .nav-tabs .nav-link.active { color: rgba(243,244,246,0.98) !important; background: rgba(17,24,39,0.75) !important; border-color: rgba(148,163,184,0.18) rgba(148,163,184,0.18) transparent !important; }
 
 html.dark-theme .bs-stepper,
 html.dark-theme .bs-stepper-content { color: rgba(229,231,235,0.88) !important; }
