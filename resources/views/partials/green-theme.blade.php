@@ -139,6 +139,55 @@ html.dark-theme .sp-nav-link:hover,
 html.dark-theme .nav-item:hover { background: rgba(34,197,94,0.12) !important; color: rgba(243,244,246,0.98) !important; }
 html.dark-theme .sp-nav-link.active { background: rgba(34,197,94,0.18) !important; color: rgba(243,244,246,0.98) !important; }
 
+html.dark-theme .sp-footer { background: rgba(11,18,32,0.82) !important; backdrop-filter: blur(10px); border-top: 1px solid rgba(148,163,184,0.18) !important; }
+html.dark-theme .sp-footer-brand { color: rgba(243,244,246,0.95) !important; }
+html.dark-theme .sp-footer-copy { color: rgba(229,231,235,0.70) !important; }
+html.dark-theme .sp-footer-social a { color: rgba(229,231,235,0.80) !important; }
+html.dark-theme .sp-footer-social a:hover { color: rgba(34,197,94,0.95) !important; }
+
+html.dark-theme .job-listing,
+html.dark-theme .job-listing.with-apply-button { background: rgba(17,24,39,0.72) !important; border: 1px solid rgba(148,163,184,0.16) !important; box-shadow: 0 12px 28px rgba(0,0,0,0.35) !important; }
+html.dark-theme .job-listing:hover { box-shadow: 0 18px 44px rgba(0,0,0,0.45) !important; border-color: rgba(34,197,94,0.30) !important; }
+html.dark-theme .job-listing-title { color: rgba(243,244,246,0.95) !important; }
+html.dark-theme .job-listing-text,
+html.dark-theme .job-listing-description,
+html.dark-theme .job-overview-inner,
+html.dark-theme .job-overview-inner ul li span { color: rgba(229,231,235,0.78) !important; }
+html.dark-theme .job-listing-footer ul li { color: rgba(229,231,235,0.70) !important; }
+html.dark-theme .job-listing-footer ul li i,
+html.dark-theme .job-overview-inner ul li i,
+html.dark-theme .single-page-header-inner i { color: rgba(34,197,94,0.95) !important; }
+
+html.dark-theme .sidebar-container,
+html.dark-theme .sidebar-widget,
+html.dark-theme .single-page-section,
+html.dark-theme .boxed-widget,
+html.dark-theme .boxed-widget-headline,
+html.dark-theme .dashboard-box { background: rgba(17,24,39,0.72) !important; border: 1px solid rgba(148,163,184,0.16) !important; }
+html.dark-theme .boxed-widget-headline,
+html.dark-theme .job-overview-headline { color: rgba(243,244,246,0.95) !important; border-bottom-color: rgba(148,163,184,0.16) !important; }
+
+html.dark-theme .with-border,
+html.dark-theme input.with-border,
+html.dark-theme textarea.with-border,
+html.dark-theme select.with-border { background: rgba(2,6,23,0.55) !important; color: rgba(243,244,246,0.92) !important; border-color: rgba(148,163,184,0.22) !important; }
+html.dark-theme .with-border:focus,
+html.dark-theme input.with-border:focus,
+html.dark-theme textarea.with-border:focus,
+html.dark-theme select.with-border:focus { border-color: rgba(34,197,94,0.55) !important; box-shadow: 0 0 0 0.2rem rgba(34,197,94,0.18) !important; }
+html.dark-theme .with-border::placeholder,
+html.dark-theme input.with-border::placeholder,
+html.dark-theme textarea.with-border::placeholder { color: rgba(148,163,184,0.75) !important; }
+
+html.dark-theme .apply-now-button,
+html.dark-theme .button,
+html.dark-theme .button.ripple-effect { background: linear-gradient(135deg, #22c55e, #10b981) !important; color: #07130e !important; border: none !important; box-shadow: 0 10px 18px rgba(16,185,129,0.20) !important; }
+html.dark-theme .apply-now-button:hover,
+html.dark-theme .button:hover,
+html.dark-theme .button.ripple-effect:hover { filter: brightness(0.96); }
+html.dark-theme .list-apply-button { background: rgba(34,197,94,0.14) !important; color: rgba(229,231,235,0.92) !important; border-color: rgba(34,197,94,0.30) !important; }
+html.dark-theme .list-apply-button:hover { background: rgba(34,197,94,0.20) !important; }
+
 html.dark-theme .wrapper .back-to-top { background: linear-gradient(135deg, #22c55e, #10b981) !important; box-shadow: 0 12px 22px rgba(16,185,129,0.22); }
 
 html.dark-theme .ep-sidebar { background: linear-gradient(180deg, #0b1220 0%, #070b13 100%) !important; border-right: 1px solid rgba(148,163,184,0.18); }
