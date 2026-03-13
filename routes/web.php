@@ -964,7 +964,7 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 
 	$user = User::where('phone_number', $request->phone_number)->first();
 	if (! $user || empty($user->telegram_chat_id)) {
-		return redirect('/login')->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
 	}
 
 	$token = \Illuminate\Support\Str::random(64);
@@ -978,22 +978,16 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 	$resetUrl = url('/reset-password?token=' . $token . '&email=' . urlencode($user->email));
 	$rejectUrl = url('/reset-password-reject?token=' . $token . '&email=' . urlencode($user->email));
 
-	app()->terminating(function () use ($user, $resetUrl, $rejectUrl) {
-		if (function_exists('fastcgi_finish_request')) {
-			fastcgi_finish_request();
-		}
+	try {
+		app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectUrl);
+	} catch (\Throwable $e) {
+		\Illuminate\Support\Facades\Log::warning('Telegram password reset send failed', [
+			'user_id' => $user->id,
+			'error' => $e->getMessage(),
+		]);
+	}
 
-		try {
-			app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectUrl);
-		} catch (\Throwable $e) {
-			\Illuminate\Support\Facades\Log::warning('Telegram password reset send failed', [
-				'user_id' => $user->id,
-				'error' => $e->getMessage(),
-			]);
-		}
-	});
-
-	return redirect('/login')->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+	return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
 })->name('password.telegram');
 
 Route::get('/reset-password-reject', function (Request $request) {

@@ -32,7 +32,7 @@ class TelegramService
         }
 
         try {
-            $response = Http::timeout(6)->retry(2, 200)->post("{$this->apiBase}/sendMessage", [
+            $response = Http::post("{$this->apiBase}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $text,
                 'parse_mode' => 'HTML',
@@ -77,7 +77,7 @@ class TelegramService
                 $inlineButtons[] = ['text' => (string) $button['text'], 'url' => (string) $button['url']];
             }
 
-            $response = Http::timeout(6)->retry(2, 200)->post("{$this->apiBase}/sendMessage", [
+            $response = Http::post("{$this->apiBase}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $text,
                 'parse_mode' => 'HTML',
@@ -119,7 +119,7 @@ class TelegramService
         }
 
         try {
-            $response = Http::timeout(6)->retry(2, 200)->post("{$this->apiBase}/sendMessage", [
+            $response = Http::post("{$this->apiBase}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $text,
                 'parse_mode' => 'HTML',

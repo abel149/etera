@@ -22,6 +22,7 @@
         forgotPasswordTelegramUrl: @json(url('/forgot-password-telegram')),
         loginUrl: '/login',
         oldEmail: @json(old('email', '')),
+        flashSuccess: @json(session('success')),
         logoUrl: @json(asset('assets/images/transparent.svg')),
     };
 </script>
@@ -43,6 +44,7 @@
         const data = window.__ETERA__ ;
         const [phone, setPhone] = useState('');
         const [isSubmitting, setIsSubmitting] = useState(false);
+        const [successMessage] = useState(data.flashSuccess || '');
 
         const handleSubmit = () => {
             setIsSubmitting(true);
@@ -65,6 +67,22 @@
 
                 <form action={data.forgotPasswordTelegramUrl} method="POST" onSubmit={handleSubmit}>
                     <input type="hidden" name="_token" value={data.csrfToken} />
+
+                    {!!successMessage && (
+                        <div
+                            style={{
+                                marginBottom: '0.75rem',
+                                padding: '0.85rem 1rem',
+                                borderRadius: '14px',
+                                background: 'rgba(16, 185, 129, 0.10)',
+                                border: '1px solid rgba(16, 185, 129, 0.28)',
+                                color: 'rgba(6, 95, 70, 0.95)',
+                                fontSize: '0.95rem',
+                            }}
+                        >
+                            {successMessage || 'Telegram reset notification sent.'}
+                        </div>
+                    )}
 
                     <div className="etera-input-group">
                         <label>Phone Number</label>
