@@ -970,15 +970,15 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 	$local = null;
 	$intl = null;
 
-	if (str_starts_with($rawPhone, '+251')) {
+	if (strpos($rawPhone, '+251') === 0) {
 		$rest = substr($rawPhone, 4);
 		$local = '0' . $rest;
 		$intl = '+251' . $rest;
-	} elseif (str_starts_with($rawPhone, '251')) {
+	} elseif (strpos($rawPhone, '251') === 0) {
 		$rest = substr($rawPhone, 3);
 		$local = '0' . $rest;
 		$intl = '+251' . $rest;
-	} elseif (str_starts_with($rawPhone, '0')) {
+	} elseif (strpos($rawPhone, '0') === 0) {
 		$local = $rawPhone;
 		$intl = '+251' . substr($rawPhone, 1);
 	} else {
@@ -1013,19 +1013,28 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
 	}
 
+	$identifier = $user->email ?: $user->phone_number;
+	if (empty($identifier)) {
+		\Illuminate\Support\Facades\Log::warning('Telegram password reset: user has no email or phone_number identifier', [
+			'user_id' => $user->id,
+		]);
+		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+	}
+
 	$token = \Illuminate\Support\Str::random(64);
-	DB::table('password_reset_tokens')->where('email', $user->email)->delete();
+	DB::table('password_reset_tokens')->where('email', $identifier)->delete();
 	DB::table('password_reset_tokens')->insert([
-		'email' => $user->email,
+		'email' => $identifier,
 		'token' => Hash::make($token),
 		'created_at' => now(),
 	]);
 
-	$resetUrl = url('/reset-password?token=' . $token . '&email=' . urlencode($user->email));
-	$rejectUrl = url('/reset-password-reject?token=' . $token . '&email=' . urlencode($user->email));
+	$resetUrl = url('/reset-password?token=' . $token . '&email=' . urlencode($identifier));
+	$rejectAction = 'pw_reject:' . $identifier;
 
 	try {
-		app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectUrl);
+		$messageId = null;
+		app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectAction, true, $messageId);
 	} catch (\Throwable $e) {
 		\Illuminate\Support\Facades\Log::warning('Telegram password reset send failed', [
 			'user_id' => $user->id,
@@ -1039,7 +1048,7 @@ Route::post('/forgot-password-telegram', function (Request $request) {
 Route::get('/reset-password-reject', function (Request $request) {
 	$request->validate([
 		'token' => 'required',
-		'email' => 'required|email',
+		'email' => 'required|string',
 	]);
 
 	$record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
@@ -1060,7 +1069,7 @@ Route::get('/reset-password', function (Request $request) {
 Route::post('/reset-password', function (Request $request) {
     $request->validate([
         'token' => 'required',
-        'email' => 'required|email',
+        'email' => 'required|string',
         'password' => 'required|min:6|max:6|confirmed',
     ]);
 
@@ -1078,6 +1087,9 @@ Route::post('/reset-password', function (Request $request) {
 
     // Update password
     $user = User::where('email', $request->email)->first();
+    if (!$user) {
+        $user = User::where('phone_number', $request->email)->first();
+    }
     if (!$user) {
         return back()->withErrors(['email' => 'User not found.']);
     }

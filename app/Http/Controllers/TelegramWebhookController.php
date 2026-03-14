@@ -3,7 +3,9 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\TelegramService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 
 class TelegramWebhookController extends Controller
@@ -17,6 +19,45 @@ class TelegramWebhookController extends Controller
         $update = $request->all();
 
         Log::info('Telegram webhook received', ['update' => $update]);
+
+        $callback = $update['callback_query'] ?? null;
+        if ($callback) {
+            $callbackId = $callback['id'] ?? null;
+            $data = $callback['data'] ?? '';
+            $chatId = $callback['message']['chat']['id'] ?? null;
+            $messageId = $callback['message']['message_id'] ?? null;
+
+            if ($callbackId) {
+                try {
+                    app(TelegramService::class)->answerCallbackQuery((string) $callbackId);
+                } catch (\Throwable $e) {
+                    Log::warning('Telegram callback: answerCallbackQuery failed', ['error' => $e->getMessage()]);
+                }
+            }
+
+            if (is_string($data) && strpos($data, 'pw_reject:') === 0) {
+                $identifier = substr($data, strlen('pw_reject:'));
+
+                if (!empty($identifier)) {
+                    $record = DB::table('password_reset_tokens')->where('email', $identifier)->first();
+                    if ($record) {
+                        DB::table('password_reset_tokens')->where('email', $identifier)->delete();
+                    }
+                }
+
+                if ($chatId && $messageId) {
+                    try {
+                        app(TelegramService::class)->deleteMessage((string) $chatId, (int) $messageId);
+                    } catch (\Throwable $e) {
+                        Log::warning('Telegram callback: deleteMessage failed', ['error' => $e->getMessage()]);
+                    }
+                }
+
+                return response()->json(['ok' => true]);
+            }
+
+            return response()->json(['ok' => true]);
+        }
 
         // Extract message text and chat info
         $message = $update['message'] ?? null;
