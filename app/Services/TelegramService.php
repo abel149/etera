@@ -325,17 +325,18 @@ class TelegramService
         } else {
             $currentCount = $proforma->applications()->where('from', 'shop')->count();
             $required = $requiredShops;
-            $roleLabel = 'shops';
+            $roleLabel = 'sparepart shops';
         }
 
         $text = "🔔 <b>Application Received</b>\n\n"
             . "📋 A new application has been received for your proforma <b>{$proforma->file_number}</b>\n"
-            . "📊 {$currentCount}/{$required} {$roleLabel} applied.\n\n";
+            . "📊 {$currentCount}/{$required} {$roleLabel} have applied.\n\n";
 
         if ($required > 0 && $currentCount >= $required) {
             $text .= "🚫 <b>FULL!!!</b>";
         } elseif ($required > 0 && $currentCount < $required) {
-            $text .= "✅ You can request close";
+            $text .= "✅ You may request to close your proforma invoice at any time by logging in to your etera account.\n"
+                . "Thank you.";
         } else {
             $text .= "You may choose to close the request at any time";
         }

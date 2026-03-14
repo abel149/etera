@@ -212,11 +212,18 @@ Route::post('/login', function (Request $request) {
 
         // ⭐ Check if user has an active session on another device (spare-part shops only)
         if ($user->role === 'shop' && $user->session_id && $user->session_id !== Session::getId()) {
-             Auth::logout();
-             return back()->withErrors([
-                 'email_or_phone' => 'Please log out of all other devices.'
-             ])->withInput();
-         }
+            $hasActiveStoredSession = DB::table('sessions')
+                ->where('id', $user->session_id)
+                ->where('user_id', $user->id)
+                ->exists();
+
+            if ($hasActiveStoredSession) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email_or_phone' => 'Please log out of all other devices.'
+                ])->withInput();
+            }
+        }
 
 
         // Role access & approval
