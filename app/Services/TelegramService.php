@@ -325,7 +325,7 @@ class TelegramService
         } else {
             $currentCount = $proforma->applications()->where('from', 'shop')->count();
             $required = $requiredShops;
-            $roleLabel = 'sparepart shops';
+            $roleLabel = 'spare part shops';
         }
 
         $text = "🔔 <b>Application Received</b>\n\n"
