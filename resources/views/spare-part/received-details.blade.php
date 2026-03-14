@@ -411,8 +411,9 @@ function showMoreApplications() {
 						.text-end { text-align: right; }
 						.stamp-image { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; }
 						.invoice-container { position: relative; }
-						.print-stamp-between { text-align: center; margin: 15px 0; }
-						.print-stamp-between .stamp-image { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; opacity: 0.7; }
+						.info-row-wrapper { position: relative; }
+						.print-stamp-between { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; }
+						.print-stamp-between .stamp-image { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; opacity: 0.5; }
 					</style>
 				</head>
 				<body>
@@ -436,28 +437,28 @@ function showMoreApplications() {
 							</div>
 							<hr>
 
-							<div class="row gy-3 align-items-start">
-								<div class="col-sm-6">
-									<p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
-									<p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
-									<p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
-									<p class="mb-1"><strong>Location:</strong> ${location}</p>
-									<p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
+							<div class="info-row-wrapper">
+								<div class="print-stamp-between">
+									<img class="stamp-image" src="${stampImage}" alt="Stamp" />
 								</div>
-                                <div class="print-stamp-between">
-                                    <img class="stamp-image" src="${stampImage}" alt="Stamp" />
-                                </div>
-
-								<div class="col-sm-6 text-sm-end">
-									<strong>Author:</strong>
-									<address>
-										etera<br />
-										portal.eteraet.com<br />
-										Addis Ababa, Ethiopia
-									</address>
+								<div class="row gy-3 align-items-start">
+									<div class="col-sm-6">
+										<p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
+										<p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
+										<p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
+										<p class="mb-1"><strong>Location:</strong> ${location}</p>
+										<p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
+									</div>
+									<div class="col-sm-6 text-sm-end">
+										<strong>Author:</strong>
+										<address>
+											etera<br />
+											portal.eteraet.com<br />
+											Addis Ababa, Ethiopia
+										</address>
+									</div>
 								</div>
 							</div>
-
 
 							<div class="table-responsive mt-4">
 								<table class="table border">
