@@ -18,6 +18,89 @@ class TelegramService
         $this->apiBase = "https://api.telegram.org/bot{$this->botToken}";
     }
 
+    public function deleteMessage(string $chatId, int $messageId): bool
+    {
+        if (empty($this->botToken) || empty($chatId) || empty($messageId)) {
+            Log::warning('TelegramService: Missing bot token/chat ID/message ID', [
+                'has_token' => !empty($this->botToken),
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+            ]);
+            return false;
+        }
+
+        try {
+            $response = Http::connectTimeout(5)
+                ->timeout(10)
+                ->retry(1, 200)
+                ->post("{$this->apiBase}/deleteMessage", [
+                    'chat_id' => $chatId,
+                    'message_id' => $messageId,
+                ]);
+
+            if ($response->successful() && $response->json('ok')) {
+                Log::info('TelegramService: Message deleted', ['chat_id' => $chatId, 'message_id' => $messageId]);
+                return true;
+            }
+
+            Log::warning('TelegramService: API error (deleteMessage)', [
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('TelegramService: Exception (deleteMessage)', [
+                'chat_id' => $chatId,
+                'message_id' => $messageId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    public function answerCallbackQuery(string $callbackQueryId, string $text = '', bool $showAlert = false): bool
+    {
+        if (empty($this->botToken) || empty($callbackQueryId)) {
+            Log::warning('TelegramService: Missing bot token or callback query id', [
+                'has_token' => !empty($this->botToken),
+                'callback_query_id' => $callbackQueryId,
+            ]);
+            return false;
+        }
+
+        try {
+            $payload = [
+                'callback_query_id' => $callbackQueryId,
+            ];
+            if ($text !== '') {
+                $payload['text'] = $text;
+            }
+            if ($showAlert) {
+                $payload['show_alert'] = true;
+            }
+
+            $response = Http::connectTimeout(5)
+                ->timeout(10)
+                ->retry(1, 200)
+                ->post("{$this->apiBase}/answerCallbackQuery", $payload);
+
+            if ($response->successful() && $response->json('ok')) {
+                return true;
+            }
+
+            Log::warning('TelegramService: API error (answerCallbackQuery)', [
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('TelegramService: Exception (answerCallbackQuery)', [
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
     /**
      * Send a text message to a Telegram chat.
      */
@@ -32,7 +115,10 @@ class TelegramService
         }
 
         try {
-            $response = Http::post("{$this->apiBase}/sendMessage", [
+            $response = Http::connectTimeout(5)
+                ->timeout(10)
+                ->retry(1, 200)
+                ->post("{$this->apiBase}/sendMessage", [
                 'chat_id' => $chatId,
                 'text' => $text,
                 'parse_mode' => 'HTML',
@@ -51,6 +137,121 @@ class TelegramService
 
         } catch (\Throwable $e) {
             Log::error('TelegramService: Exception', [
+                'chat_id' => $chatId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    public function sendMessageWithButtons(string $chatId, string $text, array $buttons, ?int &$messageId = null): bool
+    {
+        if (empty($this->botToken) || empty($chatId)) {
+            Log::warning('TelegramService: Missing bot token or chat ID', [
+                'has_token' => !empty($this->botToken),
+                'chat_id' => $chatId,
+            ]);
+            return false;
+        }
+
+        try {
+            $inlineButtons = [];
+            foreach ($buttons as $button) {
+                if (!isset($button['text'])) {
+                    continue;
+                }
+
+                if (isset($button['url'])) {
+                    $inlineButtons[] = ['text' => (string) $button['text'], 'url' => (string) $button['url']];
+                    continue;
+                }
+
+                if (isset($button['callback_data'])) {
+                    $inlineButtons[] = ['text' => (string) $button['text'], 'callback_data' => (string) $button['callback_data']];
+                    continue;
+                }
+            }
+
+            if (empty($inlineButtons)) {
+                Log::warning('TelegramService: No valid buttons provided', ['chat_id' => $chatId]);
+                return false;
+            }
+
+            $response = Http::connectTimeout(5)
+                ->timeout(10)
+                ->retry(1, 200)
+                ->post("{$this->apiBase}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        $inlineButtons,
+                    ],
+                ]),
+                'disable_web_page_preview' => true,
+            ]);
+
+            if ($response->successful() && $response->json('ok')) {
+                $messageId = (int) $response->json('result.message_id');
+                Log::info('TelegramService: Message sent (with buttons)', ['chat_id' => $chatId]);
+                return true;
+            }
+
+            Log::warning('TelegramService: API error (with buttons)', [
+                'chat_id' => $chatId,
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('TelegramService: Exception (with buttons)', [
+                'chat_id' => $chatId,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    public function sendMessageWithButton(string $chatId, string $text, string $buttonText, string $buttonUrl): bool
+    {
+        if (empty($this->botToken) || empty($chatId)) {
+            Log::warning('TelegramService: Missing bot token or chat ID', [
+                'has_token' => !empty($this->botToken),
+                'chat_id' => $chatId,
+            ]);
+            return false;
+        }
+
+        try {
+            $response = Http::connectTimeout(5)
+                ->timeout(10)
+                ->retry(1, 200)
+                ->post("{$this->apiBase}/sendMessage", [
+                'chat_id' => $chatId,
+                'text' => $text,
+                'parse_mode' => 'HTML',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [
+                        [
+                            ['text' => $buttonText, 'url' => $buttonUrl],
+                        ],
+                    ],
+                ]),
+                'disable_web_page_preview' => true,
+            ]);
+
+            if ($response->successful() && $response->json('ok')) {
+                Log::info('TelegramService: Message sent (with button)', ['chat_id' => $chatId]);
+                return true;
+            }
+
+            Log::warning('TelegramService: API error (with button)', [
+                'chat_id' => $chatId,
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::error('TelegramService: Exception (with button)', [
                 'chat_id' => $chatId,
                 'error' => $e->getMessage(),
             ]);
@@ -124,17 +325,18 @@ class TelegramService
         } else {
             $currentCount = $proforma->applications()->where('from', 'shop')->count();
             $required = $requiredShops;
-            $roleLabel = 'shops';
+            $roleLabel = 'spare part shops';
         }
 
         $text = "🔔 <b>Application Received</b>\n\n"
             . "📋 A new application has been received for your proforma <b>{$proforma->file_number}</b>\n"
-            . "📊 {$currentCount}/{$required} {$roleLabel} applied.\n\n";
+            . "📊 {$currentCount}/{$required} {$roleLabel} have applied.\n\n";
 
         if ($required > 0 && $currentCount >= $required) {
             $text .= "🚫 <b>FULL!!!</b>";
         } elseif ($required > 0 && $currentCount < $required) {
-            $text .= "✅ You can request close";
+            $text .= "✅ You may request to close your proforma invoice at any time by logging in to your etera account.\n"
+                . "Thank you.";
         } else {
             $text .= "You may choose to close the request at any time";
         }
@@ -253,6 +455,22 @@ class TelegramService
             . "⏳ Pending approval. Please review in the admin panel.";
 
         return $this->sendMessage($chatId, $text);
+    }
+
+    public function sendPasswordResetLink(string $chatId, string $resetUrl, string $rejectAction, bool $rejectIsCallback = false, ?int &$messageId = null): bool
+    {
+        $text = "🔐 <b>Password Reset</b>\n\n"
+            . "If this was you, tap <b>Yes, reset</b>. If not, tap <b>No, reject</b>.\n"
+            . "This request expires in <b>5 minutes</b>.";
+
+        $rejectButton = $rejectIsCallback
+            ? ['text' => 'No, reject', 'callback_data' => $rejectAction]
+            : ['text' => 'No, reject', 'url' => $rejectAction];
+
+        return $this->sendMessageWithButtons($chatId, $text, [
+            ['text' => 'Yes, reset', 'url' => $resetUrl],
+            $rejectButton,
+        ], $messageId);
     }
 }
 

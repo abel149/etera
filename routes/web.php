@@ -38,6 +38,7 @@ use App\Models\ProformaApplication;
 use App\Models\ProformaInvoice;
 use App\Services\AudioService;
 use App\Services\ImageService;
+use App\Services\TelegramService;
 use App\Services\VideoService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -211,11 +212,18 @@ Route::post('/login', function (Request $request) {
 
         // ⭐ Check if user has an active session on another device (spare-part shops only)
         if ($user->role === 'shop' && $user->session_id && $user->session_id !== Session::getId()) {
-             Auth::logout();
-             return back()->withErrors([
-                 'email_or_phone' => 'Please log out of all other devices.'
-             ])->withInput();
-         }
+            $hasActiveStoredSession = DB::table('sessions')
+                ->where('id', $user->session_id)
+                ->where('user_id', $user->id)
+                ->exists();
+
+            if ($hasActiveStoredSession) {
+                Auth::logout();
+                return back()->withErrors([
+                    'email_or_phone' => 'Please log out of all other devices.'
+                ])->withInput();
+            }
+        }
 
 
         // Role access & approval
@@ -956,6 +964,108 @@ Route::post('/forgot-password', function (Request $request) {
     return back()->with('success', 'If an account exists with that email, a password reset link has been sent.');
 })->name('password.email');
 
+Route::post('/forgot-password-telegram', function (Request $request) {
+	$request->validate([
+		'phone_number' => 'required|string|max:20',
+	]);
+
+	$rawPhone = (string) $request->phone_number;
+	$rawPhone = preg_replace('/\s+/', '', $rawPhone);
+	$rawPhone = preg_replace('/[^0-9\+]/', '', $rawPhone);
+
+	$candidates = [];
+	$local = null;
+	$intl = null;
+
+	if (strpos($rawPhone, '+251') === 0) {
+		$rest = substr($rawPhone, 4);
+		$local = '0' . $rest;
+		$intl = '+251' . $rest;
+	} elseif (strpos($rawPhone, '251') === 0) {
+		$rest = substr($rawPhone, 3);
+		$local = '0' . $rest;
+		$intl = '+251' . $rest;
+	} elseif (strpos($rawPhone, '0') === 0) {
+		$local = $rawPhone;
+		$intl = '+251' . substr($rawPhone, 1);
+	} else {
+		$local = '0' . $rawPhone;
+		$intl = '+251' . $rawPhone;
+	}
+
+	if (preg_match('/^09\d{8}$/', (string) $local)) {
+		$candidates[] = $local;
+	}
+	if (preg_match('/^\+2519\d{8}$/', (string) $intl)) {
+		$candidates[] = $intl;
+	}
+	$candidates[] = $rawPhone;
+	$candidates = array_values(array_unique(array_filter($candidates)));
+
+	$rawNoPlus = ltrim($rawPhone, '+');
+	$isRawOk = preg_match('/^09\d{8}$/', $rawPhone)
+		|| preg_match('/^\+2519\d{8}$/', $rawPhone)
+		|| preg_match('/^2519\d{8}$/', $rawNoPlus);
+
+	$isNormalizedOk = preg_match('/^09\d{8}$/', (string) $local) || preg_match('/^\+2519\d{8}$/', (string) $intl);
+
+	if (! $isRawOk && ! $isNormalizedOk) {
+		return back()->withErrors([
+			'phone_number' => 'Invalid phone number format. Use +2519XXXXXXXX or 09XXXXXXXX.',
+		]);
+	}
+
+	$user = User::whereIn('phone_number', $candidates)->first();
+	if (! $user || empty($user->telegram_chat_id)) {
+		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+	}
+
+	$identifier = $user->email ?: $user->phone_number;
+	if (empty($identifier)) {
+		\Illuminate\Support\Facades\Log::warning('Telegram password reset: user has no email or phone_number identifier', [
+			'user_id' => $user->id,
+		]);
+		return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+	}
+
+	$token = \Illuminate\Support\Str::random(64);
+	DB::table('password_reset_tokens')->where('email', $identifier)->delete();
+	DB::table('password_reset_tokens')->insert([
+		'email' => $identifier,
+		'token' => Hash::make($token),
+		'created_at' => now(),
+	]);
+
+	$resetUrl = url('/reset-password?token=' . $token . '&email=' . urlencode($identifier));
+	$rejectAction = 'pw_reject:' . $identifier;
+
+	try {
+		$messageId = null;
+		app(TelegramService::class)->sendPasswordResetLink((string) $user->telegram_chat_id, $resetUrl, $rejectAction, true, $messageId);
+	} catch (\Throwable $e) {
+		\Illuminate\Support\Facades\Log::warning('Telegram password reset send failed', [
+			'user_id' => $user->id,
+			'error' => $e->getMessage(),
+		]);
+	}
+
+	return back()->with('success', 'If an account exists with that phone number and Telegram is connected, a password reset link will be sent via Telegram.');
+})->name('password.telegram');
+
+Route::get('/reset-password-reject', function (Request $request) {
+	$request->validate([
+		'token' => 'required',
+		'email' => 'required|string',
+	]);
+
+	$record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
+	if ($record && Hash::check($request->token, $record->token)) {
+		DB::table('password_reset_tokens')->where('email', $request->email)->delete();
+	}
+
+	return redirect('/login')->with('success', 'Password reset request rejected. If you did not request this, your account is safe.');
+})->name('password.reset.reject');
+
 Route::get('/reset-password', function (Request $request) {
     return view('authentication.reset-password', [
         'token' => $request->query('token'),
@@ -966,7 +1076,7 @@ Route::get('/reset-password', function (Request $request) {
 Route::post('/reset-password', function (Request $request) {
     $request->validate([
         'token' => 'required',
-        'email' => 'required|email',
+        'email' => 'required|string',
         'password' => 'required|min:6|max:6|confirmed',
     ]);
 
@@ -976,14 +1086,17 @@ Route::post('/reset-password', function (Request $request) {
         return back()->withErrors(['email' => 'Invalid or expired reset token.']);
     }
 
-    // Check if token is older than 60 minutes
-    if (now()->diffInMinutes($record->created_at) > 60) {
+    // Check if token is older than 5 minutes
+    if (now()->diffInMinutes($record->created_at) > 5) {
         DB::table('password_reset_tokens')->where('email', $request->email)->delete();
         return back()->withErrors(['email' => 'This reset link has expired. Please request a new one.']);
     }
 
     // Update password
     $user = User::where('email', $request->email)->first();
+    if (!$user) {
+        $user = User::where('phone_number', $request->email)->first();
+    }
     if (!$user) {
         return back()->withErrors(['email' => 'User not found.']);
     }
