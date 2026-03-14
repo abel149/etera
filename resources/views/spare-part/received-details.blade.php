@@ -444,6 +444,10 @@ function showMoreApplications() {
 									<p class="mb-1"><strong>Location:</strong> ${location}</p>
 									<p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
 								</div>
+                                <div class="print-stamp-between">
+                                    <img class="stamp-image" src="${stampImage}" alt="Stamp" />
+                                </div>
+
 								<div class="col-sm-6 text-sm-end">
 									<strong>Author:</strong>
 									<address>
@@ -454,9 +458,6 @@ function showMoreApplications() {
 								</div>
 							</div>
 
-							<div class="print-stamp-between">
-								<img class="stamp-image" src="${stampImage}" alt="Stamp" />
-							</div>
 
 							<div class="table-responsive mt-4">
 								<table class="table border">
