@@ -410,8 +410,9 @@ function showMoreApplications() {
 						.table th, .table td { padding: 8px; }
 						.text-end { text-align: right; }
 						.stamp-image { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; }
-						.card-stamp { position: absolute; bottom: 1rem; right: 0; opacity: .3; z-index:5; }
 						.invoice-container { position: relative; }
+						.print-stamp-between { text-align: center; margin: 15px 0; }
+						.print-stamp-between .stamp-image { width: 150px; height: 150px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; opacity: 0.7; }
 					</style>
 				</head>
 				<body>
@@ -451,6 +452,10 @@ function showMoreApplications() {
 										Addis Ababa, Ethiopia
 									</address>
 								</div>
+							</div>
+
+							<div class="print-stamp-between">
+								<img class="stamp-image" src="${stampImage}" alt="Stamp" />
 							</div>
 
 							<div class="table-responsive mt-4">
@@ -503,10 +508,6 @@ function showMoreApplications() {
 							</div>
 
 							<p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
-
-							<div class="card-stamp">
-								<img class="stamp-image" src="${stampImage}" alt="Stamp" />
-							</div>
 						</main>
 
 						<footer class="text-center mt-4">
