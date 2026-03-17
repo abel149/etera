@@ -289,12 +289,7 @@
             if (p !== c) { $err.text('Passwords do not match.').show(); $(this).addClass('error'); return; }
         });
 
-        // Phone formatting
-        $('#inputPhone').on('input', function() {
-            let v = $(this).val().replace(/\D/g, '');
-            if (!v.startsWith('251')) v = '251' + v.replace(/^251/, '');
-            $(this).val('+' + v.substring(0, 12));
-        });
+        // Phone input: allow user preferred format (no auto-prefix)
 
         // Helpers
         function showErr($el, msg) { $el.addClass('error'); let $e = $el.siblings('.js-err'); if (!$e.length) { $e = $('<div class="etera-error-text js-err"></div>'); $el.after($e); } $e.text(msg).show(); }
@@ -303,14 +298,14 @@
         // Blur validation
         $('input[name="name"]').on('blur', function(){ $(this).val().trim() === '' ? showErr($(this), 'Full name is required.') : clearErr($(this)); });
         $('input[name="email"]').on('blur', function(){ const v = $(this).val().trim(); if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) showErr($(this), 'Please enter a valid email.'); else clearErr($(this)); });
-        $('#inputPhone').on('blur', function(){ const v = $(this).val().replace(/\D/g, ''); if (!v || v.length < 12) showErr($(this), 'Phone must be +251 followed by 9 digits.'); else if (!/^251[97]\d{8}$/.test(v)) showErr($(this), 'Must start with +2519 or +2517.'); else clearErr($(this)); });
+        $('#inputPhone').on('blur', function(){ const v = $(this).val().trim(); if (!v) showErr($(this), 'Phone is required.'); else clearErr($(this)); });
 
         // Form submit
         $('#businessRegisterForm').on('submit', function(e){
             let err = false;
             const $n = $('input[name="name"]'); if ($n.val().trim() === '') { showErr($n, 'Full name is required.'); err = true; } else clearErr($n);
             const $em = $('input[name="email"]'), ev = $em.val().trim(); if (ev && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) { showErr($em, 'Please enter a valid email.'); err = true; } else clearErr($em);
-            const $ph = $('#inputPhone'), pv = $ph.val().replace(/\D/g, ''); if (!pv || pv.length < 12) { showErr($ph, 'Phone must be +251 followed by 9 digits.'); err = true; } else if (!/^251[97]\d{8}$/.test(pv)) { showErr($ph, 'Must start with +2519 or +2517.'); err = true; } else clearErr($ph);
+            const $ph = $('#inputPhone'); if (!$ph.val().trim()) { showErr($ph, 'Phone is required.'); err = true; } else clearErr($ph);
             $('#password').trigger('blur'); $('#password_confirmation').trigger('blur');
             if ($('#passwordError').is(':visible') || $('#confirmPasswordError').is(':visible')) err = true;
             if ($('#password').val().trim() === '') { $('#passwordError').text('Password is required.').show(); $('#password').addClass('error'); err = true; }

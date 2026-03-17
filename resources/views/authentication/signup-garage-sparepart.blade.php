@@ -529,12 +529,7 @@ document.addEventListener('DOMContentLoaded', function() {
         el.addEventListener('input', function(){ this.value = this.value.replace(/\D/g, '').slice(0,6); });
     });
 
-    // Phone formatting
-    document.getElementById('inputPhone').addEventListener('input', function() {
-        let v = this.value.replace(/\D/g, '');
-        if (!v.startsWith('251')) v = '251' + v.replace(/^251/, '');
-        this.value = '+' + v.substring(0, 12);
-    });
+    // Phone input: allow user preferred format (no auto-prefix)
 
     // Form submit validation
     document.getElementById('garageSparePartRegisterForm').addEventListener('submit', function(e) {
@@ -543,9 +538,7 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!nameEl.value.trim()) { showErr(nameEl, 'Name is required.'); hasError = true; } else clearErr(nameEl);
 
         const phoneEl = document.getElementById('inputPhone');
-        const pv = phoneEl.value.replace(/\D/g, '');
-        if (!pv || pv.length < 12) { showErr(phoneEl, 'Phone must be +251 + 9 digits.'); hasError = true; }
-        else if (!/^251[97]\d{8}$/.test(pv)) { showErr(phoneEl, 'Must start with +2519 or +2517.'); hasError = true; }
+        if (!phoneEl.value.trim()) { showErr(phoneEl, 'Phone is required.'); hasError = true; }
         else clearErr(phoneEl);
 
         // Email — optional, only validate format
