@@ -119,10 +119,10 @@ class TelegramService
                 ->timeout(10)
                 ->retry(1, 200)
                 ->post("{$this->apiBase}/sendMessage", [
-                'chat_id' => $chatId,
-                'text' => $text,
-                'parse_mode' => 'HTML',
-            ]);
+                    'chat_id' => $chatId,
+                    'text' => $text,
+                    'parse_mode' => 'HTML',
+                ]);
 
             if ($response->successful() && $response->json('ok')) {
                 Log::info('TelegramService: Message sent', ['chat_id' => $chatId]);
@@ -345,6 +345,57 @@ class TelegramService
     }
 
     
+    /**
+     * Send a notification to admins when a pending user attempts to log in.
+     * Sends to all admins with a linked Telegram chat ID.
+     */
+    public function sendPendingUserLoginNotification(int $userId, string $userName, ?string $userRole, ?string $email, ?string $phoneNumber): void
+    {
+        try {
+            $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])
+                ->where('approved', true)
+                ->whereNotNull('telegram_chat_id')
+                ->get();
+
+            if ($admins->isEmpty()) {
+                Log::info('sendPendingUserLoginNotification: No admins with linked Telegram found');
+                return;
+            }
+
+            // Build contact string
+            $parts = [];
+            if (!empty($email)) {
+                $parts[] = $email;
+            }
+            if (!empty($phoneNumber)) {
+                $parts[] = $phoneNumber;
+            }
+            $contact = count($parts) ? (' (' . implode(' / ', $parts) . ')') : '';
+            $roleText = $userRole ? ('Role: ' . $userRole) : 'Role: N/A';
+
+            $text = "🔔 <b>Pending User Login Attempt</b>\n\n"
+                . "👤 <b>User:</b> {$userName}{$contact}\n"
+                . "🏷️ <b>{$roleText}</b>\n"
+                . "⏰ <b>Time:</b> " . now()->format('M d, Y h:i A') . "\n\n"
+                . "Please review and approve the user in the admin panel.";
+
+            foreach ($admins as $admin) {
+                $this->sendMessage($admin->telegram_chat_id, $text);
+            }
+
+            Log::info('sendPendingUserLoginNotification: Sent to admins', [
+                'user_id' => $userId,
+                'user_name' => $userName,
+                'admin_count' => $admins->count(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('sendPendingUserLoginNotification: Failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     /**
      * Send rejection notification.
      */
