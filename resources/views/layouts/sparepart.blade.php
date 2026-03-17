@@ -199,34 +199,15 @@
 			display: block;
 		}
 
-		.sp-dropdown {
-			position: absolute;
-			top: calc(100% + 8px);
-			right: 0;
+		.sp-user-menu .dropdown-menu {
 			width: 220px;
-			background: #fff;
 			border: 1px solid #c8e6c9;
 			border-radius: 12px;
 			box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
-			display: none;
 			padding: 8px;
-			z-index: 1001;
 		}
 
-		/* Open state (click-based, works on mobile) */
-		.sp-user-menu.open .sp-dropdown {
-			display: block;
-		}
-
-		/* Keep hover open on devices that actually support hover */
-		@media (hover: hover) {
-			.sp-user-menu:hover .sp-dropdown {
-				display: block;
-			}
-		}
-
-		.sp-dropdown a,
-		.sp-dropdown button {
+		.sp-user-menu .dropdown-item {
 			display: flex;
 			align-items: center;
 			gap: 10px;
@@ -237,19 +218,18 @@
 			color: #333;
 			text-decoration: none;
 			border: none;
-			background: none;
 			cursor: pointer;
 			transition: all 0.2s;
 			font-family: 'Inter', sans-serif;
 		}
 
-		.sp-dropdown a:hover,
-		.sp-dropdown button:hover {
+		.sp-user-menu .dropdown-item:hover,
+		.sp-user-menu .dropdown-item:focus {
 			color: #1b5e20;
 			background: rgba(40, 167, 69, 0.1);
 		}
 
-		.sp-dropdown form {
+		.sp-user-menu form {
 			margin: 0;
 		}
 
@@ -827,8 +807,8 @@
 		</div>
 
 		<!-- User Menu -->
-		<div class="sp-user-menu" id="sp-user-menu">
-			<a href="#" class="sp-user-trigger" id="sp-user-trigger" aria-haspopup="true" aria-expanded="false">
+		<div class="dropdown sp-user-menu">
+			<a href="#" class="sp-user-trigger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
 				<div class="sp-avatar">
 					<img src="{{asset('assets/images/company-logo-03a.png')}}" alt="Avatar">
 				</div>
@@ -837,19 +817,21 @@
 					<span class="sp-user-role">{{ucfirst(auth()->user()->role)}}</span>
 				</div>
 			</a>
-
-			<div class="sp-dropdown" id="sp-user-dropdown">
+			<ul class="dropdown-menu dropdown-menu-end">
 				@if(auth()->user()->role == 'garage')
-					<a href="/garage/profile"><i class="bi bi-gear"></i> Settings</a>
+					<li><a class="dropdown-item" href="/garage/profile"><i class="bi bi-gear"></i> Settings</a></li>
 				@elseif(auth()->user()->role == 'shop')
-					<a href="/spare-part-shops/profile"><i class="bi bi-gear"></i> Settings</a>
+					<li><a class="dropdown-item" href="/spare-part-shops/profile"><i class="bi bi-gear"></i> Settings</a></li>
 				@endif
-				<form action="{{route('logout')}}" method="POST">
-					@method("DELETE")
-					@csrf
-					<button type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
-				</form>
-			</div>
+				<li><div class="dropdown-divider mb-0"></div></li>
+				<li>
+					<form action="{{route('logout')}}" method="POST">
+						@method("DELETE")
+						@csrf
+						<button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button>
+					</form>
+				</li>
+			</ul>
 		</div>
 	</div>
 </header>
@@ -901,31 +883,6 @@
 	document.addEventListener('DOMContentLoaded', function () {
 		var tooltipList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
 		tooltipList.map(function (el) { return new bootstrap.Tooltip(el); });
-
-		// User menu dropdown toggle (fixes mobile hover glitches)
-		var userMenu = document.getElementById('sp-user-menu');
-		var userTrigger = document.getElementById('sp-user-trigger');
-		var userDropdown = document.getElementById('sp-user-dropdown');
-
-		if (userMenu && userTrigger && userDropdown) {
-			userTrigger.addEventListener('click', function (e) {
-				e.preventDefault();
-				e.stopPropagation();
-				var willOpen = !userMenu.classList.contains('open');
-				userMenu.classList.toggle('open', willOpen);
-				userTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
-			});
-
-			userDropdown.addEventListener('click', function (e) {
-				// Don't close the menu when clicking inside
-				e.stopPropagation();
-			});
-
-			document.addEventListener('click', function () {
-				userMenu.classList.remove('open');
-				userTrigger.setAttribute('aria-expanded', 'false');
-			});
-		}
 
 		// Allow modal buttons to receive clicks
 		document.querySelectorAll('.modal .btn, .modal .btn-close, .modal [data-bs-dismiss], .modal [data-bs-slide]')
