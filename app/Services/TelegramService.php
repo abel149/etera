@@ -346,6 +346,40 @@ class TelegramService
 
     
     /**
+     * Send a notification to admins when a new user signs up and is pending approval.
+     * Sends to all admins with a linked Telegram chat ID.
+     */
+    public function sendNewRegistrationNotification(string $chatId, \App\Models\User $user): bool
+    {
+        try {
+            // Build contact string
+            $parts = [];
+            if (!empty($user->email)) {
+                $parts[] = $user->email;
+            }
+            if (!empty($user->phone_number)) {
+                $parts[] = $user->phone_number;
+            }
+            $contact = count($parts) ? (' (' . implode(' / ', $parts) . ')') : '';
+            $roleText = $user->role ? ('Role: ' . $user->role) : 'Role: N/A';
+
+            $text = "🔔 <b>New User Registration</b>\n\n"
+                . "👤 <b>User:</b> {$user->name}{$contact}\n"
+                . "🏷️ <b>{$roleText}</b>\n"
+                . "⏰ <b>Time:</b> " . now()->format('M d, Y h:i A') . "\n\n"
+                . "Please review and approve the user in the admin panel.";
+
+            return $this->sendMessage($chatId, $text);
+        } catch (\Throwable $e) {
+            Log::error('sendNewRegistrationNotification: Failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Send a notification to admins when a pending user attempts to log in.
      * Sends to all admins with a linked Telegram chat ID.
      */
@@ -493,19 +527,37 @@ class TelegramService
     }
 
     /**
-     * Send notification to admins when a new garage/shop registers.
+     * Send a notification to admins when a new user signs up and is pending approval.
+     * Sends to all admins with a linked Telegram chat ID.
      */
-    public function sendNewRegistrationNotification(string $chatId, $user): bool
+    public function sendNewRegistrationNotification(string $chatId, \App\Models\User $user): bool
     {
-        $roleLabel = $user->role === 'garage' ? 'Garage' : 'Spare Part Shop';
-        $text = "🆕 <b>New {$roleLabel} Registered!</b>\n\n"
-            . "👤 Name: <b>{$user->name}</b>\n"
-            . "📞 Phone: {$user->phone_number}\n"
-            . "📍 Location: " . ($user->location ?? 'N/A') . "\n"
-            . "🏷️ TIN: " . ($user->tin_number ?? 'N/A') . "\n\n"
-            . "⏳ Pending approval. Please review in the admin panel.";
+        try {
+            // Build contact string
+            $parts = [];
+            if (!empty($user->email)) {
+                $parts[] = $user->email;
+            }
+            if (!empty($user->phone_number)) {
+                $parts[] = $user->phone_number;
+            }
+            $contact = count($parts) ? (' (' . implode(' / ', $parts) . ')') : '';
+            $roleText = $user->role ? ('Role: ' . $user->role) : 'Role: N/A';
 
-        return $this->sendMessage($chatId, $text);
+            $text = "🔔 <b>New User Registration</b>\n\n"
+                . "👤 <b>User:</b> {$user->name}{$contact}\n"
+                . "🏷️ <b>{$roleText}</b>\n"
+                . "⏰ <b>Time:</b> " . now()->format('M d, Y h:i A') . "\n\n"
+                . "Please review and approve the user in the admin panel.";
+
+            return $this->sendMessage($chatId, $text);
+        } catch (\Throwable $e) {
+            Log::error('sendNewRegistrationNotification: Failed', [
+                'user_id' => $user->id,
+                'error' => $e->getMessage(),
+            ]);
+            return false;
+        }
     }
 
     public function sendPasswordResetLink(string $chatId, string $resetUrl, string $rejectAction, bool $rejectIsCallback = false, ?int &$messageId = null): bool
