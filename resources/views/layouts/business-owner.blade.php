@@ -166,6 +166,7 @@
 			transition: background 0.2s;
 			text-decoration: none;
 			color: #1a1a1a;
+			white-space: nowrap;
 		}
 
 		.sp-user-trigger:hover {
@@ -173,76 +174,17 @@
 			color: #1a1a1a;
 		}
 
-		.sp-avatar {
-			width: 36px;
-			height: 36px;
-			border-radius: 50%;
-			overflow: hidden;
-			border: 2px solid rgba(40, 167, 69, 0.4);
-		}
-
-		.sp-avatar img {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
-		}
-
-		.sp-user-name {
-			font-size: 0.85rem;
-			font-weight: 600;
-			color: #1a1a1a;
-		}
-
-		.sp-user-role {
-			font-size: 0.7rem;
-			color: #2e7d32;
-			display: block;
-		}
-
-		.sp-dropdown {
-			position: absolute;
-			top: calc(100% + 8px);
-			right: 0;
-			width: 220px;
-			background: #fff;
-			border: 1px solid #c8e6c9;
-			border-radius: 12px;
-			box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+		.sp-user-trigger.dropdown-toggle::after {
 			display: none;
-			padding: 8px;
-			z-index: 1001;
 		}
 
-		.sp-user-menu:hover .sp-dropdown {
-			display: block;
-		}
-
-		.sp-dropdown a,
-		.sp-dropdown button {
-			display: flex;
+		.sp-user-caret {
+			display: inline-flex;
 			align-items: center;
-			gap: 10px;
-			width: 100%;
-			padding: 10px 14px;
-			border-radius: 8px;
-			font-size: 0.875rem;
-			color: #333;
-			text-decoration: none;
-			border: none;
-			background: none;
-			cursor: pointer;
-			transition: all 0.2s;
-			font-family: 'Inter', sans-serif;
-		}
-
-		.sp-dropdown a:hover,
-		.sp-dropdown button:hover {
-			color: #1b5e20;
-			background: rgba(40, 167, 69, 0.1);
-		}
-
-		.sp-dropdown form {
-			margin: 0;
+			color: #2e7d32;
+			font-size: 0.9rem;
+			margin-left: 6px;
+			line-height: 1;
 		}
 
 		/* Mobile nav toggle */
@@ -756,8 +698,8 @@
 		</div>
 
 		<!-- User Menu -->
-		<div class="sp-user-menu">
-			<a href="#" class="sp-user-trigger">
+		<div class="dropdown sp-user-menu">
+			<a href="#" class="sp-user-trigger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
 				<div class="sp-avatar">
 					<img src="{{asset('assets/images/avatars/avatar-9.jpg')}}" alt="Avatar">
 				</div>
@@ -765,16 +707,19 @@
 					<span class="sp-user-name">{{ucfirst(auth()->user()->name)}}</span>
 					<span class="sp-user-role">Business Owner</span>
 				</div>
+				<i class="bi bi-chevron-down sp-user-caret" aria-hidden="true"></i>
 			</a>
-
-			<div class="sp-dropdown">
-				<a href="/business-owner/profile"><i class="bi bi-gear"></i> Settings</a>
-				<form action="{{route('logout')}}" method="POST">
-					@method("DELETE")
-					@csrf
-					<button type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
-				</form>
-			</div>
+			<ul class="dropdown-menu dropdown-menu-end">
+				<li><a class="dropdown-item" href="/business-owner/profile"><i class="bi bi-gear"></i> Settings</a></li>
+				<li><div class="dropdown-divider mb-0"></div></li>
+				<li>
+					<form action="{{route('logout')}}" method="POST">
+						@method("DELETE")
+						@csrf
+						<button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button>
+					</form>
+				</li>
+			</ul>
 		</div>
 	</div>
 </header>

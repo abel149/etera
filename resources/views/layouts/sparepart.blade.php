@@ -166,6 +166,21 @@
 			transition: background 0.2s;
 			text-decoration: none;
 			color: #1a1a1a;
+			white-space: nowrap;
+		}
+
+		/* Hide Bootstrap caret; we use a custom chevron icon for consistent UI */
+		.sp-user-trigger.dropdown-toggle::after {
+			display: none;
+		}
+
+		.sp-user-caret {
+			display: inline-flex;
+			align-items: center;
+			color: #2e7d32;
+			font-size: 0.9rem;
+			margin-left: 6px;
+			line-height: 1;
 		}
 
 		.sp-user-trigger:hover {
@@ -816,6 +831,7 @@
 					<span class="sp-user-name">{{ucfirst(auth()->user()->name)}}</span>
 					<span class="sp-user-role">{{ucfirst(auth()->user()->role)}}</span>
 				</div>
+				<i class="bi bi-chevron-down sp-user-caret" aria-hidden="true"></i>
 			</a>
 			<ul class="dropdown-menu dropdown-menu-end">
 				@if(auth()->user()->role == 'garage')
