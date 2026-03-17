@@ -98,6 +98,13 @@ class AuthenticateUser
             'url' => $request->url(),
         ]);
 
+        // Set session_id to null in users table
+        if ($user) {
+            $user->session_id = null;
+            $user->save();
+        }
+
+
         // Clear the session and logout user
         Session::flush();
         Auth::logout();

@@ -410,8 +410,10 @@ function showMoreApplications() {
 						.table th, .table td { padding: 8px; }
 						.text-end { text-align: right; }
 						.stamp-image { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; }
-						.card-stamp { position: absolute; bottom: 1rem; right: 0; opacity: .3; z-index:5; }
 						.invoice-container { position: relative; }
+						.info-row-wrapper { position: relative; }
+						.print-stamp-between { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; }
+						.print-stamp-between .stamp-image { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; opacity: 0.5; }
 					</style>
 				</head>
 				<body>
@@ -435,21 +437,26 @@ function showMoreApplications() {
 							</div>
 							<hr>
 
-							<div class="row gy-3 align-items-start">
-								<div class="col-sm-6">
-									<p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
-									<p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
-									<p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
-									<p class="mb-1"><strong>Location:</strong> ${location}</p>
-									<p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
+							<div class="info-row-wrapper">
+								<div class="print-stamp-between">
+									<img class="stamp-image" src="${stampImage}" alt="Stamp" />
 								</div>
-								<div class="col-sm-6 text-sm-end">
-									<strong>Author:</strong>
-									<address>
-										etera<br />
-										portal.eteraet.com<br />
-										Addis Ababa, Ethiopia
-									</address>
+								<div class="row gy-3 align-items-start">
+									<div class="col-sm-6">
+										<p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
+										<p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
+										<p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
+										<p class="mb-1"><strong>Location:</strong> ${location}</p>
+										<p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
+									</div>
+									<div class="col-sm-6 text-sm-end">
+										<strong>Author:</strong>
+										<address>
+											etera<br />
+											portal.eteraet.com<br />
+											Addis Ababa, Ethiopia
+										</address>
+									</div>
 								</div>
 							</div>
 
@@ -503,10 +510,6 @@ function showMoreApplications() {
 							</div>
 
 							<p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
-
-							<div class="card-stamp">
-								<img class="stamp-image" src="${stampImage}" alt="Stamp" />
-							</div>
 						</main>
 
 						<footer class="text-center mt-4">
