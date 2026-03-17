@@ -170,7 +170,7 @@
             </div>
             <div class="etera-input-group">
                 <label>Phone Number <span style="color:#dc3545">*</span></label>
-                <input type="tel" class="etera-input {{ $errors->has('phone_number') ? 'error' : '' }}" id="inputPhone" name="phone_number" placeholder="+251912345678" value="{{ old('phone_number', '+251') }}" required>
+                <input type="tel" class="etera-input {{ $errors->has('phone_number') ? 'error' : '' }}" id="inputPhone" name="phone_number" placeholder="0912131415" value="{{ old('phone_number') }}" required>
                 @error('phone_number')<div class="etera-error-text">{{ $message }}</div>@enderror
             </div>
         </div>

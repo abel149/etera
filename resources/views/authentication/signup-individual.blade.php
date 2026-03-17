@@ -46,7 +46,7 @@
     
             <div class="col-6">
                 <label for="inputPhone" class="form-label">Phone Number <span class="text-danger">*</span></label>
-                <input type="tel" class="form-control" id="inputPhone" name="phone_number" placeholder="+251 -" required value="+251-">
+                <input type="tel" class="form-control" id="inputPhone" name="phone_number" placeholder="0912131415" >
             </div>
         </div>
 
