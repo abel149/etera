@@ -83,7 +83,7 @@
                    class="etera-input {{ $errors->has('phone_number') ? 'error' : '' }}"
                    id="inputPhone"
                    name="phone_number"
-                   placeholder="+251912345678"
+                   placeholder="0912131415"
                    value="{{ old('phone_number') }}" required>
             @error('phone_number')<div class="etera-error-text">{{ $message }}</div>@enderror
         </div>

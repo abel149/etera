@@ -213,8 +213,16 @@
 			z-index: 1001;
 		}
 
-		.sp-user-menu:hover .sp-dropdown {
+		/* Open state (click-based, works on mobile) */
+		.sp-user-menu.open .sp-dropdown {
 			display: block;
+		}
+
+		/* Keep hover open on devices that actually support hover */
+		@media (hover: hover) {
+			.sp-user-menu:hover .sp-dropdown {
+				display: block;
+			}
 		}
 
 		.sp-dropdown a,
@@ -819,10 +827,10 @@
 		</div>
 
 		<!-- User Menu -->
-		<div class="sp-user-menu">
-			<a href="#" class="sp-user-trigger">
+		<div class="sp-user-menu" id="sp-user-menu">
+			<a href="#" class="sp-user-trigger" id="sp-user-trigger" aria-haspopup="true" aria-expanded="false">
 				<div class="sp-avatar">
-					<img src="{{asset('asset/images/company-logo-03a.png')}}" alt="Avatar">
+					<img src="{{asset('assets/images/company-logo-03a.png')}}" alt="Avatar">
 				</div>
 				<div class="sp-user-name-text">
 					<span class="sp-user-name">{{ucfirst(auth()->user()->name)}}</span>
@@ -830,7 +838,7 @@
 				</div>
 			</a>
 
-			<div class="sp-dropdown">
+			<div class="sp-dropdown" id="sp-user-dropdown">
 				@if(auth()->user()->role == 'garage')
 					<a href="/garage/profile"><i class="bi bi-gear"></i> Settings</a>
 				@elseif(auth()->user()->role == 'shop')
@@ -893,6 +901,31 @@
 	document.addEventListener('DOMContentLoaded', function () {
 		var tooltipList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
 		tooltipList.map(function (el) { return new bootstrap.Tooltip(el); });
+
+		// User menu dropdown toggle (fixes mobile hover glitches)
+		var userMenu = document.getElementById('sp-user-menu');
+		var userTrigger = document.getElementById('sp-user-trigger');
+		var userDropdown = document.getElementById('sp-user-dropdown');
+
+		if (userMenu && userTrigger && userDropdown) {
+			userTrigger.addEventListener('click', function (e) {
+				e.preventDefault();
+				e.stopPropagation();
+				var willOpen = !userMenu.classList.contains('open');
+				userMenu.classList.toggle('open', willOpen);
+				userTrigger.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+			});
+
+			userDropdown.addEventListener('click', function (e) {
+				// Don't close the menu when clicking inside
+				e.stopPropagation();
+			});
+
+			document.addEventListener('click', function () {
+				userMenu.classList.remove('open');
+				userTrigger.setAttribute('aria-expanded', 'false');
+			});
+		}
 
 		// Allow modal buttons to receive clicks
 		document.querySelectorAll('.modal .btn, .modal .btn-close, .modal [data-bs-dismiss], .modal [data-bs-slide]')
