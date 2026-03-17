@@ -174,6 +174,68 @@
 			color: #1a1a1a;
 		}
 
+		.sp-avatar {
+			width: 36px;
+			height: 36px;
+			border-radius: 50%;
+			overflow: hidden;
+			border: 2px solid rgba(40, 167, 69, 0.4);
+			flex-shrink: 0;
+		}
+
+		.sp-avatar img {
+			width: 100%;
+			height: 100%;
+			object-fit: cover;
+			display: block;
+		}
+
+		.sp-user-name {
+			font-size: 0.85rem;
+			font-weight: 600;
+			color: #1a1a1a;
+		}
+
+		.sp-user-role {
+			font-size: 0.7rem;
+			color: #2e7d32;
+			display: block;
+		}
+
+		.sp-user-menu .dropdown-menu {
+			width: 220px;
+			border: 1px solid #c8e6c9;
+			border-radius: 12px;
+			box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
+			padding: 8px;
+		}
+
+		.sp-user-menu .dropdown-item {
+			display: flex;
+			align-items: center;
+			gap: 10px;
+			width: 100%;
+			padding: 10px 14px;
+			border-radius: 8px;
+			font-size: 0.875rem;
+			color: #333;
+			text-decoration: none;
+			border: none;
+			cursor: pointer;
+			transition: all 0.2s;
+			font-family: 'Inter', sans-serif;
+		}
+
+		.sp-user-menu .dropdown-item:hover,
+		.sp-user-menu .dropdown-item:focus {
+			color: #1b5e20;
+			background: rgba(40, 167, 69, 0.1);
+		}
+
+		.sp-user-menu form {
+			margin: 0;
+		}
+
 		.sp-user-trigger.dropdown-toggle::after {
 			display: none;
 		}
