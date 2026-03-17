@@ -189,17 +189,22 @@
 		}
 
 		.sp-avatar {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
 			width: 36px;
 			height: 36px;
 			border-radius: 50%;
 			overflow: hidden;
 			border: 2px solid rgba(40, 167, 69, 0.4);
+			background: rgba(40, 167, 69, 0.12);
 		}
 
-		.sp-avatar img {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
+		.sp-avatar .sp-avatar-icon {
+			color: #2e7d32;
+			font-size: 18px;
+			line-height: 1;
 		}
 
 		.sp-user-name {
@@ -825,7 +830,7 @@
 		<div class="dropdown sp-user-menu">
 			<a href="#" class="sp-user-trigger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
 				<div class="sp-avatar">
-					<img src="{{asset('assets/images/company-logo-03a.png')}}" alt="Avatar">
+					<i class="bi bi-person-fill sp-avatar-icon" aria-hidden="true"></i>
 				</div>
 				<div class="sp-user-name-text">
 					<span class="sp-user-name">{{ucfirst(auth()->user()->name)}}</span>
