@@ -228,6 +228,54 @@ Route::post('/login', function (Request $request) {
 
         // Role access & approval
         if (!$user->approved) {
+            // Notify admins (database) that a pending user attempted to log in.
+            // Rate limit: once per hour per user.
+            try {
+                $key = 'pending_approval_login_notified_user_' . $user->id;
+                if (!\Illuminate\Support\Facades\Cache::has($key)) {
+                    $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])
+                        ->where('approved', true)
+                        ->get();
+
+                    if ($admins->isNotEmpty()) {
+                        \Illuminate\Support\Facades\Notification::send(
+                            $admins,
+                            new \App\Notifications\PendingApprovalLoginAttempt(
+                                $user->id,
+                                (string) ($user->name ?? 'User'),
+                                $user->role,
+                                $user->email,
+                                $user->phone_number
+                            )
+                        );
+                    }
+
+                    \Illuminate\Support\Facades\Cache::put($key, true, now()->addHour());
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Pending approval login attempt notification failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Send Telegram notification to admins
+            try {
+                $telegram = new \App\Services\TelegramService();
+                $telegram->sendPendingUserLoginNotification(
+                    $user->id,
+                    (string) ($user->name ?? 'User'),
+                    $user->role,
+                    $user->email,
+                    $user->phone_number
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Pending approval Telegram notification failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             Auth::logout();
             return back()->withErrors(['email_or_phone' => 'Your account is pending approval. Please wait for admin approval.'])->withInput();
         }
