@@ -196,7 +196,7 @@ class TelegramWebhookController extends Controller
 
                         try {
                             app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $confirmText, [
-                                ['text' => '🔙 Back to Dashboard', 'callback_data' => 'tg_back_to_dashboard'],
+                                ['text' => '🔙 Back to etera', 'callback_data' => 'tg_back_to_dashboard'],
                                 ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
                                 ['text' => 'Disconnect & remove this message', 'callback_data' => 'tg_disconnect_clearmsg'],
                             ]);
