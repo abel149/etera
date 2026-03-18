@@ -103,6 +103,42 @@ class TelegramWebhookController extends Controller
             return response()->json(['ok' => true]);
         }
 
+        if (is_string($text) && trim($text) === '/end') {
+            try {
+                $user = User::where('telegram_chat_id', (string) $chatId)->first();
+                if ($user) {
+                    $user->update(['telegram_chat_id' => null]);
+                    app(TelegramService::class)->sendMessage((string) $chatId, "✅ Disconnected.\n\nTo connect again: log in to your etera account and use the Telegram connect button/page.");
+                } else {
+                    app(TelegramService::class)->sendMessage((string) $chatId, "ℹ️ This Telegram chat is not linked to any etera account.");
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Telegram /end disconnect failed', ['error' => $e->getMessage()]);
+            }
+
+            return response()->json(['ok' => true]);
+        }
+
+        if (is_string($text) && (trim($text) === '/start' || trim($text) === '/settings')) {
+            try {
+                $user = User::where('telegram_chat_id', (string) $chatId)->first();
+                if ($user) {
+                    $manageText = "⚙️ <b>Telegram Connection</b>\n\n"
+                        . "This Telegram is linked to etera account (<b>{$user->name}</b>).\n\n"
+                        . "To disconnect anytime, type <b>/end</b> or use the button below.";
+
+                    app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $manageText, [
+                        ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
+                        ['text' => 'Disconnect & remove this message', 'callback_data' => 'tg_disconnect_clearmsg'],
+                    ]);
+
+                    return response()->json(['ok' => true]);
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Telegram manage connection message failed', ['error' => $e->getMessage()]);
+            }
+        }
+
         // Handle /start command with user ID payload
         if (str_starts_with($text, '/start')) {
             $parts = explode(' ', $text, 2);
@@ -142,7 +178,8 @@ class TelegramWebhookController extends Controller
                     if ($botToken) {
                         $confirmText = "✅ <b>Connected!</b>\n\n"
                             . "Hello {$telegramName}! Your Telegram is now linked to your etera account (<b>{$user->name}</b>).\n\n"
-                            . "You will receive proforma notifications here.";
+                            . "You will receive proforma notifications here.\n\n"
+                            . "To disconnect anytime, type <b>/end</b> or use the button below.";
 
                         try {
                             app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $confirmText, [
