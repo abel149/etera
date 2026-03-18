@@ -329,10 +329,11 @@
 
 		<!-- Success Messages -->
 		@if(session('success'))
-		<div class="alert alert-success alert-dismissible fade show m-3" role="alert">
-			<i class="bi bi-check-circle-fill me-2"></i>
-			{{ session('success') }}
-			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		<div class="px-3 px-md-4 mt-3">
+			<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+				{{ session('success') }}
+				<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+			</div>
 		</div>
 		@endif
 
@@ -940,20 +941,6 @@
 @include('partials.notification-polling')
 @stack('scripts')
 
-<!-- Mobile Responsive Styles -->
-<style>
-@media (max-width: 575px) {
-	.alert.alert-success { 
-		margin-left: 12px !important; 
-		margin-right: 12px !important; 
-		margin-top: 12px !important; 
-		font-size: 0.9rem; 
-	}
-	.alert.alert-success .btn-close { 
-		padding: 0.5rem 0.75rem; 
-	}
-}
-</style>
 </body>
 
 
