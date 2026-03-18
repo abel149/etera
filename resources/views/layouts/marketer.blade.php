@@ -32,6 +32,7 @@
 
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2.min.css')}}" />
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2-bootstrap-5-theme.min.css')}}" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 	<!-- Bootstrap CSS -->
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -545,7 +546,23 @@
 	@livewireScripts
 
 @include('partials.etera-scripts')
+@include('partials.notification-polling')
 @stack('scripts')
+
+<!-- Mobile Responsive Styles -->
+<style>
+@media (max-width: 575px) {
+	.alert.alert-success { 
+		margin-left: 12px !important; 
+		margin-right: 12px !important; 
+		margin-top: 12px !important; 
+		font-size: 0.9rem; 
+	}
+	.alert.alert-success .btn-close { 
+		padding: 0.5rem 0.75rem; 
+	}
+}
+</style>
 </body>
 
 </html>

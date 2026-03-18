@@ -1133,6 +1133,21 @@ auth()->user()->unreadNotifications->count()}}</span>
 	</script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
+<!-- Mobile Responsive Styles -->
+<style>
+@media (max-width: 575px) {
+	.alert.alert-success { 
+		margin-left: 12px !important; 
+		margin-right: 12px !important; 
+		margin-top: 12px !important; 
+		font-size: 0.9rem; 
+	}
+	.alert.alert-success .btn-close { 
+		padding: 0.5rem 0.75rem; 
+	}
+}
+</style>
+
 <!-- Auto-Logout after 30 minutes inactivity -->
 <script>
 (function() {

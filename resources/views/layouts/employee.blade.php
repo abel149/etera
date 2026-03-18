@@ -23,6 +23,7 @@
 	<link href="{{asset('assets/css/bootstrap-extended.css')}}" rel="stylesheet">
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2.min.css')}}" />
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2-bootstrap-5-theme.min.css')}}" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 	<link href="{{asset('assets/css/app.css')}}" rel="stylesheet">
 	<link href="{{asset('assets/css/icons.css')}}" rel="stylesheet">
@@ -317,6 +318,21 @@
 		  })
 		new PerfectScrollbar('.dashboard-top-countries');
 	</script>
+	<!-- Mobile Responsive Styles -->
+	<style>
+	@media (max-width: 575px) {
+		.alert.alert-success { 
+			margin-left: 12px !important; 
+			margin-right: 12px !important; 
+			margin-top: 12px !important; 
+			font-size: 0.9rem; 
+		}
+		.alert.alert-success .btn-close { 
+			padding: 0.5rem 0.75rem; 
+		}
+	}
+	</style>
+
 	@livewireScripts
 
 @include('partials.etera-scripts')

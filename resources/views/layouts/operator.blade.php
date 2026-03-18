@@ -193,6 +193,22 @@
 
 	@livewireScripts
 	@stack('scripts')
+
+<!-- Mobile Responsive Styles -->
+<style>
+@media (max-width: 575px) {
+	.alert.alert-success { 
+		margin-left: 12px !important; 
+		margin-right: 12px !important; 
+		margin-top: 12px !important; 
+		font-size: 0.9rem; 
+	}
+	.alert.alert-success .btn-close { 
+		padding: 0.5rem 0.75rem; 
+	}
+}
+</style>
+
 @include('partials.etera-scripts')
 @include('partials.notification-polling')
 @stack('scripts')
