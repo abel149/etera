@@ -473,6 +473,14 @@
 			</div>
 		</header>
 		<!--end header -->
+		<!-- Success Messages -->
+		@if(session('success'))
+		<div class="alert alert-success alert-dismissible fade show m-3" role="alert">
+			<i class="bi bi-check-circle-fill me-2"></i>
+			{{ session('success') }}
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+		@endif
 		@yield('content')
 		<!--start overlay-->
 		 <div class="overlay toggle-icon"></div>

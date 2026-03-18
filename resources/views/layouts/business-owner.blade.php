@@ -786,6 +786,15 @@
 	</div>
 </header>
 
+<!-- Success Messages -->
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show mx-4 mt-3" role="alert">
+    <i class="bi bi-check-circle-fill me-2"></i>
+    {{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+</div>
+@endif
+
 <!-- Main Content -->
 <div class="sp-main-content">
 	<div class="sp-content-wrapper">
@@ -797,6 +806,7 @@
 <footer class="sp-footer">
 	<div class="sp-footer-inner">
 		<span class="sp-footer-brand">etera</span>
+		<span class="sp-footer-copy">  <script>document.write(new Date().getFullYear())</script>. All rights reserved.</span>
 		<span class="sp-footer-copy">© <script>document.write(new Date().getFullYear())</script>. All rights reserved.</span>
 		<ul class="sp-footer-social">
 			<li><a href="#"><i class="bi bi-facebook"></i></a></li>
