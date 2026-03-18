@@ -56,6 +56,36 @@ class TelegramWebhookController extends Controller
                 return response()->json(['ok' => true]);
             }
 
+            if (is_string($data) && in_array($data, ['tg_disconnect', 'tg_disconnect_clearmsg'], true)) {
+                try {
+                    $user = null;
+                    if ($chatId) {
+                        $user = User::where('telegram_chat_id', (string) $chatId)->first();
+                    }
+
+                    if ($user) {
+                        $user->update(['telegram_chat_id' => null]);
+                    }
+
+                    if ($data === 'tg_disconnect_clearmsg' && $chatId && $messageId) {
+                        try {
+                            app(TelegramService::class)->deleteMessage((string) $chatId, (int) $messageId);
+                        } catch (\Throwable $e) {
+                            Log::warning('Telegram disconnect: deleteMessage failed', ['error' => $e->getMessage()]);
+                        }
+                    }
+
+                    if ($chatId) {
+                        $text = "✅ Disconnected.\n\nTo connect again: log in to your etera account and use the Telegram connect button/page.\n\nIf you lost your old Telegram, this lets you connect a new one.";
+                        app(TelegramService::class)->sendMessage((string) $chatId, $text);
+                    }
+                } catch (\Throwable $e) {
+                    Log::error('Telegram disconnect callback failed', ['error' => $e->getMessage()]);
+                }
+
+                return response()->json(['ok' => true]);
+            }
+
             return response()->json(['ok' => true]);
         }
 
@@ -114,14 +144,31 @@ class TelegramWebhookController extends Controller
                             . "Hello {$telegramName}! Your Telegram is now linked to your etera account (<b>{$user->name}</b>).\n\n"
                             . "You will receive proforma notifications here.";
 
-                        \Illuminate\Support\Facades\Http::post(
-                            "https://api.telegram.org/bot{$botToken}/sendMessage",
-                            [
+                        try {
+                            app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $confirmText, [
+                                ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
+                                ['text' => 'Disconnect & remove this message', 'callback_data' => 'tg_disconnect_clearmsg'],
+                            ]);
+                        } catch (\Throwable $e) {
+                            Log::warning('Telegram connect: sendMessageWithButtons failed, falling back to plain message', [
+                                'user_id' => $userId,
                                 'chat_id' => $chatId,
-                                'text' => $confirmText,
-                                'parse_mode' => 'HTML',
-                            ]
-                        );
+                                'error' => $e->getMessage(),
+                            ]);
+
+                            try {
+                                \Illuminate\Support\Facades\Http::post(
+                                    "https://api.telegram.org/bot{$botToken}/sendMessage",
+                                    [
+                                        'chat_id' => $chatId,
+                                        'text' => $confirmText,
+                                        'parse_mode' => 'HTML',
+                                    ]
+                                );
+                            } catch (\Throwable $e2) {
+                                Log::warning('Telegram connect: fallback sendMessage failed', ['error' => $e2->getMessage()]);
+                            }
+                        }
                     }
 
                     return response()->json(['ok' => true, 'linked' => true]);
