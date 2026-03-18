@@ -133,7 +133,7 @@ class RegisterController extends Controller
             $request->session()->put('telegram_connect_user_id', $user->id);
 
             return redirect()->route('login')
-                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -198,7 +198,7 @@ class RegisterController extends Controller
             $request->session()->put('telegram_connect_user_id', $user->id);
 
             return redirect()->route('login')
-                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -277,7 +277,7 @@ class RegisterController extends Controller
             $request->session()->put('telegram_connect_user_id', $user->id);
 
             return redirect()->route('login')
-                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
         } catch (\Throwable $e) {
 
@@ -438,7 +438,7 @@ public function storeGarageSparepart(Request $request)
 
 
             return redirect()->route('login')
-                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
     } catch (ValidationException $e) {
         DB::rollBack();
