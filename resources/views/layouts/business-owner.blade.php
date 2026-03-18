@@ -798,26 +798,29 @@
 
 <!-- Main Content -->
 <div class="sp-main-content">
-	<div class="sp-content-wrapper">
-		@yield('content')
-	</div>
-</div>
 
-<!-- Footer -->
-<footer class="sp-footer">
-	<div class="sp-footer-inner">
-		<span class="sp-footer-brand">etera</span>
-		<span class="sp-footer-copy">  <script>document.write(new Date().getFullYear())</script>. All rights reserved.</span>
-		<span class="sp-footer-copy">© <script>document.write(new Date().getFullYear())</script>. All rights reserved.</span>
-		<ul class="sp-footer-social">
-			<li><a href="#"><i class="bi bi-facebook"></i></a></li>
-			<li><a href="#"><i class="bi bi-telegram"></i></a></li>
-			<li><a href="#"><i class="bi bi-tiktok"></i></a></li>
-		</ul>
-	</div>
-</footer>
+			<!-- Navigation -->
+			<ul class="sp-nav" id="sp-nav">
+				<li><a href="/business-owner" class="sp-nav-link @yield('dashboard')">Dashboard</a></li>
+				<li><a href="/business-owner/create-file" class="sp-nav-link @yield('create')">Request Proforma</a></li>
+				<li>
+					<a href="/business-owner/received-proformas" class="sp-nav-link @yield('received')">
+						Received Proformas
+						@if(auth()->user()->getReceivedProformasCount() > 0)
+							<span class="sp-badge sp-badge-primary">{{ auth()->user()->getReceivedProformasCount() }}</span>
+						@endif
+						@if(auth()->user()->getReturnedFromAdminCount() > 0)
+							<span class="sp-badge">{{ auth()->user()->getReturnedFromAdminCount() }}</span>
+						@endif
+					</a>
+				</li>
+			</ul>
 
-<!-- Toast Notifications (React) -->
+			<div class="nav-item dark-mode d-sm-flex" style="margin-left: 10px;">
+				<a class="nav-link dark-mode-icon" href="javascript:;" aria-label="Toggle dark mode">
+					<i class='bx bx-moon'></i>
+				</a>
+			</div>
 @include('partials.toast')
 
 <!-- CSRF Auto-Refresh -->

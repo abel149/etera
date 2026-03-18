@@ -150,6 +150,14 @@
         <!-- Right Form Panel -->
         <div class="etera-auth-form-side">
             <div class="etera-glass-card etera-auth-card">
+                @if(session('welcome'))
+                    <div style="margin-bottom: 1rem;">
+                        <div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+                            {{ session('welcome') }}
+                            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                        </div>
+                    </div>
+                @endif
                 @yield('content')
             </div>
         </div>

@@ -158,6 +158,10 @@
         <p class="etera-subtext">Fill the form below to create your <strong>Garage or Spare Part Shop</strong> account.</p>
     </div>
 
+    @error('phone_number')
+        <div class="alert alert-danger mb-3" role="alert">{{ $message }}</div>
+    @enderror
+
     <form id="garageSparePartRegisterForm" action="{{ route('register.garage-sparepart') }}" method="POST" novalidate>
         @csrf
 

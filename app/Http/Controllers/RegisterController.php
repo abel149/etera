@@ -26,7 +26,7 @@ class RegisterController extends Controller
      */
     public function showRegistrationForm()
     {
-        $brands = Brand::where('is_test', false)->get();
+        $brands = Brand::where('is_test', false)->orderBy('name')->get();
         return view('authentication.signup', compact('brands'));
     }
 
@@ -51,7 +51,7 @@ class RegisterController extends Controller
      */
     public function showGarageSparePartRegistrationForm()
     {
-        $brands = Brand::where('is_test', false)->get();
+        $brands = Brand::where('is_test', false)->orderBy('name')->get();
         return view('authentication.signup-garage-sparepart', compact('brands'));
     }
 
@@ -131,9 +131,8 @@ class RegisterController extends Controller
             // Allow Telegram connect page access for this newly registered user.
             $request->session()->put('telegram_connect_user_id', $user->id);
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -197,9 +196,8 @@ class RegisterController extends Controller
             // Allow Telegram connect page access for this newly registered user.
             $request->session()->put('telegram_connect_user_id', $user->id);
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -277,9 +275,8 @@ class RegisterController extends Controller
             // Allow Telegram connect page access for this newly registered user.
             $request->session()->put('telegram_connect_user_id', $user->id);
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
 
         } catch (\Throwable $e) {
 
@@ -439,9 +436,8 @@ public function storeGarageSparepart(Request $request)
         }
 
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Congradulation welcome to etera  now u can sign in ');
 
     } catch (ValidationException $e) {
         DB::rollBack();
