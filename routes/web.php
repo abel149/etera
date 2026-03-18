@@ -578,7 +578,7 @@ Route::middleware(['auth.user'])->group(function () {
                 'phone_number' => $request->phone_number,
             ]);
 
-        session()->flash('success', 'Profile updated successfully');
+        session()->flash('success', 'Profile updated successfully!');
 
         return redirect()->back();
     })->name('profile.update.user');

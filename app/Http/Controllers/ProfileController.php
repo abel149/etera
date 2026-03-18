@@ -90,7 +90,7 @@ public function updateSelf(Request $request)
 
     $user->save();
 
-    return back()->with('success', 'Profile updated successfully.');
+    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
 }
 
 
@@ -107,7 +107,7 @@ public function updateSelf(Request $request)
 
         auth()->user()->bankAccounts()->create($request->all());
 
-        return back()->with('success', 'Bank account added successfully.');
+        return back()->with('success', 'Bank account added successfully!');
     }
 
     // Update bank account
@@ -120,7 +120,7 @@ public function updateSelf(Request $request)
 
         $bank->update($request->all());
 
-        return back()->with('success', 'Bank account updated successfully.');
+        return back()->with('success', 'Bank account updated successfully!');
     }
 
 

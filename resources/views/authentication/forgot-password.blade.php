@@ -90,7 +90,7 @@
                             type="text"
                             name="phone_number"
                             className="etera-input"
-                            placeholder="2519..."
+                            placeholder="09..."
                             value={phone}
                             onChange={(e) => setPhone(e.target.value)}
                             required
