@@ -290,11 +290,6 @@ class TelegramService
             . "🔧 Type: " . ($proforma->isEteraCheretaMode() ? 'Etera Chereta' : 'Regular') . "\n\n"
             . "Login to your account to view and apply.";
 
-        $loginUrl = url('/login');
-        if ($this->sendMessageWithButton($chatId, $text, 'Go to Login', $loginUrl)) {
-            return true;
-        }
-
         return $this->sendMessage($chatId, $text);
     }
 
