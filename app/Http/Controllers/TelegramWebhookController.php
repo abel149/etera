@@ -168,13 +168,19 @@ class TelegramWebhookController extends Controller
                         // Send error via Telegram
                         $botToken = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
                         if ($botToken) {
-                            \Illuminate\Support\Facades\Http::post(
-                                "https://api.telegram.org/bot{$botToken}/sendMessage",
-                                [
-                                    'chat_id' => $chatId,
-                                    'text' => "You've registered using this account please use other account",
-                                ]
-                            );
+                            try {
+                                app(TelegramService::class)->sendMessageWithButtons((string) $chatId, "You've registered using this account. Please use another account, or disconnect below.", [
+                                    ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
+                                ]);
+                            } catch (\Throwable $e) {
+                                \Illuminate\Support\Facades\Http::post(
+                                    "https://api.telegram.org/bot{$botToken}/sendMessage",
+                                    [
+                                        'chat_id' => $chatId,
+                                        'text' => "You've registered using this account. Please use another account, or disconnect with /end.",
+                                    ]
+                                );
+                            }
                         }
                         return response()->json(['ok' => true, 'duplicate' => true]);
                     }
