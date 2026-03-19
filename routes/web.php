@@ -220,7 +220,7 @@ Route::post('/login', function (Request $request) {
             if ($hasActiveStoredSession) {
                 Auth::logout();
                 return back()->withErrors([
-                    'email_or_phone' => 'Please log out of all other devices.'
+                    'email_or_phone' => 'Please log out of all other devices or browsers.'
                 ])->withInput();
             }
         }

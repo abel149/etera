@@ -298,6 +298,24 @@ class TelegramService
         return $this->sendMessage($chatId, $text);
     }
 
+    public function sendInboxReceivedNotification(string $chatId, $proforma): bool
+    {
+        $brandName = $proforma->brand?->name ?? 'N/A';
+        $text = "📥 <b>New Inbox Received</b>\n\n"
+            . "A new proforma has been sent to your inbox.\n\n"
+            . "📋 File: <b>{$proforma->file_number}</b>\n"
+            . "🚗 Brand: {$brandName}\n"
+            . "📌 Model: {$proforma->model} ({$proforma->year})\n"
+            . "🪪 Plate: {$proforma->license_plate_number}";
+
+        $loginUrl = url('/login');
+        if ($this->sendMessageWithButton($chatId, $text, 'Go to Login', $loginUrl)) {
+            return true;
+        }
+
+        return $this->sendMessage($chatId, $text);
+    }
+
     /**
      * Notify all admins that a new proforma has been requested/created so they can float/publish it.
      * Sends to all approved admins/superadmins with a linked Telegram chat ID.
