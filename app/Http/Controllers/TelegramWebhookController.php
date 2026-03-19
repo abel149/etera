@@ -56,24 +56,13 @@ class TelegramWebhookController extends Controller
                 return response()->json(['ok' => true]);
             }
 
-            if (is_string($data) && in_array($data, ['tg_disconnect', 'tg_disconnect_clearmsg', 'tg_back_to_dashboard'], true)) {
+            if (is_string($data) && in_array($data, ['tg_disconnect', 'tg_disconnect_clearmsg'], true)) {
                 try {
                     $user = null;
                     if ($chatId) {
                         $user = User::where('telegram_chat_id', (string) $chatId)->first();
                     }
 
-                    if ($data === 'tg_back_to_dashboard') {
-                    // Handle back to dashboard - send login URL
-                    if ($chatId) {
-                        $loginUrl = url('/login');
-                        $text = "🔙 <b>Back to Your Account</b>\n\n"
-                            . "Click the link below to log in to your etera account:\n"
-                            . "{$loginUrl}\n\n"
-                            . "You'll be redirected to your dashboard after logging in.";
-                        app(TelegramService::class)->sendMessage((string) $chatId, $text);
-                    }
-                } else {
                     // Handle disconnect actions
                     if ($user) {
                         $user->update(['telegram_chat_id' => null]);
@@ -91,7 +80,6 @@ class TelegramWebhookController extends Controller
                         $text = "✅ Disconnected.\n\nTo connect again: log in to your etera account and use the Telegram connect button/page.\n\nIf you lost your old Telegram, this lets you connect a new one.";
                         app(TelegramService::class)->sendMessage((string) $chatId, $text);
                     }
-                }
                 } catch (\Throwable $e) {
                     Log::error('Telegram disconnect callback failed', ['error' => $e->getMessage()]);
                 }
@@ -196,13 +184,12 @@ class TelegramWebhookController extends Controller
                     $botToken = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
                     if ($botToken) {
                         $confirmText = "✅ <b>Connected!</b>\n\n"
-                            . "Hello {$telegramName}! Your Telegram is now linked to your etera account (<b>{$user->name}</b>).\n\n"
-                            . "You will receive proforma notifications here.\n\n"
+                            . "Hello {$telegramName}! Congratulations, Your Telegram is now linked to your etera account (<b>{$user->name}</b>).\n\n"
+                            . "you can now receive notifications. To continue with etera's services, go back to your browser and login.\n\n"
                             . "To disconnect anytime, type <b>/end</b> or use the button below.";
 
                         try {
                             app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $confirmText, [
-                                ['text' => "🔙 Back to\netera login", 'callback_data' => 'tg_back_to_dashboard'],
                                 ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
                                 ['text' => 'Disconnect & remove this message', 'callback_data' => 'tg_disconnect_clearmsg'],
                             ]);
