@@ -294,6 +294,64 @@ class TelegramService
     }
 
     /**
+     * Notify all admins that a new proforma has been requested/created so they can float/publish it.
+     * Sends to all approved admins/superadmins with a linked Telegram chat ID.
+     */
+    public function sendProformaRequestedNotificationToAdmins($proforma): void
+    {
+        try {
+            if (!$this->isConfigured()) {
+                return;
+            }
+
+            $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])
+                ->where('approved', true)
+                ->whereNotNull('telegram_chat_id')
+                ->get();
+
+            if ($admins->isEmpty()) {
+                Log::info('sendProformaRequestedNotificationToAdmins: No admins with linked Telegram found');
+                return;
+            }
+
+            $posterName = $proforma->poster?->name ?? 'Unknown';
+            $posterRole = $proforma->poster?->role ?? 'Unknown';
+            $brandName = $proforma->brand?->name ?? 'N/A';
+            $fileNumber = $proforma->file_number ?? $proforma->id;
+
+            $adminUrl = url("/admin/proformas/{$proforma->id}/details");
+
+            $text = "🆕 <b>Proforma Requested</b>\n\n"
+                . "📋 File: <b>{$fileNumber}</b>\n"
+                . "👤 Requested by: <b>{$posterName}</b> ({$posterRole})\n"
+                . "🚗 Brand: {$brandName}\n"
+                . "📌 Model: {$proforma->model} ({$proforma->year})\n"
+                . "🪪 Plate: {$proforma->license_plate_number}\n\n"
+                . "Please review, float, and publish in the admin panel.";
+
+            foreach ($admins as $admin) {
+                $this->sendMessageWithButton(
+                    (string) $admin->telegram_chat_id,
+                    $text,
+                    'Open Proforma',
+                    $adminUrl
+                );
+            }
+
+            Log::info('sendProformaRequestedNotificationToAdmins: Sent to admins', [
+                'proforma_id' => $proforma->id ?? null,
+                'file_number' => $proforma->file_number ?? null,
+                'admin_count' => $admins->count(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('sendProformaRequestedNotificationToAdmins: Failed', [
+                'proforma_id' => $proforma->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
+    /**
      * Send proforma closed notification with billing info.
      */
     public function sendClosedNotification(string $chatId, $proforma): bool
