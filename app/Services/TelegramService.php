@@ -290,6 +290,11 @@ class TelegramService
             . "🔧 Type: " . ($proforma->isEteraCheretaMode() ? 'Etera Chereta' : 'Regular') . "\n\n"
             . "Login to your account to view and apply.";
 
+        $loginUrl = url('/login');
+        if ($this->sendMessageWithButton($chatId, $text, 'Go to Login', $loginUrl)) {
+            return true;
+        }
+
         return $this->sendMessage($chatId, $text);
     }
 
@@ -319,7 +324,7 @@ class TelegramService
             $brandName = $proforma->brand?->name ?? 'N/A';
             $fileNumber = $proforma->file_number ?? $proforma->id;
 
-            $adminUrl = url("/admin/proformas/{$proforma->id}/details");
+            $adminUrl = url('/login');
 
             $text = "🆕 <b>Proforma Requested</b>\n\n"
                 . "📋 File: <b>{$fileNumber}</b>\n"
@@ -333,7 +338,7 @@ class TelegramService
                 $this->sendMessageWithButton(
                     (string) $admin->telegram_chat_id,
                     $text,
-                    'Open Proforma',
+                    'Go to Login',
                     $adminUrl
                 );
             }
