@@ -41,8 +41,28 @@ class InboxNotificationService
                     if ($inbox->wasRecentlyCreated && !empty($user->telegram_chat_id)) {
                         $telegram = new TelegramService();
                         if ($telegram->isConfigured()) {
-                            $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                            $sent = $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                            Log::info('Inbox Telegram notification attempted (shop)', [
+                                'proforma_id' => $proforma->id,
+                                'user_id' => $user->id,
+                                'sent' => $sent,
+                            ]);
+                        } else {
+                            Log::info('Inbox Telegram notification skipped: Telegram not configured (shop)', [
+                                'proforma_id' => $proforma->id,
+                                'user_id' => $user->id,
+                            ]);
                         }
+                    } elseif (!$inbox->wasRecentlyCreated) {
+                        Log::info('Inbox Telegram notification skipped: inbox already existed (shop)', [
+                            'proforma_id' => $proforma->id,
+                            'user_id' => $user->id,
+                        ]);
+                    } elseif (empty($user->telegram_chat_id)) {
+                        Log::info('Inbox Telegram notification skipped: user not linked (shop)', [
+                            'proforma_id' => $proforma->id,
+                            'user_id' => $user->id,
+                        ]);
                     }
                 } catch (\Throwable $e) {
                     Log::warning('Failed to send inbox received Telegram notification (shop)', [
@@ -101,8 +121,28 @@ class InboxNotificationService
                     if ($inbox->wasRecentlyCreated && !empty($user->telegram_chat_id)) {
                         $telegram = new TelegramService();
                         if ($telegram->isConfigured()) {
-                            $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                            $sent = $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                            Log::info('Inbox Telegram notification attempted (garage)', [
+                                'proforma_id' => $proforma->id,
+                                'user_id' => $user->id,
+                                'sent' => $sent,
+                            ]);
+                        } else {
+                            Log::info('Inbox Telegram notification skipped: Telegram not configured (garage)', [
+                                'proforma_id' => $proforma->id,
+                                'user_id' => $user->id,
+                            ]);
                         }
+                    } elseif (!$inbox->wasRecentlyCreated) {
+                        Log::info('Inbox Telegram notification skipped: inbox already existed (garage)', [
+                            'proforma_id' => $proforma->id,
+                            'user_id' => $user->id,
+                        ]);
+                    } elseif (empty($user->telegram_chat_id)) {
+                        Log::info('Inbox Telegram notification skipped: user not linked (garage)', [
+                            'proforma_id' => $proforma->id,
+                            'user_id' => $user->id,
+                        ]);
                     }
                 } catch (\Throwable $e) {
                     Log::warning('Failed to send inbox received Telegram notification (garage)', [

@@ -443,7 +443,7 @@ class AdminController extends Controller
             $proforma = Proforma::findOrFail($id);
             $userIds = $request->input('user_ids', []);
             
-            $service = new SendToOwnerNotificationService();
+            $service = new InboxNotificationService();
             $result = $service->sendToGarageUsers($proforma, $userIds);
             
             if ($result['success']) {
