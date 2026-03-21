@@ -220,7 +220,7 @@ Route::post('/login', function (Request $request) {
             if ($hasActiveStoredSession) {
                 Auth::logout();
                 return back()->withErrors([
-                    'email_or_phone' => 'Please log out of all other devices.'
+                    'email_or_phone' => 'Please log out of all other devices or browsers.'
                 ])->withInput();
             }
         }
@@ -254,6 +254,23 @@ Route::post('/login', function (Request $request) {
                 }
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Pending approval login attempt notification failed', [
+                    'user_id' => $user->id,
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
+            // Send Telegram notification to admins
+            try {
+                $telegram = new \App\Services\TelegramService();
+                $telegram->sendPendingUserLoginNotification(
+                    $user->id,
+                    (string) ($user->name ?? 'User'),
+                    $user->role,
+                    $user->email,
+                    $user->phone_number
+                );
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Pending approval Telegram notification failed', [
                     'user_id' => $user->id,
                     'error' => $e->getMessage(),
                 ]);
@@ -490,7 +507,7 @@ Route::middleware(['auth.user'])->group(function () {
             'password' => $request->filled('password') ? Hash::make($request->password) : $user->password,
         ]);
 
-        return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+        return redirect()->back()->with('success', 'Profile updated successfully!');
     })->name('profile.update');
 
     // Logout route
@@ -561,7 +578,7 @@ Route::middleware(['auth.user'])->group(function () {
                 'phone_number' => $request->phone_number,
             ]);
 
-        session()->flash('success', 'Profile updated successfully');
+        session()->flash('success', 'Profile updated successfully!');
 
         return redirect()->back();
     })->name('profile.update.user');
@@ -806,7 +823,7 @@ Route::put('/profile/update', function (Request $request) {
     $user->save();
 
     // Redirect with success message
-    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+    return redirect()->back()->with('success', 'Profile updated successfully!');
 })->middleware('auth')->name('profile.update');
 
 
@@ -873,7 +890,7 @@ Route::put('/profile/update', function (Request $request) {
 
     $user->save();
 
-    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+    return redirect()->back()->with('success', 'Profile updated successfully!');
 })->middleware('auth')->name('profile.update');
 
 

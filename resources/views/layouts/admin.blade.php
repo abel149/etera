@@ -522,6 +522,16 @@ auth()->user()->unreadNotifications->count()}}</span>
 
 		<!--end header -->
 
+		<!-- Success Messages -->
+		@if(session('success'))
+		<div class="px-3 px-md-4 mt-3" style="position: sticky; top: 80px; z-index: 1050;">
+			<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+				{{ session('success') }}
+				<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+			</div>
+		</div>
+		@endif
+
 		@yield('content')
 
 		<!--start overlay-->

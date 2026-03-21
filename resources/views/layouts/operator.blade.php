@@ -139,6 +139,16 @@
 		</header>
 		<!-- End Header -->
 
+		<!-- Success Messages -->
+		@if(session('success'))
+		<div class="px-3 px-md-4 mt-3" style="position: sticky; top: 80px; z-index: 1050;">
+			<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+				{{ session('success') }}
+				<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+			</div>
+		</div>
+		@endif
+
 		@yield('content')
 
 		<div class="overlay toggle-icon"></div>
@@ -160,17 +170,6 @@
 	<script src="{{asset('assets/plugins/notifications/js/lobibox.min.js')}}"></script>
 	<script src="{{asset('assets/plugins/notifications/js/notifications.min.js')}}"></script>
 
-	@if(session('success'))
-	<script>
-		Lobibox.notify('success', {
-			pauseDelayOnHover: true,
-			continueDelayOnInactiveTab: false,
-			position: 'top right',
-			msg: '{{ session("success") }}'
-		});
-	</script>
-	@endif
-
 	@if(session('error'))
 	<script>
 		Lobibox.notify('error', {
@@ -184,6 +183,7 @@
 
 	@livewireScripts
 	@stack('scripts')
+
 @include('partials.etera-scripts')
 @include('partials.notification-polling')
 @stack('scripts')

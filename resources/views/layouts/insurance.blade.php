@@ -26,6 +26,7 @@
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2.min.css')}}" />
 
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2-bootstrap-5-theme.min.css')}}" />
+	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
 	<link href="{{asset('assets/css/app.css')}}" rel="stylesheet">
 	<link href="{{asset('assets/css/icons.css')}}" rel="stylesheet">
@@ -284,6 +285,15 @@
 		<!--end header -->
       		  <div class="page-wrapper">
             <div class="page-content">
+             	<!-- Success Messages -->
+             	@if(session('success'))
+	            	<div class="px-3 px-md-4 mt-3" style="position: sticky; top: 80px; z-index: 1050;">
+	            		<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+	            			{{ session('success') }}
+	            			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+	            		</div>
+	            	</div>
+             	@endif
 				@yield('content')
 			</div>
 		</div>
@@ -598,7 +608,9 @@
 		feather.replace()
 	</script>
 @include('partials.etera-scripts')
+@include('partials.notification-polling')
 @stack('scripts')
+
 </body>
 
 </html>

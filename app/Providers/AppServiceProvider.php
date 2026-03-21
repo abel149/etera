@@ -67,7 +67,7 @@ class AppServiceProvider extends ServiceProvider
             $message = match ($code) {
                 403 => 'You do not have permission to access this page.',
                 404 => 'Page not found.',
-                500 => 'Something went wrong. Please try again.',
+                500 => 'Connection error. Please try again.',
                 default => $e->getMessage() ?: 'An error occurred.',
             };
             return redirect($dashboard)->with('error', $message);

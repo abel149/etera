@@ -41,6 +41,17 @@ class Proforma extends Model implements HasMedia
                 $posterRole = $proforma->poster?->role ?? 'Unknown';
                 $brandName = $proforma->brand?->name ?? 'N/A';
 
+                // Telegram notification to admins (if configured)
+                try {
+                    $telegram = new \App\Services\TelegramService();
+                    $telegram->sendProformaRequestedNotificationToAdmins($proforma);
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Failed to send proforma requested Telegram notification to admins', [
+                        'proforma_id' => $proforma->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+
                 // Send email notification for new proforma (if enabled)
                 if (\App\Models\EmailSetting::isEnabled('proforma_created')) {
                     \Illuminate\Support\Facades\Mail::raw(

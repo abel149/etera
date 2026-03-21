@@ -12,6 +12,7 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Str;
+use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Facades\Mail;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Notification;
@@ -26,7 +27,7 @@ class RegisterController extends Controller
      */
     public function showRegistrationForm()
     {
-        $brands = Brand::where('is_test', false)->get();
+        $brands = Brand::where('is_test', false)->orderBy('name')->get();
         return view('authentication.signup', compact('brands'));
     }
 
@@ -51,7 +52,7 @@ class RegisterController extends Controller
      */
     public function showGarageSparePartRegistrationForm()
     {
-        $brands = Brand::where('is_test', false)->get();
+        $brands = Brand::where('is_test', false)->orderBy('name')->get();
         return view('authentication.signup-garage-sparepart', compact('brands'));
     }
 
@@ -63,12 +64,14 @@ class RegisterController extends Controller
         // Validate common fields
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20',
+            'phone_number' => 'required|string|max:20|unique:users,phone_number',
             'role' => 'required|string|in:individual,business_owner,others,garage,shop,insurance,employee,marketer',
             'location' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:6|max:6|confirmed',
             'terms' => 'required|accepted',
+        ], [
+            'phone_number.unique' => 'You already have an account with this phone number.',
         ]);
 
         // Add role-specific validation
@@ -129,9 +132,8 @@ class RegisterController extends Controller
             // Allow Telegram connect page access for this newly registered user.
             $request->session()->put('telegram_connect_user_id', $user->id);
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -162,11 +164,13 @@ class RegisterController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20',
+            'phone_number' => 'required|string|max:20|unique:users,phone_number',
             'location' => 'required|string|max:255',
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:6|max:6|confirmed',
             'terms' => 'accepted',
+        ], [
+            'phone_number.unique' => 'You already have an account with this phone number.',
         ]);
 
         try {
@@ -193,9 +197,8 @@ class RegisterController extends Controller
             // Allow Telegram connect page access for this newly registered user.
             $request->session()->put('telegram_connect_user_id', $user->id);
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
         } catch (\Exception $e) {
             DB::rollback();
@@ -223,11 +226,13 @@ class RegisterController extends Controller
             // 2. Manually validate so we can catch & log validation errors
             $validatedData = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
-                'phone_number' => 'required|string|max:20',
+                'phone_number' => 'required|string|max:20|unique:users,phone_number',
                 'location' => 'nullable|string|max:255',
                 'email' => 'nullable|email|unique:users,email',
                 'password' => 'required|string|min:6|max:6|confirmed',
                 'terms' => 'accepted',
+            ], [
+                'phone_number.unique' => 'You already have an account with this phone number.',
             ]);
 
             // 3. If validation fails → log it
@@ -271,9 +276,8 @@ class RegisterController extends Controller
             // Allow Telegram connect page access for this newly registered user.
             $request->session()->put('telegram_connect_user_id', $user->id);
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
         } catch (\Throwable $e) {
 
@@ -303,7 +307,7 @@ public function storeGarageSparepart(Request $request)
         // ----------------- VALIDATION -----------------
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20',
+            'phone_number' => 'required|string|max:20|unique:users,phone_number',
             'role' => 'required|string|in:garage,shop',
             'location' => 'required|string|max:255',
             'tin_number' => 'required|string|max:255',
@@ -320,6 +324,7 @@ public function storeGarageSparepart(Request $request)
             'bank_name' => 'nullable|string|max:255',
             'account_number' => 'nullable|string|max:50',
         ], [
+            'phone_number.unique' => 'You already have an account with this phone number.',
             'tin_number.required' => 'The TIN Number is required for registration.',
             'license_image_data.required' => 'Please upload the business license image.',
             'stamp_image_data.required' => 'Please upload the stamp image.',
@@ -432,9 +437,8 @@ public function storeGarageSparepart(Request $request)
         }
 
 
-            // Redirect to Telegram connect page (email OTP disabled)
-            return redirect()->route('telegram.connect', ['userId' => $user->id])
-                ->with('success', 'Registration successful! Connect your Telegram to receive notifications.');
+            return redirect()->route('login')
+                ->with('welcome', 'Registration successful! Welcome to etera. Please sign in to continue.');
 
     } catch (ValidationException $e) {
         DB::rollBack();

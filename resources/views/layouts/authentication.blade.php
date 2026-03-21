@@ -62,6 +62,10 @@
     .etera-divider{display:flex;align-items:center;gap:16px;margin:1.5rem 0;color:var(--etera-text-muted);font-size:.85rem}
     .etera-divider::before,.etera-divider::after{content:'';flex:1;height:1px;background:#e5e7eb}
     .etera-error-text{color:#dc3545;font-size:.8rem;margin-top:4px}
+    .etera-welcome-banner{display:flex;align-items:flex-start;gap:12px;padding:14px 16px;border-radius:14px;background:linear-gradient(135deg,rgba(40,167,69,0.12) 0%,rgba(32,201,151,0.10) 100%);border:1px solid rgba(40,167,69,0.25);color:var(--etera-text);box-shadow:0 10px 30px rgba(40,167,69,0.10)}
+    .etera-welcome-icon{width:40px;height:40px;display:flex;align-items:center;justify-content:center;border-radius:12px;background:rgba(40,167,69,0.14);color:var(--etera-green);flex:0 0 auto}
+    .etera-welcome-title{font-weight:800;font-size:0.95rem;line-height:1.2;margin:0 0 2px 0}
+    .etera-welcome-text{margin:0;color:var(--etera-text-soft);font-size:0.95rem;line-height:1.35}
     /* Role cards — white/green */
     .etera-role-card{background:#fff;border:1px solid #c8e6c9;color:#1a1a2e}
     .etera-role-card:hover{border-color:#28a745;background:rgba(40,167,69,0.04);box-shadow:0 12px 40px rgba(40,167,69,0.12);color:#1a1a2e}
@@ -150,6 +154,22 @@
         <!-- Right Form Panel -->
         <div class="etera-auth-form-side">
             <div class="etera-glass-card etera-auth-card">
+                @if(session('welcome'))
+                    <div style="margin-bottom: 1rem;">
+                        <div class="alert alert-dismissible fade show mb-0" role="alert" style="background: transparent; border: 0; padding: 0;">
+                            <div class="etera-welcome-banner">
+                                <div class="etera-welcome-icon" aria-hidden="true">
+                                    <i class="bi bi-check2-circle" style="font-size: 1.25rem;"></i>
+                                </div>
+                                <div style="flex: 1 1 auto; min-width: 0;">
+                                    <div class="etera-welcome-title">Welcome to etera</div>
+                                    <p class="etera-welcome-text">{{ session('welcome') }}</p>
+                                </div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                            </div>
+                        </div>
+                    </div>
+                @endif
                 @yield('content')
             </div>
         </div>

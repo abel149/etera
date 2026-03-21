@@ -27,7 +27,7 @@ class HandleErrors
             ]);
 
             $dashboard = $this->getDashboardUrl();
-            $message   = $e->getMessage() ?: 'Something went wrong. Please try again.';
+            $message   = $e->getMessage() ?: 'Connection error. Please try again.';
 
             return redirect($dashboard)->with('error', $message);
         }

@@ -119,10 +119,10 @@ class TelegramService
                 ->timeout(10)
                 ->retry(1, 200)
                 ->post("{$this->apiBase}/sendMessage", [
-                'chat_id' => $chatId,
-                'text' => $text,
-                'parse_mode' => 'HTML',
-            ]);
+                    'chat_id' => $chatId,
+                    'text' => $text,
+                    'parse_mode' => 'HTML',
+                ]);
 
             if ($response->successful() && $response->json('ok')) {
                 Log::info('TelegramService: Message sent', ['chat_id' => $chatId]);
@@ -282,7 +282,7 @@ class TelegramService
     public function sendProformaNotification(string $chatId, $proforma): bool
     {
         $brandName = $proforma->brand?->name ?? 'N/A';
-        $text = "🔔 <b>New Proforma Available!</b>\n\n"
+        $text = "🔔 <b>New Proforma request!</b>\n\n"
             . "📋 File: <b>{$proforma->file_number}</b>\n"
             . "🚗 Brand: {$brandName}\n"
             . "📌 Model: {$proforma->model} ({$proforma->year})\n"
@@ -291,6 +291,82 @@ class TelegramService
             . "Login to your account to view and apply.";
 
         return $this->sendMessage($chatId, $text);
+    }
+
+    public function sendInboxReceivedNotification(string $chatId, $proforma): bool
+    {
+        $brandName = $proforma->brand?->name ?? 'N/A';
+        $text = "📥 <b>New Inbox Received</b>\n\n"
+            . "A new proforma has been sent to your inbox.\n\n"
+            . "📋 File: <b>{$proforma->file_number}</b>\n"
+            . "🚗 Brand: {$brandName}\n"
+            . "📌 Model: {$proforma->model} ({$proforma->year})\n"
+            . "🪪 Plate: {$proforma->license_plate_number}";
+
+        $loginUrl = url('/login');
+        if ($this->sendMessageWithButton($chatId, $text, 'Go to Login', $loginUrl)) {
+            return true;
+        }
+
+        return $this->sendMessage($chatId, $text);
+    }
+
+    /**
+     * Notify all admins that a new proforma has been requested/created so they can float/publish it.
+     * Sends to all approved admins/superadmins with a linked Telegram chat ID.
+     */
+    public function sendProformaRequestedNotificationToAdmins($proforma): void
+    {
+        try {
+            if (!$this->isConfigured()) {
+                return;
+            }
+
+            $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])
+                ->where('approved', true)
+                ->whereNotNull('telegram_chat_id')
+                ->get();
+
+            if ($admins->isEmpty()) {
+                Log::info('sendProformaRequestedNotificationToAdmins: No admins with linked Telegram found');
+                return;
+            }
+
+            $posterName = $proforma->poster?->name ?? 'Unknown';
+            $posterRole = $proforma->poster?->role ?? 'Unknown';
+            $brandName = $proforma->brand?->name ?? 'N/A';
+            $fileNumber = $proforma->file_number ?? $proforma->id;
+
+            $adminUrl = url('/login');
+
+            $text = "🆕 <b>Proforma Requested</b>\n\n"
+                . "📋 File: <b>{$fileNumber}</b>\n"
+                . "👤 Requested by: <b>{$posterName}</b> ({$posterRole})\n"
+                . "🚗 Brand: {$brandName}\n"
+                . "📌 Model: {$proforma->model} ({$proforma->year})\n"
+                . "🪪 Plate: {$proforma->license_plate_number}\n\n"
+                . "Please review, float, and publish in the admin panel.";
+
+            foreach ($admins as $admin) {
+                $this->sendMessageWithButton(
+                    (string) $admin->telegram_chat_id,
+                    $text,
+                    'Go to Login',
+                    $adminUrl
+                );
+            }
+
+            Log::info('sendProformaRequestedNotificationToAdmins: Sent to admins', [
+                'proforma_id' => $proforma->id ?? null,
+                'file_number' => $proforma->file_number ?? null,
+                'admin_count' => $admins->count(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('sendProformaRequestedNotificationToAdmins: Failed', [
+                'proforma_id' => $proforma->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 
     /**
@@ -345,6 +421,57 @@ class TelegramService
     }
 
     
+    /**
+     * Send a notification to admins when a pending user attempts to log in.
+     * Sends to all admins with a linked Telegram chat ID.
+     */
+    public function sendPendingUserLoginNotification(int $userId, string $userName, ?string $userRole, ?string $email, ?string $phoneNumber): void
+    {
+        try {
+            $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])
+                ->where('approved', true)
+                ->whereNotNull('telegram_chat_id')
+                ->get();
+
+            if ($admins->isEmpty()) {
+                Log::info('sendPendingUserLoginNotification: No admins with linked Telegram found');
+                return;
+            }
+
+            // Build contact string
+            $parts = [];
+            if (!empty($email)) {
+                $parts[] = $email;
+            }
+            if (!empty($phoneNumber)) {
+                $parts[] = $phoneNumber;
+            }
+            $contact = count($parts) ? (' (' . implode(' / ', $parts) . ')') : '';
+            $roleText = $userRole ? ('Role: ' . $userRole) : 'Role: N/A';
+
+            $text = "🔔 <b>Pending User Login Attempt</b>\n\n"
+                . "👤 <b>User:</b> {$userName}{$contact}\n"
+                . "🏷️ <b>{$roleText}</b>\n"
+                . "⏰ <b>Time:</b> " . now()->format('M d, Y h:i A') . "\n\n"
+                . "Please review and approve the user in the admin panel.";
+
+            foreach ($admins as $admin) {
+                $this->sendMessage($admin->telegram_chat_id, $text);
+            }
+
+            Log::info('sendPendingUserLoginNotification: Sent to admins', [
+                'user_id' => $userId,
+                'user_name' => $userName,
+                'admin_count' => $admins->count(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::error('sendPendingUserLoginNotification: Failed', [
+                'user_id' => $userId,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     /**
      * Send rejection notification.
      */

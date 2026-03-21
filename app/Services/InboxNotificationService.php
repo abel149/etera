@@ -6,6 +6,7 @@ use App\Models\Proforma;
 use App\Models\User;
 use App\Models\Inbox;
 use App\Notifications\InboxNotification;
+use App\Services\TelegramService;
 use Illuminate\Support\Facades\Log;
 
 class InboxNotificationService
@@ -34,6 +35,22 @@ class InboxNotificationService
 
                 // Send notification
                 $user->notify(new InboxNotification($proforma));
+
+                // Telegram (only when a new inbox record is created)
+                try {
+                    if ($inbox->wasRecentlyCreated && !empty($user->telegram_chat_id)) {
+                        $telegram = new TelegramService();
+                        if ($telegram->isConfigured()) {
+                            $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send inbox received Telegram notification (shop)', [
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             Log::info("Inbox notifications sent to " . $sparePartUsers->count() . " spare-part users for proforma {$proforma->id}");
@@ -78,6 +95,22 @@ class InboxNotificationService
 
                 // Send notification
                 $user->notify(new InboxNotification($proforma));
+
+                // Telegram (only when a new inbox record is created)
+                try {
+                    if ($inbox->wasRecentlyCreated && !empty($user->telegram_chat_id)) {
+                        $telegram = new TelegramService();
+                        if ($telegram->isConfigured()) {
+                            $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                        }
+                    }
+                } catch (\Throwable $e) {
+                    Log::warning('Failed to send inbox received Telegram notification (garage)', [
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $user->id,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
             }
 
             Log::info("Inbox notifications sent to " . $garageUsers->count() . " garage users for proforma {$proforma->id}");

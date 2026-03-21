@@ -166,6 +166,21 @@
 			transition: background 0.2s;
 			text-decoration: none;
 			color: #1a1a1a;
+			white-space: nowrap;
+		}
+
+		/* Hide Bootstrap caret; we use a custom chevron icon for consistent UI */
+		.sp-user-trigger.dropdown-toggle::after {
+			display: none;
+		}
+
+		.sp-user-caret {
+			display: inline-flex;
+			align-items: center;
+			color: #2e7d32;
+			font-size: 0.9rem;
+			margin-left: 6px;
+			line-height: 1;
 		}
 
 		.sp-user-trigger:hover {
@@ -174,17 +189,22 @@
 		}
 
 		.sp-avatar {
+			position: relative;
+			display: inline-flex;
+			align-items: center;
+			justify-content: center;
 			width: 36px;
 			height: 36px;
 			border-radius: 50%;
 			overflow: hidden;
 			border: 2px solid rgba(40, 167, 69, 0.4);
+			background: rgba(40, 167, 69, 0.12);
 		}
 
-		.sp-avatar img {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
+		.sp-avatar .sp-avatar-icon {
+			color: #2e7d32;
+			font-size: 18px;
+			line-height: 1;
 		}
 
 		.sp-user-name {
@@ -199,26 +219,15 @@
 			display: block;
 		}
 
-		.sp-dropdown {
-			position: absolute;
-			top: calc(100% + 8px);
-			right: 0;
+		.sp-user-menu .dropdown-menu {
 			width: 220px;
-			background: #fff;
 			border: 1px solid #c8e6c9;
 			border-radius: 12px;
 			box-shadow: 0 16px 48px rgba(0, 0, 0, 0.12);
-			display: none;
 			padding: 8px;
-			z-index: 1001;
 		}
 
-		.sp-user-menu:hover .sp-dropdown {
-			display: block;
-		}
-
-		.sp-dropdown a,
-		.sp-dropdown button {
+		.sp-user-menu .dropdown-item {
 			display: flex;
 			align-items: center;
 			gap: 10px;
@@ -229,19 +238,18 @@
 			color: #333;
 			text-decoration: none;
 			border: none;
-			background: none;
 			cursor: pointer;
 			transition: all 0.2s;
 			font-family: 'Inter', sans-serif;
 		}
 
-		.sp-dropdown a:hover,
-		.sp-dropdown button:hover {
+		.sp-user-menu .dropdown-item:hover,
+		.sp-user-menu .dropdown-item:focus {
 			color: #1b5e20;
 			background: rgba(40, 167, 69, 0.1);
 		}
 
-		.sp-dropdown form {
+		.sp-user-menu form {
 			margin: 0;
 		}
 
@@ -819,29 +827,32 @@
 		</div>
 
 		<!-- User Menu -->
-		<div class="sp-user-menu">
-			<a href="#" class="sp-user-trigger">
+		<div class="dropdown sp-user-menu">
+			<a href="#" class="sp-user-trigger dropdown-toggle" data-bs-toggle="dropdown" aria-expanded="false">
 				<div class="sp-avatar">
-					<img src="{{asset('asset/images/company-logo-03a.png')}}" alt="Avatar">
+					<i class="bi bi-person-fill sp-avatar-icon" aria-hidden="true"></i>
 				</div>
 				<div class="sp-user-name-text">
 					<span class="sp-user-name">{{ucfirst(auth()->user()->name)}}</span>
 					<span class="sp-user-role">{{ucfirst(auth()->user()->role)}}</span>
 				</div>
+				<i class="bi bi-chevron-down sp-user-caret" aria-hidden="true"></i>
 			</a>
-
-			<div class="sp-dropdown">
+			<ul class="dropdown-menu dropdown-menu-end">
 				@if(auth()->user()->role == 'garage')
-					<a href="/garage/profile"><i class="bi bi-gear"></i> Settings</a>
+					<li><a class="dropdown-item" href="/garage/profile"><i class="bi bi-gear"></i> Settings</a></li>
 				@elseif(auth()->user()->role == 'shop')
-					<a href="/spare-part-shops/profile"><i class="bi bi-gear"></i> Settings</a>
+					<li><a class="dropdown-item" href="/spare-part-shops/profile"><i class="bi bi-gear"></i> Settings</a></li>
 				@endif
-				<form action="{{route('logout')}}" method="POST">
-					@method("DELETE")
-					@csrf
-					<button type="submit"><i class="bi bi-box-arrow-right"></i> Logout</button>
-				</form>
-			</div>
+				<li><div class="dropdown-divider mb-0"></div></li>
+				<li>
+					<form action="{{route('logout')}}" method="POST">
+						@method("DELETE")
+						@csrf
+						<button type="submit" class="dropdown-item"><i class="bi bi-box-arrow-right"></i> Logout</button>
+					</form>
+				</li>
+			</ul>
 		</div>
 	</div>
 </header>
@@ -850,6 +861,16 @@
 @if($payAmount)
 <div class="sp-commission-banner">
 	💰 Earn <strong>{{ $payAmount }} birr</strong> for every <strong>Insurance Proforma</strong> you fill out!
+</div>
+@endif
+
+<!-- Success Messages -->
+@if(session('success'))
+<div class="px-3 px-md-4 mt-3" style="position: sticky; top: 80px; z-index: 1050;">
+	<div class="alert alert-success alert-dismissible fade show mb-0" role="alert">
+		{{ session('success') }}
+		<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+	</div>
 </div>
 @endif
 

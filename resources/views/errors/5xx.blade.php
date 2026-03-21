@@ -135,10 +135,10 @@
     </div>
     <div class="container">
         <div class="emoji">🛠️</div>
-        <h1 class="error-title">Something Went Wrong</h1>
+        <h1 class="error-title">Connection Error</h1>
         <p class="error-message">
-            We're experiencing a temporary issue on our end. 
-            Our team has been notified and is working on it. Please try again.
+            We couldn't complete your request due to a connection problem.
+            Please check your internet connection and try again.
         </p>
         <div class="btn-group">
             <a href="/" class="btn btn-primary">
