@@ -127,9 +127,9 @@ class="current"
             3: ({{ number_format($cost->{'3_proforma_cost'}, 2) }} Birr)
         </option>
 
-        <option value="4" {{ old('number_of_proformas') == 4 ? 'selected' : '' }}>
+        <!-- <option value="4" {{ old('number_of_proformas') == 4 ? 'selected' : '' }}>
             4: ({{ number_format($cost->{'4_proforma_cost'}, 2) }} Birr)
-        </option>
+        </option> -->
 
         <option value="-1" {{ old('number_of_proformas') == -1 ? 'selected' : '' }}>
              5: Unlimited by timer ({{ number_format($cost->etera_chereta_cost, 2) }} Birr)
