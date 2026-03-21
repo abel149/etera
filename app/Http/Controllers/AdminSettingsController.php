@@ -78,6 +78,7 @@ class AdminSettingsController extends Controller
             'shopPay' => 'required|numeric|min:0',
             'garagePay' => 'required|numeric|min:0',
             'insurancePay' => 'required|numeric|min:0',
+            'othersPay' => 'required|numeric|min:0',
         ]);
 
         $commission = Commission::first();

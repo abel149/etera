@@ -16,5 +16,6 @@ class Commission extends Model
         'garagePay',
         'insurancePay',
         'operatorPay',
+        'othersPay',
     ];
 }

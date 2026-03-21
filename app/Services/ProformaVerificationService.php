@@ -53,11 +53,13 @@ class ProformaVerificationService
         $shopPay = $commissions->shopPay ?? 0;
         $garagePay = $commissions->garagePay ?? 0;
         $operatorPay = $commissions->operatorPay ?? 0;
+        $othersPay = $commissions->othersPay ?? 0;
 
         Log::info('Commission rates loaded', [
             'shopPay' => $shopPay,
             'garagePay' => $garagePay,
-            'operatorPay' => $operatorPay
+            'operatorPay' => $operatorPay,
+            'othersPay' => $othersPay
         ]);
 
         // Fetch applications
@@ -155,6 +157,12 @@ class ProformaVerificationService
             Log::info('Etera Chereta invoice row created', ['total' => $total]);
         }
 
+        // -------------------
+        // OTHERS/BUSINESS-OWNER COMMISSION (ALL TYPES EXCEPT INSURANCE)
+        // -------------------
+        if ($type !== 'insurance' && $proforma->poster && in_array($proforma->poster->role, ['others', 'garage']) && $othersPay > 0) {
+            $this->createCommissionRecord($proforma->poster, $othersPay, $proforma, null, 'Others commission');
+        }
         // -------------------
         // OPERATOR COMMISSION (POSITIVE - they earned money)
         // -------------------
