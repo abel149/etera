@@ -13,6 +13,7 @@ use App\Services\TelegramService;
 use App\Events\ProformaStatusChanged;
 use App\Events\NotificationSent;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Notification;
 use Illuminate\Notifications\DatabaseNotification;
 
@@ -471,6 +472,11 @@ class AdminController extends Controller
             }
             
         } catch (\Exception $e) {
+            Log::error('AdminController@sendToGarage failed', [
+                'proforma_id' => $id,
+                'admin_user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error sending proforma to garage users: ' . $e->getMessage()
@@ -579,6 +585,11 @@ class AdminController extends Controller
             }
             
         } catch (\Exception $e) {
+            Log::error('AdminController@sendToSparePart failed', [
+                'proforma_id' => $id,
+                'admin_user_id' => auth()->id(),
+                'error' => $e->getMessage(),
+            ]);
             return response()->json([
                 'success' => false,
                 'message' => 'Error sending proforma to spare-part users: ' . $e->getMessage()
