@@ -857,10 +857,20 @@
 	</div>
 </header>
 
+@php
+    $othersPay = $commission?->othersPay;
+@endphp
+
 <!-- Commission Banner -->
-@if($payAmount)
+@if($payAmount || $othersPay)
 <div class="sp-commission-banner">
-	💰 Earn <strong>{{ $payAmount }} birr</strong> for every <strong>Insurance Proforma</strong> you fill out!
+	@if($payAmount && $othersPay)
+		💰 Earn <strong>{{ $payAmount }} birr</strong> for every <strong>Insurance Proforma</strong> and <strong>{{ $othersPay }} birr</strong> for every <strong>Others Proforma</strong> you fill out!
+	@elseif($payAmount)
+		💰 Earn <strong>{{ $payAmount }} birr</strong> for every <strong>Insurance Proforma</strong> you fill out!
+	@elseif($othersPay)
+		💰 Earn <strong>{{ $othersPay }} birr</strong> for every <strong>Others Proforma</strong> you fill out!
+	@endif
 </div>
 @endif
 

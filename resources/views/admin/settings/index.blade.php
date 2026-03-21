@@ -165,6 +165,10 @@
                         <label class="form-label">Operator Commission (Birr)</label>
                         <input type="number" step="0.01" name="operatorPay" class="form-control" value="{{ old('operatorPay', $commission->operatorPay ?? 0) }}" required>
                     </div>
+                    <div class="col-md-4 mb-3">
+                        <label class="form-label">Others Commission (Birr)</label>
+                        <input type="number" step="0.01" name="othersPay" class="form-control" value="{{ old('othersPay', $commission->othersPay ?? 0) }}" required>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-success w-100">
@@ -182,6 +186,7 @@
                             <th>Garage Pay</th>
                             <th>Insurance Pay</th>
                             <th>Operator Pay</th>
+                            <th>Others Pay</th>
                             <th>Last Updated</th>
                         </tr>
                     </thead>
@@ -192,6 +197,7 @@
                             <td>{{ $commission->garagePay }}</td>
                             <td>{{ $commission->insurancePay }}</td>
                             <td>{{ $commission->operatorPay }}</td>
+                            <td>{{ $commission->othersPay }}</td>
                             <td>{{ $commission->updated_at->format('d M Y, H:i') }}</td>
                         </tr>
                     </tbody>

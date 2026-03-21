@@ -1744,6 +1744,14 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 }
             }
         }
+
+        // 🔹 Others/Business-Owner commission (ALL TYPES EXCEPT INSURANCE)
+        if ($type !== 'insurance' && $proforma->poster && in_array($proforma->poster->role, ['others', 'garage'])) {
+            $othersPay = $commissions->othersPay ?? 0;
+            if ($othersPay > 0) {
+                addCommissionRecord($proforma->poster, $proforma->id, null, $othersPay);
+            }
+        }
 	}
 
         /*
