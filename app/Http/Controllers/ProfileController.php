@@ -8,6 +8,7 @@ use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Validation\ValidationException;
 
 use App\Models\BankAccount;
 
@@ -32,9 +33,14 @@ public function updateSelf(Request $request)
     try {
         $user = auth()->user();
 
+        $email = $request->has('email') ? trim((string) $request->input('email')) : '';
+        if ($email === '' || in_array(strtolower($email), ['null', 'undefined'], true)) {
+            $email = null;
+        }
+
         // Normalize empty strings to null (common when email is optional)
         $request->merge([
-            'email' => $request->filled('email') ? $request->email : null,
+            'email' => $email,
             'phone_number' => $request->filled('phone_number') ? $request->phone_number : null,
             'tin_number' => $request->filled('tin_number') ? $request->tin_number : null,
         ]);
@@ -103,6 +109,8 @@ public function updateSelf(Request $request)
         $user->save();
 
         return back()->with('success', 'Profile updated successfully!');
+    } catch (ValidationException $e) {
+        throw $e;
     } catch (\Throwable $e) {
         try {
             Log::error('ProfileController@updateSelf failed', [
