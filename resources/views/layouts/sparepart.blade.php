@@ -721,9 +721,9 @@
 		.etera-bg-circles { display: none; }
 	</style>
 
-	@if(auth()->user()->role == 'garage')
+	@if(auth()->check() && auth()->user()->role == 'garage')
 		<title>etera - Garages</title>
-	@elseif(auth()->user()->role == 'shop')
+	@elseif(auth()->check() && auth()->user()->role == 'shop')
 		<title>etera - Spare Part Shops</title>
 	@endif
 
@@ -731,9 +731,9 @@
 	@include('partials.react-head')
 	@include('partials.green-theme')
 
-	@if(auth()->user()->role == 'garage')
+	@if(auth()->check() && auth()->user()->role == 'garage')
 		<title>etera - Garages</title>
-	@elseif(auth()->user()->role == 'shop')
+	@elseif(auth()->check() && auth()->user()->role == 'shop')
 		<title>etera - Spare Part Shops</title>
 	@endif
 

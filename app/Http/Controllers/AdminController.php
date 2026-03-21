@@ -440,11 +440,23 @@ class AdminController extends Controller
     public function sendToGarage(Request $request, $id)
     {
         try {
+            Log::info('AdminController@sendToGarage: started', [
+                'proforma_id' => $id,
+                'admin_user_id' => auth()->id(),
+                'user_ids_count' => is_array($request->input('user_ids', [])) ? count($request->input('user_ids', [])) : null,
+            ]);
+
             $proforma = Proforma::findOrFail($id);
             $userIds = $request->input('user_ids', []);
             
             $service = new InboxNotificationService();
             $result = $service->sendToGarageUsers($proforma, $userIds);
+
+            Log::info('AdminController@sendToGarage: completed', [
+                'proforma_id' => $proforma->id,
+                'success' => (bool) ($result['success'] ?? false),
+                'count' => $result['count'] ?? null,
+            ]);
             
             if ($result['success']) {
                 return response()->json([
@@ -536,11 +548,23 @@ class AdminController extends Controller
     public function sendToSparePart(Request $request, $id)
     {
         try {
+            Log::info('AdminController@sendToSparePart: started', [
+                'proforma_id' => $id,
+                'admin_user_id' => auth()->id(),
+                'user_ids_count' => is_array($request->input('user_ids', [])) ? count($request->input('user_ids', [])) : null,
+            ]);
+
             $proforma = Proforma::findOrFail($id);
             $userIds = $request->input('user_ids', []);
             
             $service = new InboxNotificationService();
             $result = $service->sendToSparePartUsers($proforma, $userIds);
+
+            Log::info('AdminController@sendToSparePart: completed', [
+                'proforma_id' => $proforma->id,
+                'success' => (bool) ($result['success'] ?? false),
+                'count' => $result['count'] ?? null,
+            ]);
             
             if ($result['success']) {
                 return response()->json([

@@ -36,15 +36,16 @@ class InboxNotificationService
                 // Send notification
                 $user->notify(new InboxNotification($proforma));
 
-                // Telegram (only when a new inbox record is created)
+                // Telegram
                 try {
-                    if ($inbox->wasRecentlyCreated && !empty($user->telegram_chat_id)) {
+                    if (!empty($user->telegram_chat_id)) {
                         $telegram = new TelegramService();
                         if ($telegram->isConfigured()) {
                             $sent = $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
                             Log::info('Inbox Telegram notification attempted (shop)', [
                                 'proforma_id' => $proforma->id,
                                 'user_id' => $user->id,
+                                'inbox_recently_created' => (bool) $inbox->wasRecentlyCreated,
                                 'sent' => $sent,
                             ]);
                         } else {
@@ -53,11 +54,6 @@ class InboxNotificationService
                                 'user_id' => $user->id,
                             ]);
                         }
-                    } elseif (!$inbox->wasRecentlyCreated) {
-                        Log::info('Inbox Telegram notification skipped: inbox already existed (shop)', [
-                            'proforma_id' => $proforma->id,
-                            'user_id' => $user->id,
-                        ]);
                     } elseif (empty($user->telegram_chat_id)) {
                         Log::info('Inbox Telegram notification skipped: user not linked (shop)', [
                             'proforma_id' => $proforma->id,
@@ -116,15 +112,16 @@ class InboxNotificationService
                 // Send notification
                 $user->notify(new InboxNotification($proforma));
 
-                // Telegram (only when a new inbox record is created)
+                // Telegram
                 try {
-                    if ($inbox->wasRecentlyCreated && !empty($user->telegram_chat_id)) {
+                    if (!empty($user->telegram_chat_id)) {
                         $telegram = new TelegramService();
                         if ($telegram->isConfigured()) {
                             $sent = $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
                             Log::info('Inbox Telegram notification attempted (garage)', [
                                 'proforma_id' => $proforma->id,
                                 'user_id' => $user->id,
+                                'inbox_recently_created' => (bool) $inbox->wasRecentlyCreated,
                                 'sent' => $sent,
                             ]);
                         } else {
@@ -133,11 +130,6 @@ class InboxNotificationService
                                 'user_id' => $user->id,
                             ]);
                         }
-                    } elseif (!$inbox->wasRecentlyCreated) {
-                        Log::info('Inbox Telegram notification skipped: inbox already existed (garage)', [
-                            'proforma_id' => $proforma->id,
-                            'user_id' => $user->id,
-                        ]);
                     } elseif (empty($user->telegram_chat_id)) {
                         Log::info('Inbox Telegram notification skipped: user not linked (garage)', [
                             'proforma_id' => $proforma->id,
