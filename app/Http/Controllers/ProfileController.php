@@ -45,6 +45,11 @@ public function updateSelf(Request $request)
             $email = null;
         }
 
+        // If email is provided (not null), validate format; if invalid, return with error
+        if ($email !== null && !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+            return back()->withErrors(['email' => 'Please provide a proper email address or leave the field empty.']);
+        }
+
         // Normalize empty strings to null (common when email is optional)
         $request->merge([
             'email' => $email,

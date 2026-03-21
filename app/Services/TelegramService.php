@@ -282,7 +282,7 @@ class TelegramService
     public function sendProformaNotification(string $chatId, $proforma): bool
     {
         $brandName = $proforma->brand?->name ?? 'N/A';
-        $text = "🔔 <b>New Proforma request!</b>\n\n"
+        $text = "🔔 <b>New Proforma Invoice Request!</b>\n\n"
             . "📋 File: <b>{$proforma->file_number}</b>\n"
             . "🚗 Brand: {$brandName}\n"
             . "📌 Model: {$proforma->model} ({$proforma->year})\n"
