@@ -90,7 +90,7 @@ public function updateSelf(Request $request)
 
     $user->save();
 
-    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+    return back()->with('success', 'Profile updated successfully!');
 }
 
 

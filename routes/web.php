@@ -507,7 +507,7 @@ Route::middleware(['auth.user'])->group(function () {
             'password' => $request->filled('password') ? Hash::make($request->password) : $user->password,
         ]);
 
-        return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+        return redirect()->back()->with('success', 'Profile updated successfully!');
     })->name('profile.update');
 
     // Logout route
@@ -823,7 +823,7 @@ Route::put('/profile/update', function (Request $request) {
     $user->save();
 
     // Redirect with success message
-    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+    return redirect()->back()->with('success', 'Profile updated successfully!');
 })->middleware('auth')->name('profile.update');
 
 
@@ -890,7 +890,7 @@ Route::put('/profile/update', function (Request $request) {
 
     $user->save();
 
-    return redirect()->route('profile.show')->with('success', 'Profile updated successfully!');
+    return redirect()->back()->with('success', 'Profile updated successfully!');
 })->middleware('auth')->name('profile.update');
 
 
