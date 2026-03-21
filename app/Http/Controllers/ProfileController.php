@@ -32,6 +32,13 @@ public function updateSelf(Request $request)
 {
     try {
         $user = auth()->user();
+        Log::info('ProfileController@updateSelf called', [
+            'user_id' => $user->id,
+            'role' => $user->role,
+            'has_name' => $request->has('name'),
+            'has_phone' => $request->has('phone_number'),
+            'has_email' => $request->has('email'),
+        ]);
 
         $email = $request->has('email') ? trim((string) $request->input('email')) : '';
         if ($email === '' || in_array(strtolower($email), ['null', 'undefined'], true)) {
@@ -107,6 +114,11 @@ public function updateSelf(Request $request)
         }
 
         $user->save();
+
+        Log::info('ProfileController@updateSelf success', [
+            'user_id' => $user->id,
+            'role' => $user->role,
+        ]);
 
         return back()->with('success', 'Profile updated successfully!');
     } catch (ValidationException $e) {
