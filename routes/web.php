@@ -3735,6 +3735,9 @@ Route::post('/proformas', function (Request $request) {
         $uniqueSparePartPartners = array_unique($request->spare_part_partners);
 
         foreach ($uniqueSparePartPartners as $inbox) {
+            if (empty($inbox)) {
+                continue;
+            }
             Inbox::firstOrCreate([
                 'proforma_id' => $proforma->id,
                 'user_id' => $inbox,
@@ -3746,6 +3749,9 @@ Route::post('/proformas', function (Request $request) {
         $uniqueGaragePartners = array_unique($request->garage_partners);
 
         foreach ($uniqueGaragePartners as $inbox) {
+            if (empty($inbox)) {
+                continue;
+            }
             Inbox::firstOrCreate([
                 'proforma_id' => $proforma->id,
                 'user_id' => $inbox,
