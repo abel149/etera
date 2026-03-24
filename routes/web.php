@@ -1744,6 +1744,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             }
        
         }
+        }
 
         // 🔹 Operator commission (ALL TYPES)
         $selection = \App\Models\ProformaSelection::where('proforma_id', $proforma->id)
