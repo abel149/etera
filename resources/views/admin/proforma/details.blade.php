@@ -334,7 +334,6 @@
                                             <tr>
                                                 <th>Applicant</th>
                                                 <th>Role</th>
-                                                <th>Amount</th>
                                                 <th>Applied At</th>
                                                 <th>Voice Note</th>
                                                 <th>Status</th>
@@ -348,7 +347,6 @@
                                             <tr class="application-row" data-index="{{ $index }}" @if($proforma->isEteraCheretaMode() && $index >= 5) style="display:none;" @endif>
                                                 <td>{{ $application->applicationBy->name }}</td>
                                                 <td>{{ ucfirst($application->applicationBy->role) }}</td>
-                                                <td><strong>{{ number_format($application->amount, 2) }} Birr</strong></td>
                                                 <td>{{ $application->created_at->format('d M Y, h:i A') }}</td>
                                                 
                                                 <td>
