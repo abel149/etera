@@ -1710,23 +1710,39 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         // 🔹 Applicant commissions (INSURANCE ONLY)
         if ($type === 'insurance') {
-            $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+        $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
 
-            foreach ($applications as $application) {
-                $user = $application->applicationBy;
+        foreach ($applications as $application) {
+            $user = $application->applicationBy;
                 $amount = $user->role === 'garage'
                     ? ($commissions->garagePay ?? 0)
                     : ($commissions->shopPay ?? 0);
 
-                if ($amount > 0) {
-                    addCommissionRecord(
-                        $user,
-                        $proforma->id,
-                        $application->id,
-                        $amount
-                    );
-                }
+            if ($amount > 0) {
+                addCommissionRecord(
+                    $user,
+                    $proforma->id,
+                    $application->id,
+                    $amount
+                );
             }
+        }
+        }else{
+             $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+
+        foreach ($applications as $application) {
+            $user = $application->applicationBy;
+                $amount = ($commissions->othersPay ?? 0);
+
+            if ($amount > 0) {
+                addCommissionRecord(
+                    $user,
+                    $proforma->id,
+                    $application->id,
+                    $amount
+                );
+            }
+       
         }
 
         // 🔹 Operator commission (ALL TYPES)
@@ -1742,14 +1758,6 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                     addCommissionRecord($operator, $proforma->id, null, $amount);
                     $selection->update(['commission_earned' => $amount]);
                 }
-            }
-        }
-
-        // 🔹 Others/Business-Owner commission (ALL TYPES EXCEPT INSURANCE)
-        if ($type !== 'insurance' && $proforma->poster && in_array($proforma->poster->role, ['others', 'garage'])) {
-            $othersPay = $commissions->othersPay ?? 0;
-            if ($othersPay > 0) {
-                addCommissionRecord($proforma->poster, $proforma->id, null, $othersPay);
             }
         }
 	}
@@ -3730,6 +3738,7 @@ Route::get('/my-files', function () {
 
 Route::post('/proformas', function (Request $request) {
     $proforma = \App\Models\Proforma::findOrFail($request->proforma);
+    $telegram = new \App\Services\TelegramService();
 
     if ($request->spare_part_partners) {
         $uniqueSparePartPartners = array_unique($request->spare_part_partners);
@@ -3738,10 +3747,26 @@ Route::post('/proformas', function (Request $request) {
             if (empty($inbox)) {
                 continue;
             }
-            Inbox::firstOrCreate([
+            $inboxRecord = Inbox::firstOrCreate([
                 'proforma_id' => $proforma->id,
                 'user_id' => $inbox,
             ]);
+
+            // Send Telegram notification to inboxed user
+            if ($inboxRecord->wasRecentlyCreated) {
+                try {
+                    $user = \App\Models\User::find($inbox);
+                    if ($user && !empty($user->telegram_chat_id) && $telegram->isConfigured()) {
+                        $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Inbox Telegram notification failed', [
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $inbox,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
     }
 
@@ -3752,10 +3777,26 @@ Route::post('/proformas', function (Request $request) {
             if (empty($inbox)) {
                 continue;
             }
-            Inbox::firstOrCreate([
+            $inboxRecord = Inbox::firstOrCreate([
                 'proforma_id' => $proforma->id,
                 'user_id' => $inbox,
             ]);
+
+            // Send Telegram notification to inboxed user
+            if ($inboxRecord->wasRecentlyCreated) {
+                try {
+                    $user = \App\Models\User::find($inbox);
+                    if ($user && !empty($user->telegram_chat_id) && $telegram->isConfigured()) {
+                        $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Inbox Telegram notification failed', [
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $inbox,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
     }
 
