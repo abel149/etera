@@ -4067,7 +4067,7 @@ Route::prefix('business-owner')
             try {
                 $validatedData = $request->validate([
                     'number_of_proformas' => ['required', 'integer', 'min:-1', 'max:4'],
-                    'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48','72'],
+                    'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48,72'],
                     'brand_id' => ['required', 'integer', 'exists:brands,id'],
                     'car_type' => 'required|in:ICE,EV,Hybrid,Others',
 
