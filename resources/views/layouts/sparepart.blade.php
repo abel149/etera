@@ -765,7 +765,7 @@
 <header class="sp-header">
 	<div class="sp-header-inner">
 		<!-- Logo -->
-		<a href="/spare-part-shops/proformas" class="sp-logo">
+		<a href="/spare-part-shops" class="sp-logo">
 			<img src="{{asset('assets/images/transparent.svg')}}" alt="etera">
 		</a>
 
@@ -777,8 +777,8 @@
 		<!-- Navigation -->
 		<ul class="sp-nav" id="sp-nav">
 			@if(auth()->user()?->role == 'shop')
+				<li><a href="/spare-part-shops" class="sp-nav-link @yield('applications')">Dashboard</a></li>
 				<li><a href="/spare-part-shops/proformas" class="sp-nav-link @yield('insurance')">Proformas</a></li>
-				<li><a href="/my-applications" class="sp-nav-link @yield('applications')">My Applications</a></li>
 				<li><a href="/spare-part-shops/balance" class="sp-nav-link @yield('balance')">Balance</a></li>
 				<li>
 					<a href="/spare-part-shops/inbox" class="sp-nav-link @yield('inbox')">
@@ -791,8 +791,8 @@
 			@endif
 
 			@if(auth()->user()?->role == 'garage')
+				<li><a href="/garage" class="sp-nav-link @yield('applications')">Dashboard</a></li>
 				<li><a href="/garage/proformas" class="sp-nav-link @yield('insurance')">Proformas</a></li>
-				<li><a href="/my-applications" class="sp-nav-link @yield('applications')">My Applications</a></li>
 				<li><a href="/garage/my-files" class="sp-nav-link @yield('post')">My Files</a></li>
 				<li><a href="/garage/create-file" class="sp-nav-link">Request Proforma</a></li>
 				<li>
