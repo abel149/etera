@@ -56,7 +56,7 @@ class TelegramWebhookController extends Controller
                 return response()->json(['ok' => true]);
             }
 
-            if (is_string($data) && in_array($data, ['tg_disconnect', 'tg_disconnect_clearmsg'], true)) {
+            if (is_string($data) && $data === 'tg_disconnect') {
                 try {
                     $user = null;
                     if ($chatId) {
@@ -66,14 +66,6 @@ class TelegramWebhookController extends Controller
                     // Handle disconnect actions
                     if ($user) {
                         $user->update(['telegram_chat_id' => null]);
-                    }
-
-                    if ($data === 'tg_disconnect_clearmsg' && $chatId && $messageId) {
-                        try {
-                            app(TelegramService::class)->deleteMessage((string) $chatId, (int) $messageId);
-                        } catch (\Throwable $e) {
-                            Log::warning('Telegram disconnect: deleteMessage failed', ['error' => $e->getMessage()]);
-                        }
                     }
 
                     if ($chatId) {
@@ -130,7 +122,7 @@ class TelegramWebhookController extends Controller
 
                     app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $manageText, [
                         ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
-                        ['text' => 'Disconnect & remove this message', 'callback_data' => 'tg_disconnect_clearmsg'],
+                       
                     ]);
 
                     return response()->json(['ok' => true]);
@@ -191,7 +183,7 @@ class TelegramWebhookController extends Controller
                         try {
                             app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $confirmText, [
                                 ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
-                                ['text' => 'Disconnect & remove this message', 'callback_data' => 'tg_disconnect_clearmsg'],
+                                
                             ]);
                         } catch (\Throwable $e) {
                             Log::warning('Telegram connect: sendMessageWithButtons failed, falling back to plain message', [
