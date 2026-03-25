@@ -25,6 +25,9 @@
         oldInput: @json(old('email_or_phone', '')),
         errors: @json($errors->toArray()),
         logoUrl: @json(asset('assets/images/transparent.svg')),
+        sessionBlocked: @json(session('session_blocked', false)),
+        forceLogoutUrl: @json(route('force-logout-other-devices')),
+        successMessage: @json(session('success', '')),
     };
 </script>
 
@@ -81,6 +84,11 @@
                     <img src={data.logoUrl} alt="etera" style={{ maxWidth: '120px', marginBottom: '1rem' }} className="d-xl-none" />
                     <h2 className="etera-heading" style={{ fontSize: '1.5rem', marginBottom: '0.5rem' }}>Welcome Back</h2>
                     <p className="etera-subtext">Sign in to your etera account</p>
+                    {data.successMessage && (
+                        <div style={{ background: '#d4edda', color: '#155724', padding: '0.75rem 1rem', borderRadius: '8px', marginTop: '0.75rem', fontSize: '0.9rem' }}>
+                            {data.successMessage}
+                        </div>
+                    )}
                 </div>
 
                 <form ref={formRef} action={data.loginUrl} method="POST" onSubmit={handleSubmit}>
@@ -100,6 +108,37 @@
                         />
                         {hasError('email_or_phone') && (
                             <div className="etera-error-text">{getError('email_or_phone')}</div>
+                        )}
+                        {data.sessionBlocked && hasError('email_or_phone') && (
+                            <div style={{ marginTop: '0.5rem' }}>
+                                <button
+                                    type="button"
+                                    className="etera-btn etera-btn-block"
+                                    style={{ background: '#e67e22', color: '#fff', padding: '0.6rem', borderRadius: '8px', border: 'none', cursor: 'pointer', fontWeight: 600, fontSize: '0.85rem' }}
+                                    onClick={() => {
+                                        if (!emailOrPhone || !password) {
+                                            alert('Please enter your credentials first.');
+                                            return;
+                                        }
+                                        const form = document.createElement('form');
+                                        form.method = 'POST';
+                                        form.action = data.forceLogoutUrl;
+                                        const tokenInput = document.createElement('input');
+                                        tokenInput.type = 'hidden'; tokenInput.name = '_token'; tokenInput.value = data.csrfToken;
+                                        const emailInput = document.createElement('input');
+                                        emailInput.type = 'hidden'; emailInput.name = 'email_or_phone'; emailInput.value = emailOrPhone;
+                                        const pwInput = document.createElement('input');
+                                        pwInput.type = 'hidden'; pwInput.name = 'password'; pwInput.value = password;
+                                        form.appendChild(tokenInput);
+                                        form.appendChild(emailInput);
+                                        form.appendChild(pwInput);
+                                        document.body.appendChild(form);
+                                        form.submit();
+                                    }}
+                                >
+                                    🔒 Logout Other Devices & Sign In
+                                </button>
+                            </div>
                         )}
                     </div>
 
