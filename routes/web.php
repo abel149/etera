@@ -212,33 +212,35 @@ Route::post('/login', function (Request $request) {
 
         // ⭐ Check if user has an active session on another device (spare-part shops only)
         if ($user->role === 'shop' && $user->session_id && $user->session_id !== Session::getId()) {
-            $hasActiveStoredSession = DB::table('sessions')
+            $storedSession = DB::table('sessions')
                 ->where('id', $user->session_id)
                 ->where('user_id', $user->id)
-                ->exists();
+                ->first();
 
-            if ($hasActiveStoredSession) {
-                // Check if the stored session is still fresh (not expired)
-                $storedSession = DB::table('sessions')
-                    ->where('id', $user->session_id)
-                    ->where('user_id', $user->id)
-                    ->first();
+            if ($storedSession) {
+                // Check if the old session is from the SAME browser (user cleared cache)
+                $currentUserAgent = $request->header('User-Agent', '');
+                $oldUserAgent = $storedSession->user_agent ?? '';
+                $isSameBrowser = ($currentUserAgent === $oldUserAgent);
 
-                // If the session's last activity was more than the session lifetime ago, it's stale
+                // Check if the old session has expired
                 $sessionLifetime = config('session.lifetime', 120) * 60; // in seconds
-                if ($storedSession && (time() - $storedSession->last_activity) > $sessionLifetime) {
-                    // Old session expired, clean it up and allow login
+                $isExpired = (time() - $storedSession->last_activity) > $sessionLifetime;
+
+                if ($isSameBrowser || $isExpired) {
+                    // Same browser (cleared cache) or expired session — clean up and allow login
                     DB::table('sessions')->where('id', $user->session_id)->delete();
                     $user->session_id = null;
                     $user->save();
                 } else {
+                    // Truly different device/browser with an active session — block
                     Auth::logout();
                     return back()->withErrors([
                         'email_or_phone' => 'Please log out of all other devices or browsers.'
                     ])->withInput();
                 }
             } else {
-                // The stored session no longer exists (e.g. user cleared cache), allow login
+                // The stored session no longer exists — allow login
                 $user->session_id = null;
                 $user->save();
             }
