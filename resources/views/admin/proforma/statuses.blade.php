@@ -13,10 +13,10 @@
                     </div>
                     <div class="card-body">
                         <!-- Filters -->
-                        <form method="GET" class="row g-3 mb-4">
-                            <div class="col-md-3">
+                        <form id="filterForm" method="GET" class="row g-3 mb-4">
+                            <div class="col-md-4">
                                 <label class="form-label">Status</label>
-                                <select name="status" class="form-select">
+                                <select name="status" class="form-select filter-auto-submit">
                                     <option value="">All Statuses</option>
                                     <option value="published" {{ request('status') == 'published' ? 'selected' : '' }}>Published</option>
                                     <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
@@ -24,22 +24,21 @@
                                     <option value="sent_to_owner" {{ request('status') == 'sent_to_owner' ? 'selected' : '' }}>Sent to Owner</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Processed By</label>
-                                <select name="processed_by" class="form-select">
+                                <select name="processed_by" class="form-select filter-auto-submit">
                                     <option value="">All Admins</option>
                                     @foreach($admins as $admin)
                                         <option value="{{ $admin->id }}" {{ request('processed_by') == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Search</label>
-                                <input type="text" name="search" class="form-control" placeholder="File # or customer" value="{{ request('search') }}">
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end gap-2">
-                                <button type="submit" class="btn btn-primary"><i class="bx bx-search me-1"></i>Filter</button>
-                                <a href="{{ url('/admin/proforma-statuses') }}" class="btn btn-outline-secondary">Reset</a>
+                                <div class="position-relative">
+                                    <input type="text" name="search" id="liveSearch" class="form-control" placeholder="License plate or phone number" value="{{ request('search') }}">
+                                    <i class="bx bx-search position-absolute" style="right:12px; top:50%; transform:translateY(-50%); color:#aaa;"></i>
+                                </div>
                             </div>
                         </form>
 
@@ -352,5 +351,24 @@ function showTimeline(proformaId) {
         console.error('Timeline error:', err);
     });
 }
+
+// Auto-submit on dropdown change
+document.querySelectorAll('.filter-auto-submit').forEach(el => {
+    el.addEventListener('change', () => document.getElementById('filterForm').submit());
+});
+
+// Live search on keystroke with debounce
+(function() {
+    let debounceTimer;
+    const searchInput = document.getElementById('liveSearch');
+    if (searchInput) {
+        searchInput.addEventListener('input', function() {
+            clearTimeout(debounceTimer);
+            debounceTimer = setTimeout(() => {
+                document.getElementById('filterForm').submit();
+            }, 400);
+        });
+    }
+})();
 </script>
 @endsection

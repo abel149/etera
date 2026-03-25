@@ -1368,7 +1368,9 @@ Route::prefix('/admin')
                  $s = $request->search;
                  $query->where(function ($q) use ($s) {
                      $q->where('file_number', 'like', "%{$s}%")
-                       ->orWhere('customer_name', 'like', "%{$s}%");
+                       ->orWhere('customer_name', 'like', "%{$s}%")
+                       ->orWhere('license_plate_number', 'like', "%{$s}%")
+                       ->orWhere('customer_phone_number', 'like', "%{$s}%");
                  });
              }
 
