@@ -56,7 +56,7 @@ class TelegramWebhookController extends Controller
                 return response()->json(['ok' => true]);
             }
 
-            if (is_string($data) && in_array($data, ['tg_disconnect', 'tg_disconnect_clearmsg'], true)) {
+            if (is_string($data) && $data === 'tg_disconnect') {
                 try {
                     $user = null;
                     if ($chatId) {
@@ -66,14 +66,6 @@ class TelegramWebhookController extends Controller
                     // Handle disconnect actions
                     if ($user) {
                         $user->update(['telegram_chat_id' => null]);
-                    }
-
-                    if ($data === 'tg_disconnect_clearmsg' && $chatId && $messageId) {
-                        try {
-                            app(TelegramService::class)->deleteMessage((string) $chatId, (int) $messageId);
-                        } catch (\Throwable $e) {
-                            Log::warning('Telegram disconnect: deleteMessage failed', ['error' => $e->getMessage()]);
-                        }
                     }
 
                     if ($chatId) {
@@ -128,7 +120,7 @@ class TelegramWebhookController extends Controller
                         . "This Telegram is linked to etera account (<b>{$user->name}</b>).\n\n"
                         . "To disconnect anytime, type <b>/end</b> or use the button below.";
 
-                    app(TelegramService::class)->sendMessageWithButton((string) $chatId, $manageText, [
+                    app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $manageText, [
                         ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
                        
                     ]);
@@ -157,7 +149,7 @@ class TelegramWebhookController extends Controller
                         $botToken = config('services.telegram.bot_token', env('TELEGRAM_BOT_TOKEN', ''));
                         if ($botToken) {
                             try {
-                                app(TelegramService::class)->sendMessageWithButton((string) $chatId, "You've registered using this account. Please use another account, or disconnect below.", [
+                                app(TelegramService::class)->sendMessageWithButtons((string) $chatId, "You've registered using this account. Please use another account, or disconnect below.", [
                                     ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
                                 ]);
                             } catch (\Throwable $e) {
@@ -189,7 +181,7 @@ class TelegramWebhookController extends Controller
                             . "To disconnect anytime, type <b>/end</b> or use the button below.";
 
                         try {
-                            app(TelegramService::class)->sendMessageWithButton((string) $chatId, $confirmText, [
+                            app(TelegramService::class)->sendMessageWithButtons((string) $chatId, $confirmText, [
                                 ['text' => 'Disconnect', 'callback_data' => 'tg_disconnect'],
                                 
                             ]);
