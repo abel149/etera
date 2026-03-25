@@ -1354,39 +1354,14 @@ Route::prefix('/admin')
         
          // 📋 Proforma Statuses
          Route::get('/proforma-statuses', function (\Illuminate\Http\Request $request) {
-             $query = \App\Models\Proforma::with(['brand', 'processedBy'])
+             $proformas = \App\Models\Proforma::with(['brand', 'processedBy'])
                  ->whereNotNull('processed_by')
-                 ->orderBy('updated_at', 'desc');
-
-             if ($request->filled('status')) {
-                 $query->where('status', $request->status);
-             }
-             if ($request->filled('processed_by')) {
-                 $query->where('processed_by', $request->processed_by);
-             }
-             if ($request->filled('search')) {
-                 $s = $request->search;
-                 $query->where(function ($q) use ($s) {
-                     $q->where('file_number', 'like', "%{$s}%")
-                       ->orWhere('customer_name', 'like', "%{$s}%")
-                       ->orWhere('license_plate_number', 'like', "%{$s}%")
-                       ->orWhere('customer_phone_number', 'like', "%{$s}%");
-                 });
-             }
-
-             $proformas = $query->paginate(25);
+                 ->orderBy('updated_at', 'desc')
+                 ->get();
 
              $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])->orderBy('name')->get();
 
-             $baseQuery = \App\Models\Proforma::whereNotNull('processed_by');
-             $stats = [
-                 'total' => (clone $baseQuery)->count(),
-                 'published' => (clone $baseQuery)->where('status', 'published')->count(),
-                 'completed' => (clone $baseQuery)->where('status', 'completed')->count(),
-                 'closed' => (clone $baseQuery)->where('status', 'closed')->count(),
-             ];
-
-             return view('admin.proforma.statuses', compact('proformas', 'admins', 'stats'));
+             return view('admin.proforma.statuses', compact('proformas', 'admins'));
          })->name('admin.proforma-statuses');
         
          // 📧 Sent Emails Log
