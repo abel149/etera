@@ -218,10 +218,29 @@ Route::post('/login', function (Request $request) {
                 ->exists();
 
             if ($hasActiveStoredSession) {
-                Auth::logout();
-                return back()->withErrors([
-                    'email_or_phone' => 'Please log out of all other devices or browsers.'
-                ])->withInput();
+                // Check if the stored session is still fresh (not expired)
+                $storedSession = DB::table('sessions')
+                    ->where('id', $user->session_id)
+                    ->where('user_id', $user->id)
+                    ->first();
+
+                // If the session's last activity was more than the session lifetime ago, it's stale
+                $sessionLifetime = config('session.lifetime', 120) * 60; // in seconds
+                if ($storedSession && (time() - $storedSession->last_activity) > $sessionLifetime) {
+                    // Old session expired, clean it up and allow login
+                    DB::table('sessions')->where('id', $user->session_id)->delete();
+                    $user->session_id = null;
+                    $user->save();
+                } else {
+                    Auth::logout();
+                    return back()->withErrors([
+                        'email_or_phone' => 'Please log out of all other devices or browsers.'
+                    ])->withInput();
+                }
+            } else {
+                // The stored session no longer exists (e.g. user cleared cache), allow login
+                $user->session_id = null;
+                $user->save();
             }
         }
 
@@ -305,9 +324,9 @@ Route::post('/login', function (Request $request) {
             case 'others':
                 return redirect()->intended('/business-owner');
             case 'garage':
-                return redirect()->intended('/garage/proformas');
+                return redirect()->intended('/garage/');
             case 'shop':
-                return redirect()->intended('/spare-part-shops/proformas');
+                return redirect()->intended('/spare-part-shops/');
             case 'marketer':
                 return redirect()->intended('/marketer');
             case 'employee':
@@ -672,8 +691,8 @@ Route::get('/', function () {
             'admin', 'superadmin' => '/admin',
             'insurance' => '/insurance',
             'others' => '/business-owner',
-            'garage' => '/garage/proformas',
-            'shop' => '/spare-part-shops/proformas',
+            'garage' => '/garage/',
+            'shop' => '/spare-part-shops/',
             'marketer' => '/marketer',
             'employee' => '/employee',
             'manager' => '/manager/dashboard',
@@ -1237,8 +1256,53 @@ Route::get('/my-applications', function () {
         ->orderBy('created_at', 'desc')
         ->get();
 
-    return view('spare-part.my-applications', compact('applications'));
+    // Count by proforma status
+    $pendingCount = $applications->filter(fn($app) => in_array(optional($app->proforma)->status, ['pending', 'opened', 'published']))->count();
+    $closedCount = $applications->filter(fn($app) => optional($app->proforma)->status === 'closed')->count();
+    $completedCount = $applications->filter(fn($app) => optional($app->proforma)->status === 'completed')->count();
+    $totalCount = $applications->count();
+
+    return view('spare-part.my-applications', compact('applications', 'pendingCount', 'closedCount', 'completedCount', 'totalCount'));
 })->middleware('auth')->name('my-applications');
+
+// Root routes for spare-part-shops and garage dashboards (my-applications as dashboard)
+Route::get('/spare-part-shops', function () {
+    $user = auth()->user();
+    if (!$user || $user->role !== 'shop') {
+        return redirect('/');
+    }
+
+    $applications = \App\Models\ProformaApplication::with(['proforma.brand', 'proforma.parts', 'prices'])
+        ->where('application_by', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    $pendingCount = $applications->filter(fn($app) => in_array(optional($app->proforma)->status, ['pending', 'opened', 'published']))->count();
+    $closedCount = $applications->filter(fn($app) => optional($app->proforma)->status === 'closed')->count();
+    $completedCount = $applications->filter(fn($app) => optional($app->proforma)->status === 'completed')->count();
+    $totalCount = $applications->count();
+
+    return view('spare-part.my-applications', compact('applications', 'pendingCount', 'closedCount', 'completedCount', 'totalCount'));
+})->middleware('auth')->name('spare-part-shops.dashboard');
+
+Route::get('/garage', function () {
+    $user = auth()->user();
+    if (!$user || $user->role !== 'garage') {
+        return redirect('/');
+    }
+
+    $applications = \App\Models\ProformaApplication::with(['proforma.brand', 'proforma.parts', 'prices'])
+        ->where('application_by', $user->id)
+        ->orderBy('created_at', 'desc')
+        ->get();
+
+    $pendingCount = $applications->filter(fn($app) => in_array(optional($app->proforma)->status, ['pending', 'opened', 'published']))->count();
+    $closedCount = $applications->filter(fn($app) => optional($app->proforma)->status === 'closed')->count();
+    $completedCount = $applications->filter(fn($app) => optional($app->proforma)->status === 'completed')->count();
+    $totalCount = $applications->count();
+
+    return view('spare-part.my-applications', compact('applications', 'pendingCount', 'closedCount', 'completedCount', 'totalCount'));
+})->middleware('auth')->name('garage.dashboard');
 
 Route::get('/float', function (Request $request) {
     // Require Telegram connection for non-superadmin admins
@@ -1381,9 +1445,17 @@ Route::prefix('/admin')
         Route::post('/create-admin', function (Request $request) {
             $request->validate([
                 'name' => 'required|string|max:255',
-                'phone_number' => 'required|unique:users,phone_number',
+                'phone_number' => 'required',
                 'email' => 'nullable|email|unique:users,email',
             ]);
+
+            // Check if phone number already exists
+            $existingUser = User::where('phone_number', $request->phone_number)->first();
+            if ($existingUser) {
+                return redirect()->back()
+                    ->withErrors(['phone_number' => 'The phone number already exists. Please try again.'])
+                    ->withInput();
+            }
 
             $user = User::create([
                 'name' => $request->name,
@@ -1906,6 +1978,59 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
         Route::get('/bid', function () {
             return view('admin.bid.view');
         });
+
+        // View Admins (superadmin only)
+        Route::get('/admins', function () {
+            $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])->get();
+
+            return view('admin.users.admins.view', [
+                'admins' => $admins,
+            ]);
+        })->name('admin.admins.index');
+
+        // Update Admin (superadmin only - no password change allowed)
+        Route::put('/admins/{id}', function (Request $request, $id) {
+            if (auth()->user()->role !== 'superadmin') {
+                abort(403);
+            }
+            $admin = \App\Models\User::findOrFail($id);
+            if ($admin->role === 'superadmin') {
+                return redirect()->back()->withErrors(['error' => 'Cannot edit superadmin.']);
+            }
+
+            $request->validate([
+                'name' => 'required|string|max:255',
+                'phone_number' => 'required',
+                'email' => 'nullable|email|unique:users,email,' . $admin->id,
+            ]);
+
+            // Check phone uniqueness manually
+            $existingPhone = User::where('phone_number', $request->phone_number)->where('id', '!=', $admin->id)->first();
+            if ($existingPhone) {
+                return redirect()->back()->withErrors(['phone_number' => 'The phone number already exists.'])->withInput();
+            }
+
+            $admin->update([
+                'name' => $request->name,
+                'phone_number' => $request->phone_number,
+                'email' => $request->email,
+            ]);
+
+            return redirect()->back()->with('success', 'Admin updated successfully!');
+        })->name('admin.admins.update');
+
+        // Delete Admin (superadmin only)
+        Route::delete('/admins/{id}', function ($id) {
+            if (auth()->user()->role !== 'superadmin') {
+                abort(403);
+            }
+            $admin = \App\Models\User::findOrFail($id);
+            if ($admin->role === 'superadmin' || $admin->id === auth()->id()) {
+                return redirect()->back()->withErrors(['error' => 'Cannot delete this admin.']);
+            }
+            $admin->delete();
+            return redirect()->back()->with('success', 'Admin deleted successfully!');
+        })->name('admin.admins.destroy');
 
         // View Insurances
         Route::get('/insurances', function () {
@@ -3868,8 +3993,8 @@ Route::get('/telegram-connect', function (Request $request) {
     $telegramService = app(\App\Services\TelegramService::class);
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = match($user->role) {
-        'garage' => '/garage/proformas',
-        'shop' => '/spare-part-shops/proformas',
+        'garage' => '/garage/',
+        'shop' => '/spare-part-shops/',
         'admin' => '/admin',
         'insurance' => '/insurance',
         'others' => '/business-owner',
@@ -4429,9 +4554,9 @@ Route::prefix('role')
             $user = auth()->user();
             
             if ($user->role === 'garage') {
-                return redirect('/garage/proformas');
+                return redirect('/garage/');
             } elseif ($user->role === 'shop') {
-                return redirect('/spare-part-shops/proformas');
+                return redirect('/spare-part-shops/');
             } elseif ($user->role === 'insurance') {
                 return redirect('/insurance/received-proformas');
             } else {

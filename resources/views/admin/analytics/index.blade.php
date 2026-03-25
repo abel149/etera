@@ -289,41 +289,57 @@ document.addEventListener("DOMContentLoaded", function () {
 
         // Button inside the form
         const btn = form.querySelector(".popup-btn");
+        if (!btn) return;
 
-        btn.addEventListener("click", function () {
-            Swal.fire({
-                title: "Confirm Action",
-                text: "Type exactly: " + requiredWord,
-                input: "text",
-                inputPlaceholder: requiredWord,
-                inputAttributes: {
-                    autocapitalize: "off",
-                    autocomplete: "off"
-                },
-                icon: "warning",
-                showCancelButton: true,
-                confirmButtonText: "Confirm",
-                cancelButtonText: "Cancel",
-                allowOutsideClick: false,
-                allowEscapeKey: false,
-                // Force focus to input (fix typing blocked inside modal)
-                didOpen: () => {
-                    const input = document.querySelector('.swal2-input');
-                    if(input) input.focus();
-                },
-                preConfirm: (value) => {
-                    if (!value || value.trim().toUpperCase() !== requiredWord) {
-                        Swal.showValidationMessage(
-                            "You must type exactly: " + requiredWord
-                        );
-                        return false;
+        btn.addEventListener("click", function (e) {
+            e.stopPropagation();
+
+            // Close any open Bootstrap modal first to avoid focus trap conflicts
+            const openModal = btn.closest('.modal');
+            let bsModal = null;
+            if (openModal) {
+                bsModal = bootstrap.Modal.getInstance(openModal);
+                if (bsModal) bsModal.hide();
+            }
+
+            setTimeout(function() {
+                Swal.fire({
+                    title: "Confirm Action",
+                    text: "Type exactly: " + requiredWord,
+                    input: "text",
+                    inputPlaceholder: requiredWord,
+                    inputAttributes: {
+                        autocapitalize: "off",
+                        autocomplete: "off"
+                    },
+                    icon: "warning",
+                    showCancelButton: true,
+                    confirmButtonText: "Confirm",
+                    cancelButtonText: "Cancel",
+                    allowOutsideClick: false,
+                    allowEscapeKey: false,
+                    didOpen: () => {
+                        const input = Swal.getInput();
+                        if (input) input.focus();
+                    },
+                    preConfirm: (value) => {
+                        if (!value || value.trim().toUpperCase() !== requiredWord) {
+                            Swal.showValidationMessage(
+                                "You must type exactly: " + requiredWord
+                            );
+                            return false;
+                        }
                     }
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    form.submit(); // submit only if typed correctly
-                }
-            });
+                }).then((result) => {
+                    if (result.isConfirmed) {
+                        // Use HTMLFormElement.prototype.submit to avoid JS errors
+                        HTMLFormElement.prototype.submit.call(form);
+                    } else if (bsModal) {
+                        // Re-open the modal if user cancelled
+                        bsModal.show();
+                    }
+                });
+            }, 300); // Small delay to let Bootstrap modal close cleanly
         });
     });
 
