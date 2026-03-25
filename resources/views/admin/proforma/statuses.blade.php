@@ -36,7 +36,7 @@
                             <div class="col-md-4">
                                 <label class="form-label">Search</label>
                                 <div class="position-relative">
-                                    <input type="text" name="search" id="liveSearch" class="form-control" placeholder="License plate or phone number" value="{{ request('search') }}">
+                                    <input type="text" id="liveSearch" class="form-control" placeholder="License plate or phone number" autocomplete="off">
                                     <i class="bx bx-search position-absolute" style="right:12px; top:50%; transform:translateY(-50%); color:#aaa;"></i>
                                 </div>
                             </div>
@@ -47,7 +47,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-primary">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['total'] }}</h3>
+                                        <h3 class="mb-0" id="statTotal">{{ $stats['total'] }}</h3>
                                         <small class="text-muted">Total Assigned</small>
                                     </div>
                                 </div>
@@ -55,7 +55,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-info">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['published'] }}</h3>
+                                        <h3 class="mb-0" id="statPublished">{{ $stats['published'] }}</h3>
                                         <small class="text-muted">Published</small>
                                     </div>
                                 </div>
@@ -63,7 +63,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-success">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['completed'] }}</h3>
+                                        <h3 class="mb-0" id="statCompleted">{{ $stats['completed'] }}</h3>
                                         <small class="text-muted">Completed</small>
                                     </div>
                                 </div>
@@ -71,7 +71,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-warning">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['closed'] }}</h3>
+                                        <h3 class="mb-0" id="statClosed">{{ $stats['closed'] }}</h3>
                                         <small class="text-muted">Closed</small>
                                     </div>
                                 </div>
@@ -95,7 +95,7 @@
                                 </thead>
                                 <tbody>
                                     @forelse($proformas as $index => $proforma)
-                                    <tr>
+                                    <tr class="proforma-row" data-plate="{{ strtolower($proforma->license_plate_number ?? '') }}" data-phone="{{ strtolower($proforma->customer_phone_number ?? '') }}" data-status="{{ $proforma->status }}">
                                         <td>{{ $proformas->firstItem() + $index }}</td>
                                         <td><strong>{{ $proforma->file_number }}</strong></td>
                                         <td>{{ $proforma->customer_name }}</td>
@@ -124,12 +124,12 @@
                                         </td>
                                     </tr>
                                     @empty
-                                    <tr>
+                                    @endforelse
+                                    <tr id="emptyRow" style="display:none;">
                                         <td colspan="8" class="text-center text-muted py-4">
-                                            <i class="bx bx-info-circle me-1"></i>No proformas found matching the filters.
+                                            <i class="bx bx-info-circle me-1"></i>No proformas found matching the search.
                                         </td>
                                     </tr>
-                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
@@ -357,17 +357,48 @@ document.querySelectorAll('.filter-auto-submit').forEach(el => {
     el.addEventListener('change', () => document.getElementById('filterForm').submit());
 });
 
-// Live search on keystroke with debounce
+// Client-side live search + dynamic stat counters
 (function() {
-    let debounceTimer;
     const searchInput = document.getElementById('liveSearch');
-    if (searchInput) {
-        searchInput.addEventListener('input', function() {
-            clearTimeout(debounceTimer);
-            debounceTimer = setTimeout(() => {
-                document.getElementById('filterForm').submit();
-            }, 400);
+    const rows = document.querySelectorAll('tr.proforma-row');
+    const emptyRow = document.getElementById('emptyRow');
+    const statTotal = document.getElementById('statTotal');
+    const statPublished = document.getElementById('statPublished');
+    const statCompleted = document.getElementById('statCompleted');
+    const statClosed = document.getElementById('statClosed');
+
+    function filterRows() {
+        const term = (searchInput ? searchInput.value : '').toLowerCase().trim();
+        let total = 0, published = 0, completed = 0, closed = 0;
+
+        rows.forEach(row => {
+            const plate = row.getAttribute('data-plate') || '';
+            const phone = row.getAttribute('data-phone') || '';
+            const status = row.getAttribute('data-status') || '';
+            const match = !term || plate.includes(term) || phone.includes(term);
+
+            row.style.display = match ? '' : 'none';
+
+            if (match) {
+                total++;
+                if (status === 'published') published++;
+                else if (status === 'completed') completed++;
+                else if (status === 'closed') closed++;
+            }
         });
+
+        // Update stat counters
+        if (statTotal) statTotal.textContent = total;
+        if (statPublished) statPublished.textContent = published;
+        if (statCompleted) statCompleted.textContent = completed;
+        if (statClosed) statClosed.textContent = closed;
+
+        // Show/hide empty message
+        if (emptyRow) emptyRow.style.display = total === 0 ? '' : 'none';
+    }
+
+    if (searchInput) {
+        searchInput.addEventListener('input', filterRows);
     }
 })();
 </script>
