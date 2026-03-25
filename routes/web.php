@@ -1446,15 +1446,25 @@ Route::prefix('/admin')
             $request->validate([
                 'name' => 'required|string|max:255',
                 'phone_number' => 'required',
-                'email' => 'nullable|email|unique:users,email',
+                'email' => 'nullable|email',
             ]);
 
             // Check if phone number already exists
             $existingUser = User::where('phone_number', $request->phone_number)->first();
             if ($existingUser) {
                 return redirect()->back()
-                    ->withErrors(['phone_number' => 'The phone number already exists. Please try again.'])
+                    ->with('admin_error', 'The phone number already exists. Please try again.')
                     ->withInput();
+            }
+
+            // Check if email already exists
+            if ($request->filled('email')) {
+                $existingEmail = User::where('email', $request->email)->first();
+                if ($existingEmail) {
+                    return redirect()->back()
+                        ->with('admin_error', 'The email already exists. Please try again.')
+                        ->withInput();
+                }
             }
 
             $user = User::create([
