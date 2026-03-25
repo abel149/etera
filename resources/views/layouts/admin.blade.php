@@ -196,6 +196,14 @@
 
 						</li>
 
+@auth
+	@if(auth()->user()->is_superadmin == 1)
+						<li> <a href="/admin/admins"><i class='bx bx-shield'></i>Admins</a>
+
+						</li>
+	@endif
+@endauth
+
 						<li> <a href="/admin/insurances"><i class='bx bx-radio-circle'></i>Insurances</a>
 
 						</li>

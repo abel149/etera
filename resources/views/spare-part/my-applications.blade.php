@@ -8,8 +8,8 @@ class="current"
 <div class="container" style="max-width: 1100px;">
     <div class="row mb-4">
         <div class="col-12">
-            <h4 class="mb-1"><i class='bx bx-file me-2'></i>My Applications</h4>
-            <p class="text-muted mb-0">All proformas you have applied on</p>
+            <h4 class="mb-1"><i class='bx bx-file me-2'></i>Dashboard</h4>
+            <!-- <p class="text-muted mb-0">All proformas you have applied on</p> -->
         </div>
     </div>
 
@@ -18,32 +18,32 @@ class="current"
         <div class="col-md-3 col-6 mb-2">
             <div class="card radius-10 border-top border-3 border-primary shadow-sm">
                 <div class="card-body text-center py-3">
-                    <h5 class="mb-0">{{ $applications->count() }}</h5>
-                    <small class="text-muted">Total Applications</small>
+                    <h5 class="mb-0">{{ $totalCount }}</h5>
+                    <small class="text-muted">Total Proforma Invoices</small>
                 </div>
             </div>
         </div>
         <div class="col-md-3 col-6 mb-2">
             <div class="card radius-10 border-top border-3 border-warning shadow-sm">
                 <div class="card-body text-center py-3">
-                    <h5 class="mb-0 text-warning">{{ $applications->where('status', 'pending')->count() }}</h5>
+                    <h5 class="mb-0 text-warning">{{ $pendingCount + $closedCount }}</h5>
                     <small class="text-muted">Pending</small>
                 </div>
             </div>
         </div>
+        <!-- <div class="col-md-3 col-6 mb-2">
+            <div class="card radius-10 border-top border-3 border-danger shadow-sm">
+                <div class="card-body text-center py-3">
+                    <h5 class="mb-0 text-danger">{{ $closedCount }}</h5>
+                    <small class="text-muted">Closed</small>
+                </div>
+            </div>
+        </div> -->
         <div class="col-md-3 col-6 mb-2">
             <div class="card radius-10 border-top border-3 border-success shadow-sm">
                 <div class="card-body text-center py-3">
-                    <h5 class="mb-0 text-success">{{ $applications->where('status', 'accepted')->count() }}</h5>
-                    <small class="text-muted">Accepted</small>
-                </div>
-            </div>
-        </div>
-        <div class="col-md-3 col-6 mb-2">
-            <div class="card radius-10 border-top border-3 border-danger shadow-sm">
-                <div class="card-body text-center py-3">
-                    <h5 class="mb-0 text-danger">{{ $applications->where('status', 'rejected')->count() }}</h5>
-                    <small class="text-muted">Rejected</small>
+                    <h5 class="mb-0 text-success">{{ $completedCount }}</h5>
+                    <small class="text-muted">Completed</small>
                 </div>
             </div>
         </div>

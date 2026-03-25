@@ -150,23 +150,23 @@
                 @csrf
                 <div class="row">
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Shop Commission (Birr)</label>
+                        <label class="form-label">Shop Insurance PI Commision (Birr)</label>
                         <input type="number" step="0.01" name="shopPay" class="form-control" value="{{ old('shopPay', $commission->shopPay ?? 0) }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Garage Commission (Birr)</label>
+                        <label class="form-label">Garage Insurance PI Commision (Birr)</label>
                         <input type="number" step="0.01" name="garagePay" class="form-control" value="{{ old('garagePay', $commission->garagePay ?? 0) }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Insurance Commission (Birr)</label>
+                        <label class="form-label">Insurance PI Commision (Birr)</label>
                         <input type="number" step="0.01" name="insurancePay" class="form-control" value="{{ old('insurancePay', $commission->insurancePay ?? 0) }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Operator Commission (Birr)</label>
+                        <label class="form-label">Operator PI Commision (Birr)</label>
                         <input type="number" step="0.01" name="operatorPay" class="form-control" value="{{ old('operatorPay', $commission->operatorPay ?? 0) }}" required>
                     </div>
                     <div class="col-md-4 mb-3">
-                        <label class="form-label">Others Commission (Birr)</label>
+                        <label class="form-label">Shop Others PI Commision (Birr)</label>
                         <input type="number" step="0.01" name="othersPay" class="form-control" value="{{ old('othersPay', $commission->othersPay ?? 0) }}" required>
                     </div>
                 </div>
@@ -182,11 +182,11 @@
                     <thead>
                         <tr>
                             <th>#</th>
-                            <th>Shop Pay</th>
-                            <th>Garage Pay</th>
-                            <th>Insurance Pay</th>
-                            <th>Operator Pay</th>
-                            <th>Others Pay</th>
+                            <th>Shop Insueance PI Commision</th>
+                            <th>Garage Insurance PI Commision</th>
+                            <th>Insurance PI Commision</th>
+                            <th>Operator PI Commision</th>
+                            <th>Shop Others PI Commision</th>
                             <th>Last Updated</th>
                         </tr>
                     </thead>
@@ -208,52 +208,8 @@
         </div>
     </div>
 
-    {{-- ================= EMAIL SERVICES ================= --}}
-    <div class="card mt-5">
-        <div class="card-header bg-info text-white">
-            <strong><i class="bx bx-envelope"></i> Email Services</strong>
-        </div>
-        <div class="card-body">
-            <p class="text-muted mb-3">Enable or disable email notifications sent by the system. Changes take effect immediately.</p>
-            <div class="table-responsive">
-                <table class="table table-hover mb-0">
-                    <thead class="table-light">
-                        <tr>
-                            <th>Email Type</th>
-                            <th>Description</th>
-                            <th>Status</th>
-                            <th>Toggle</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        @foreach($emailSettings as $setting)
-                            <tr>
-                                <td>
-                                    <code>{{ $setting->key }}</code>
-                                </td>
-                                <td>{{ $setting->description }}</td>
-                                <td>
-                                    <span id="email-badge-{{ $setting->key }}" class="badge {{ $setting->enabled ? 'bg-success' : 'bg-danger' }}">
-                                        {{ $setting->enabled ? 'Enabled' : 'Disabled' }}
-                                    </span>
-                                </td>
-                                <td>
-                                    <div class="form-check form-switch">
-                                        <input class="form-check-input email-toggle-switch"
-                                               type="checkbox"
-                                               id="toggle-{{ $setting->key }}"
-                                               data-key="{{ $setting->key }}"
-                                               {{ $setting->enabled ? 'checked' : '' }}
-                                               style="cursor: pointer; width: 3em; height: 1.5em;">
-                                    </div>
-                                </td>
-                            </tr>
-                        @endforeach
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    </div>
+
+
 
 </div>
 

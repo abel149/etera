@@ -203,22 +203,6 @@
 			</div>
 			<div class="collapse" id="createAdminCollapse">
 				<div class="card-body">
-					@if(session('admin_created'))
-						<div class="alert alert-success alert-dismissible fade show" role="alert">
-							{{ session('admin_created') }}
-							<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-						</div>
-					@endif
-					@if($errors->any())
-						<div class="alert alert-danger alert-dismissible fade show" role="alert">
-							<ul class="mb-0">
-								@foreach($errors->all() as $error)
-									<li>{{ $error }}</li>
-								@endforeach
-							</ul>
-							<button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-						</div>
-					@endif
 					<form class="row g-3" action="{{ url('/admin/create-admin') }}" method="POST">
 						@csrf
 						<div class="col-md-4">
@@ -243,6 +227,46 @@
 				</div>
 			</div>
 		</div>
+
+		@if(session('admin_created'))
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			Swal.fire({
+				icon: 'success',
+				title: 'Admin Created!',
+				text: @json(session('admin_created')),
+				confirmButtonColor: '#0d6efd'
+			});
+		});
+		</script>
+		@endif
+
+		@if(session('admin_error'))
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			Swal.fire({
+				icon: 'error',
+				title: 'Error',
+				text: @json(session('admin_error')),
+				confirmButtonColor: '#dc3545'
+			});
+		});
+		</script>
+		@endif
+
+		@if($errors->any())
+		<script>
+		document.addEventListener('DOMContentLoaded', function() {
+			Swal.fire({
+				icon: 'error',
+				title: 'Validation Error',
+				text: @json($errors->first()),
+				confirmButtonColor: '#dc3545'
+			});
+		});
+		</script>
+		@endif
+
 		@endif
 
 		<!--end row-->
