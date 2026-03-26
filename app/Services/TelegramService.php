@@ -549,6 +549,11 @@ class TelegramService
             . "VAT (15%): " . number_format($vatAmount, 2) . " Birr\n"
             . "━━━━━━━━━━━━━━━━━━\n"
             . "<b>Total: " . number_format($total, 2) . " Birr</b>\n\n"
+            . "please deposit full amount into\n"
+            . "CBE: 1000687074638\n"
+            . "etera trading one member plc.\n"
+            . "and send screenshot of the payment with License plate info to our telegram.\n"
+            . "Telegram: @etera_et\n\n"
             . "Your proforma has been closed. Thank you for using etera!";
 
         return $this->sendMessage($chatId, $text);
