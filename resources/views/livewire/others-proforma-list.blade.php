@@ -30,6 +30,7 @@
                                                     <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filter', 'published')">Published</a></li>
                                                     <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filter', 'opened')">Opened</a></li>
                                                     <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filter', 'closed')">Closed</a></li>
+                                                    <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filter', 'rejected')">Rejected</a></li>
                                                 </ul>
                                             </div>
                                         </div>

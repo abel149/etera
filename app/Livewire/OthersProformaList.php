@@ -40,6 +40,7 @@ class OthersProformaList extends Component
         if (auth()->user()->role === 'admin') {
             $query->where(function ($q) {
                 $q->where('status', 'pending')
+                  ->orWhere('status', 'rejected')
                   ->orWhere('processed_by', auth()->id());
             });
         }
