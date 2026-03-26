@@ -12,43 +12,42 @@
                         </div>
                     </div>
                     <div class="card-body">
-                        <!-- Filters -->
-                        <form method="GET" class="row g-3 mb-4">
-                            <div class="col-md-3">
+                        <!-- Filters (all client-side) -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-md-4">
                                 <label class="form-label">Status</label>
-                                <select name="status" class="form-select">
+                                <select id="filterStatus" class="form-select">
                                     <option value="">All Statuses</option>
-                                    <option value="published" {{ request('status') == 'published' ? 'selected' : '' }}>Published</option>
-                                    <option value="closed" {{ request('status') == 'closed' ? 'selected' : '' }}>Closed</option>
-                                    <option value="completed" {{ request('status') == 'completed' ? 'selected' : '' }}>Completed</option>
-                                    <option value="sent_to_owner" {{ request('status') == 'sent_to_owner' ? 'selected' : '' }}>Sent to Owner</option>
+                                    <option value="published">Published</option>
+                                    <option value="closed">Closed</option>
+                                    <option value="completed">Completed</option>
+                                    <option value="sent_to_owner">Sent to Owner</option>
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Processed By</label>
-                                <select name="processed_by" class="form-select">
+                                <select id="filterAdmin" class="form-select">
                                     <option value="">All Admins</option>
                                     @foreach($admins as $admin)
-                                        <option value="{{ $admin->id }}" {{ request('processed_by') == $admin->id ? 'selected' : '' }}>{{ $admin->name }}</option>
+                                        <option value="{{ $admin->id }}">{{ $admin->name }}</option>
                                     @endforeach
                                 </select>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label class="form-label">Search</label>
-                                <input type="text" name="search" class="form-control" placeholder="File # or customer" value="{{ request('search') }}">
+                                <div class="position-relative">
+                                    <input type="text" id="liveSearch" class="form-control" placeholder="License plate or phone number" autocomplete="off">
+                                    <i class="bx bx-search position-absolute" style="right:12px; top:50%; transform:translateY(-50%); color:#aaa;"></i>
+                                </div>
                             </div>
-                            <div class="col-md-3 d-flex align-items-end gap-2">
-                                <button type="submit" class="btn btn-primary"><i class="bx bx-search me-1"></i>Filter</button>
-                                <a href="{{ url('/admin/proforma-statuses') }}" class="btn btn-outline-secondary">Reset</a>
-                            </div>
-                        </form>
+                        </div>
 
                         <!-- Stats -->
                         <div class="row mb-4">
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-primary">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['total'] }}</h3>
+                                        <h3 class="mb-0" id="statTotal">0</h3>
                                         <small class="text-muted">Total Assigned</small>
                                     </div>
                                 </div>
@@ -56,7 +55,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-info">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['published'] }}</h3>
+                                        <h3 class="mb-0" id="statPublished">0</h3>
                                         <small class="text-muted">Published</small>
                                     </div>
                                 </div>
@@ -64,7 +63,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-success">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['completed'] }}</h3>
+                                        <h3 class="mb-0" id="statCompleted">0</h3>
                                         <small class="text-muted">Completed</small>
                                     </div>
                                 </div>
@@ -72,7 +71,7 @@
                             <div class="col-md-3">
                                 <div class="card border-0 bg-light-warning">
                                     <div class="card-body text-center py-3">
-                                        <h3 class="mb-0">{{ $stats['closed'] }}</h3>
+                                        <h3 class="mb-0" id="statClosed">0</h3>
                                         <small class="text-muted">Closed</small>
                                     </div>
                                 </div>
@@ -95,9 +94,9 @@
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    @forelse($proformas as $index => $proforma)
-                                    <tr>
-                                        <td>{{ $proformas->firstItem() + $index }}</td>
+                                    @foreach($proformas as $index => $proforma)
+                                    <tr class="proforma-row" data-plate="{{ strtolower($proforma->license_plate_number ?? '') }}" data-phone="{{ strtolower($proforma->customer_phone_number ?? '') }}" data-status="{{ $proforma->status }}" data-admin="{{ $proforma->processed_by }}">
+                                        <td class="row-number">{{ $index + 1 }}</td>
                                         <td><strong>{{ $proforma->file_number }}</strong></td>
                                         <td>{{ $proforma->customer_name }}</td>
                                         <td>{{ $proforma->brand?->name ?? 'N/A' }}</td>
@@ -124,21 +123,17 @@
                                             </button>
                                         </td>
                                     </tr>
-                                    @empty
-                                    <tr>
+                                    @endforeach
+                                    <tr id="emptyRow" style="display:none;">
                                         <td colspan="8" class="text-center text-muted py-4">
                                             <i class="bx bx-info-circle me-1"></i>No proformas found matching the filters.
                                         </td>
                                     </tr>
-                                    @endforelse
                                 </tbody>
                             </table>
                         </div>
 
-                        <!-- Pagination -->
-                        <div class="d-flex justify-content-center mt-3">
-                            {{ $proformas->withQueryString()->links() }}
-                        </div>
+
                     </div>
                 </div>
             </div>
@@ -352,5 +347,71 @@ function showTimeline(proformaId) {
         console.error('Timeline error:', err);
     });
 }
+
+// All-client-side filtering: status dropdown, admin dropdown, search
+(function() {
+    const statusFilter = document.getElementById('filterStatus');
+    const adminFilter = document.getElementById('filterAdmin');
+    const searchInput = document.getElementById('liveSearch');
+    const rows = document.querySelectorAll('tr.proforma-row');
+    const emptyRow = document.getElementById('emptyRow');
+    const statTotal = document.getElementById('statTotal');
+    const statPublished = document.getElementById('statPublished');
+    const statCompleted = document.getElementById('statCompleted');
+    const statClosed = document.getElementById('statClosed');
+
+    function filterRows() {
+        const statusVal = statusFilter ? statusFilter.value : '';
+        const adminVal = adminFilter ? adminFilter.value : '';
+        const searchTerm = (searchInput ? searchInput.value : '').toLowerCase().trim();
+
+        let total = 0, published = 0, completed = 0, closed = 0;
+        let visibleIndex = 1;
+
+        rows.forEach(row => {
+            const rowStatus = row.getAttribute('data-status') || '';
+            const rowAdmin = row.getAttribute('data-admin') || '';
+            const rowPlate = row.getAttribute('data-plate') || '';
+            const rowPhone = row.getAttribute('data-phone') || '';
+
+            // Check all three filters
+            const matchStatus = !statusVal || rowStatus === statusVal;
+            const matchAdmin = !adminVal || rowAdmin === adminVal;
+            const matchSearch = !searchTerm || rowPlate.includes(searchTerm) || rowPhone.includes(searchTerm);
+
+            const visible = matchStatus && matchAdmin && matchSearch;
+            row.style.display = visible ? '' : 'none';
+
+            if (visible) {
+                // Update row number
+                const numCell = row.querySelector('.row-number');
+                if (numCell) numCell.textContent = visibleIndex;
+                visibleIndex++;
+
+                total++;
+                if (rowStatus === 'published') published++;
+                else if (rowStatus === 'completed') completed++;
+                else if (rowStatus === 'closed') closed++;
+            }
+        });
+
+        // Update stat counters
+        statTotal.textContent = total;
+        statPublished.textContent = published;
+        statCompleted.textContent = completed;
+        statClosed.textContent = closed;
+
+        // Show/hide empty message
+        if (emptyRow) emptyRow.style.display = total === 0 ? '' : 'none';
+    }
+
+    // Bind events
+    if (statusFilter) statusFilter.addEventListener('change', filterRows);
+    if (adminFilter) adminFilter.addEventListener('change', filterRows);
+    if (searchInput) searchInput.addEventListener('input', filterRows);
+
+    // Run once on page load to set initial stats
+    filterRows();
+})();
 </script>
 @endsection

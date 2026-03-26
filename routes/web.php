@@ -149,6 +149,51 @@ Route::get('/upload-demo', function () {
 
 // Guest routes (login/signup) - redirect authenticated users
 Route::middleware(['guest'])->group(function () {
+
+    // Force logout other devices (accessible from login page when blocked)
+    Route::post('/force-logout-other-devices', function (Request $request) {
+        $request->validate([
+            'email_or_phone' => 'required',
+            'password' => 'required',
+        ]);
+
+        $input = $request->input('email_or_phone');
+        $user = null;
+
+        if (filter_var($input, FILTER_VALIDATE_EMAIL)) {
+            $user = User::where('email', $input)->first();
+        } else {
+            $raw = preg_replace('/[^0-9]/', '', $input);
+            $core = $raw;
+            if (strlen($raw) >= 10 && substr($raw, 0, 3) === '251') {
+                $core = substr($raw, 3);
+            } elseif (strlen($raw) >= 10 && substr($raw, 0, 1) === '0') {
+                $core = substr($raw, 1);
+            }
+            $user = User::where(function ($q) use ($core, $raw) {
+                $q->where('phone_number', '+251' . $core)
+                  ->orWhere('phone_number', '251' . $core)
+                  ->orWhere('phone_number', '0' . $core)
+                  ->orWhere('phone_number', $core);
+            })->first();
+        }
+
+        if (!$user || !\Illuminate\Support\Facades\Hash::check($request->input('password'), $user->password)) {
+            return back()->withErrors(['email_or_phone' => 'Invalid credentials.'])->withInput();
+        }
+
+        // Clear old session from sessions table
+        if ($user->session_id) {
+            DB::table('sessions')->where('id', $user->session_id)->delete();
+        }
+
+        // Reset session_id so the user can log in fresh
+        $user->session_id = null;
+        $user->save();
+
+        return redirect('/login')->with('success', 'All other devices have been logged out. You can now sign in.');
+    })->name('force-logout-other-devices');
+
     Route::get('/login', function () {
     $brands = array_map(function ($file) {
         return pathinfo($file, PATHINFO_FILENAME);
@@ -236,8 +281,8 @@ Route::post('/login', function (Request $request) {
                     // Truly different device/browser with an active session — block
                     Auth::logout();
                     return back()->withErrors([
-                        'email_or_phone' => 'Please log out of all other devices or browsers.'
-                    ])->withInput();
+                        'email_or_phone' => 'You are already logged in on another device or browser.'
+                    ])->with('session_blocked', true)->withInput();
                 }
             } else {
                 // The stored session no longer exists — allow login
@@ -1354,37 +1399,14 @@ Route::prefix('/admin')
         
          // 📋 Proforma Statuses
          Route::get('/proforma-statuses', function (\Illuminate\Http\Request $request) {
-             $query = \App\Models\Proforma::with(['brand', 'processedBy'])
+             $proformas = \App\Models\Proforma::with(['brand', 'processedBy'])
                  ->whereNotNull('processed_by')
-                 ->orderBy('updated_at', 'desc');
-
-             if ($request->filled('status')) {
-                 $query->where('status', $request->status);
-             }
-             if ($request->filled('processed_by')) {
-                 $query->where('processed_by', $request->processed_by);
-             }
-             if ($request->filled('search')) {
-                 $s = $request->search;
-                 $query->where(function ($q) use ($s) {
-                     $q->where('file_number', 'like', "%{$s}%")
-                       ->orWhere('customer_name', 'like', "%{$s}%");
-                 });
-             }
-
-             $proformas = $query->paginate(25);
+                 ->orderBy('updated_at', 'desc')
+                 ->get();
 
              $admins = \App\Models\User::whereIn('role', ['admin', 'superadmin'])->orderBy('name')->get();
 
-             $baseQuery = \App\Models\Proforma::whereNotNull('processed_by');
-             $stats = [
-                 'total' => (clone $baseQuery)->count(),
-                 'published' => (clone $baseQuery)->where('status', 'published')->count(),
-                 'completed' => (clone $baseQuery)->where('status', 'completed')->count(),
-                 'closed' => (clone $baseQuery)->where('status', 'closed')->count(),
-             ];
-
-             return view('admin.proforma.statuses', compact('proformas', 'admins', 'stats'));
+             return view('admin.proforma.statuses', compact('proformas', 'admins'));
          })->name('admin.proforma-statuses');
         
          // 📧 Sent Emails Log
