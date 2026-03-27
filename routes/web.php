@@ -2172,28 +2172,6 @@ Route::POST('/business-owners/{id}', [BusinessOwnerController::class, 'destroy']
 
 
 
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-    
-
-
-
-
-
     // Marketers
 
 // Edit Marketer (GET)
@@ -2207,36 +2185,6 @@ Route::put('/admin/marketers/{id}', [MarketerController::class, 'update'])
 // Delete Marketer (DELETE)
 Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
     ->name('admin.users.marketers.destroy');
-
-    
-
-
-
-
-
-    
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
@@ -2288,19 +2236,6 @@ Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
             // marketers route
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
         // Add Business Owner
         Route::get('/add-marketer', function () {
             return view('admin.users.marketers.add');
@@ -2348,38 +2283,7 @@ Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
         ])->name('delete-shop');
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-        // spare part shopss
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        // spare part shops
 
         // Add Spare Part Shop
         Route::get('/add-spare-part-shop', function () {
@@ -2527,23 +2431,6 @@ Route::delete('/parts/{id}', function ($id) {
     
 
 })->name('parts.destroy');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
         // // View Brands
         // Route::get('/brands', function () {
@@ -2888,16 +2775,6 @@ Route::get('/business-owners/{id}/edit', [BusinessOwnerController::class, 'edit'
 // Update Business Owner (PUT)
 Route::put('/business-owners/{id}', [BusinessOwnerController::class, 'update'])
     ->name('marketer.business-owners.update');
-
-
-
-
-
-
-
-
-
-
 
 
 

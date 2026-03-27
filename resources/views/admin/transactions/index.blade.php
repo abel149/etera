@@ -133,6 +133,13 @@ files++;
 }
 else{ apps++;}
 }
+
+// Outgoing commissions (money Etera owes users). In wallet transactions these are usually negative amounts.
+if(t.type==='commission'){
+const val = Math.abs(t.amount);
+if(t.is_paid === true) paidCom += val;
+else if(t.is_paid === false) pendingCom += val;
+}
 });
 const net = revenue-paidCom;
 
