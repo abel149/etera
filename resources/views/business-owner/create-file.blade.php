@@ -539,7 +539,6 @@ p { color: #333 !important; }
                                    <div class="col-12 col-lg-6">
     <label class="form-label">
         Chassis Number
-        <small class="text-muted">(Optional)</small>
     </label>
 
     <div class="vin-single-wrapper position-relative">

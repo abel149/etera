@@ -7,6 +7,11 @@
             <div class="card-body p-4">
                 <h5 class="card-title">Add Insurance</h5>
                 <hr/>
+                @if ($errors->has('error'))
+                    <div class="alert alert-danger">
+                        {{ $errors->first('error') }}
+                    </div>
+                @endif
                 <form class="row g-3" action="{{ route('add-insurance') }}" method="POST">
                     @csrf
                     @method('POST')

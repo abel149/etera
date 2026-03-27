@@ -39,31 +39,55 @@ return redirect()->to('/admin/insurances');
     /**
      * Store a newly created resource in storage.
      */
-  public function store(Request $request)
+    public function store(Request $request)
     {
-        $request->validate([
-            'name' => 'required',
-            'email' => 'nullable|email|unique:users,email',
-            'phone_number' => 'required|unique:users,phone_number',
-            'password' => 'nullable|min:6' // password can be null
-        ]);
+        try {
+            $request->validate([
+                'name' => 'required',
+                'email' => 'nullable|email|unique:users,email',
+                'phone_number' => 'required|unique:users,phone_number',
+                'password' => 'nullable|min:6' // password can be null
+            ]);
 
-        // If password is null, default to 123456
-        $password = $request->password ?: '123456';
+            // If password is null, default to 123456
+            $password = $request->password ?: '123456';
 
-        $user = User::create([
-            'name' => $request->name,
-            'email' => $request->email,
-            'phone_number' => $request->phone_number,
-            'password' => bcrypt($password),
-            'role' => 'insurance',
-            'registered_by' => auth()->user()->id
-        ]);
+            $user = User::create([
+                'name' => $request->name,
+                'email' => $request->email,
+                'phone_number' => $request->phone_number,
+                'password' => bcrypt($password),
+                'role' => 'insurance',
+                'registered_by' => auth()->user()->id
+            ]);
 
-        if (auth()->user()->role === 'admin') {
-            return redirect()->to('/admin/insurances')->with(['user' => $user]);
-        } else {
-            return redirect()->to('/marketer/insurances')->with(['user' => $user]);
+            if (auth()->user()->role === 'admin') {
+                return redirect()->to('/admin/insurances')->with(['user' => $user]);
+            } else {
+                return redirect()->to('/marketer/insurances')->with(['user' => $user]);
+            }
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            // Flatten validation errors to a single string for easier display
+            $errors = $e->errors();
+            $errorMessages = [];
+            foreach ($errors as $field => $messages) {
+                foreach ($messages as $message) {
+                    // Customize the duplicate phone message
+                    if ($field === 'phone_number' && str_contains($message, 'already been taken')) {
+                        $errorMessages[] = 'This phone number already exists.';
+                    } else {
+                        $errorMessages[] = $message;
+                    }
+                }
+            }
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => implode(' ', $errorMessages)]);
+        } catch (\Exception $e) {
+            // Catch any other unexpected errors (e.g., database issues)
+            return redirect()->back()
+                ->withInput()
+                ->withErrors(['error' => 'An unexpected error occurred. Please try again.']);
         }
     }
 
