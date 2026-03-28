@@ -64,7 +64,7 @@ class RegisterController extends Controller
         // Validate common fields
         $validator = Validator::make($request->all(), [
             'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20|unique:users,phone_number',
+            'phone_number' => 'required|string|max:10|unique:users,phone_number',
             'role' => 'required|string|in:individual,business_owner,others,garage,shop,insurance,employee,marketer',
             'location' => 'nullable|string|max:255',
             'email' => 'nullable|email|unique:users,email',
@@ -164,7 +164,7 @@ class RegisterController extends Controller
     {
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20|unique:users,phone_number',
+            'phone_number' => 'required|string|max:10|unique:users,phone_number',
             'location' => 'required|string|max:255',
             'email' => 'nullable|email|unique:users,email',
             'password' => 'required|string|min:6|max:6|confirmed',
@@ -226,7 +226,7 @@ class RegisterController extends Controller
             // 2. Manually validate so we can catch & log validation errors
             $validatedData = Validator::make($request->all(), [
                 'name' => 'required|string|max:255',
-                'phone_number' => 'required|string|max:20|unique:users,phone_number',
+                'phone_number' => 'required|string|max:10|unique:users,phone_number',
                 'location' => 'nullable|string|max:255',
                 'email' => 'nullable|email|unique:users,email',
                 'password' => 'required|string|min:6|max:6|confirmed',
@@ -307,7 +307,7 @@ public function storeGarageSparepart(Request $request)
         // ----------------- VALIDATION -----------------
         $validatedData = $request->validate([
             'name' => 'required|string|max:255',
-            'phone_number' => 'required|string|max:20|unique:users,phone_number',
+            'phone_number' => 'required|string|max:10|unique:users,phone_number',
             'role' => 'required|string|in:garage,shop',
             'location' => 'required|string|max:255',
             'tin_number' => 'required|string|max:255',
