@@ -531,6 +531,29 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Phone input: allow user preferred format (no auto-prefix)
 
+    if (document.getElementById('inputPhone')) {
+        document.getElementById('inputPhone').addEventListener('input', function(){
+            const digits = (this.value || '').replace(/\D/g, '');
+            if (digits.length > 10) {
+                showErr(this, 'You reached 10 digits.');
+                return;
+            }
+            if (digits.length >= 2 && !digits.startsWith('09')) {
+                showErr(this, 'Phone number should start with 09.');
+                return;
+            }
+            clearErr(this);
+        });
+
+        document.getElementById('inputPhone').addEventListener('blur', function(){
+            const digits = (this.value || '').replace(/\D/g, '');
+            if (!digits) { showErr(this, 'Phone is required.'); return; }
+            if (digits.length !== 10) { showErr(this, 'Phone number must be 10 digits.'); return; }
+            if (!digits.startsWith('09')) { showErr(this, 'Phone number should start with 09.'); return; }
+            clearErr(this);
+        });
+    }
+
     // Form submit validation
     document.getElementById('garageSparePartRegisterForm').addEventListener('submit', function(e) {
         let hasError = false;
@@ -538,7 +561,10 @@ document.addEventListener('DOMContentLoaded', function() {
         if (!nameEl.value.trim()) { showErr(nameEl, 'Name is required.'); hasError = true; } else clearErr(nameEl);
 
         const phoneEl = document.getElementById('inputPhone');
-        if (!phoneEl.value.trim()) { showErr(phoneEl, 'Phone is required.'); hasError = true; }
+        const digits = (phoneEl.value || '').replace(/\D/g, '');
+        if (!digits) { showErr(phoneEl, 'Phone is required.'); hasError = true; }
+        else if (digits.length !== 10) { showErr(phoneEl, 'Phone number must be 10 digits.'); hasError = true; }
+        else if (!digits.startsWith('09')) { showErr(phoneEl, 'Phone number should start with 09.'); hasError = true; }
         else clearErr(phoneEl);
 
         // Email — optional, only validate format
