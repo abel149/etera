@@ -84,6 +84,9 @@
                    id="inputPhone"
                    name="phone_number"
                    placeholder="0912131415"
+                   maxlength="10"
+                   inputmode="numeric"
+                   pattern="\d{10}"
                    value="{{ old('phone_number') }}" required>
             @error('phone_number')<div class="etera-error-text">{{ $message }}</div>@enderror
         </div>
