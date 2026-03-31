@@ -412,10 +412,20 @@ Route::get('/api/admin/proformas', function () {
         return response()->json(['error' => 'Unauthorized'], 403);
     }
 
+    $user = auth()->user();
+
     $data = Cache::remember('admin_proformas_data', 10, function () {
-        $proformas = \App\Models\Proforma::with('poster')
+        $proformasQuery = \App\Models\Proforma::with('poster')
             ->whereHas('poster')
-            ->orderBy('created_at', 'desc')
+            ->orderBy('created_at', 'desc');
+
+        if (!(auth()->user()->is_superadmin == 1)) {
+            $proformasQuery->where(function ($q) {
+                $q->whereNull('processed_by')->orWhere('processed_by', auth()->id());
+            });
+        }
+
+        $proformas = $proformasQuery
             ->limit(100)
             ->get()
             ->map(function ($p) {

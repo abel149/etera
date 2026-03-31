@@ -293,7 +293,13 @@
 							</tr>
 						</thead>
 									@php
-										$allProformas = \App\Models\Proforma::with('poster')->whereHas('poster')->where('processed_by', auth()->id())->orderBy('created_at', 'desc')->get();
+										$allProformasQuery = \App\Models\Proforma::with('poster')->whereHas('poster')->orderBy('created_at', 'desc');
+										if (!(auth()->user()->is_superadmin == 1)) {
+											$allProformasQuery->where(function ($q) {
+												$q->whereNull('processed_by')->orWhere('processed_by', auth()->id());
+											});
+										}
+										$allProformas = $allProformasQuery->get();
 									@endphp
 						<tbody id="proformaTableBody">
 						@foreach($allProformas as $proforma)
