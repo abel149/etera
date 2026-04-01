@@ -455,6 +455,11 @@
                         @for($i = 1; $i <= $requiredShops; $i++)
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Shop Slot {{ $i }}</label>
+                            <input type="text"
+                                   class="form-control form-control-sm mb-1 inbox-shop-search"
+                                   data-slot="{{ $i }}"
+                                   placeholder="Search by store ID or name…"
+                                   autocomplete="off">
                             <select name="spare_part_partners[]" class="form-select inbox-shop-select" data-slot="{{ $i }}">
                                 <option value="">-- Select Spare Part Shop --</option>
                                 @foreach($shops as $shop)
@@ -482,14 +487,28 @@
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         const selects = document.querySelectorAll('.inbox-shop-select');
+        const searches = document.querySelectorAll('.inbox-shop-search');
         if (!selects.length) return;
 
-        // Store all original options (from the first select, they're all identical)
+        // Master list of all options (built once from the first select)
         const allOptions = [];
         selects[0].querySelectorAll('option').forEach(opt => {
-            allOptions.push({ value: opt.value, text: opt.textContent });
+            allOptions.push({ value: opt.value, text: opt.textContent.trim() });
         });
 
+        // Per-slot search terms map
+        const searchTerms = {};
+        searches.forEach(inp => { searchTerms[inp.dataset.slot] = ''; });
+
+        // Search input: update term and rebuild
+        searches.forEach(inp => {
+            inp.addEventListener('input', function() {
+                searchTerms[this.dataset.slot] = this.value.toLowerCase().trim();
+                updateDropdowns();
+            });
+        });
+
+        // Select change: cross-slot deduplication
         selects.forEach(sel => {
             sel.addEventListener('change', () => updateDropdowns());
         });
@@ -498,30 +517,49 @@
             // Gather currently selected values
             const selected = {};
             selects.forEach(sel => {
-                const val = sel.value;
-                if (val) selected[sel.dataset.slot] = val;
+                if (sel.value) selected[sel.dataset.slot] = sel.value;
             });
 
             selects.forEach(sel => {
                 const currentVal = sel.value;
                 const slot = sel.dataset.slot;
+                const term = searchTerms[slot] || '';
 
-                // Values selected in OTHER dropdowns
+                // Values chosen in OTHER slots (to exclude from this slot)
                 const otherSelected = Object.entries(selected)
                     .filter(([s]) => s !== slot)
                     .map(([, v]) => v);
 
-                // Rebuild options
+                // Rebuild this slot's options
                 sel.innerHTML = '';
+
                 allOptions.forEach(opt => {
-                    if (opt.value === '' || !otherSelected.includes(opt.value)) {
+                    // Always keep placeholder
+                    if (opt.value === '') {
                         const o = document.createElement('option');
-                        o.value = opt.value;
+                        o.value = '';
                         o.textContent = opt.text;
-                        if (opt.value === currentVal) o.selected = true;
                         sel.appendChild(o);
+                        return;
                     }
+
+                    // Exclude options already picked in sibling slots
+                    if (otherSelected.includes(opt.value)) return;
+
+                    // Exclude options that don't match the search term
+                    if (term && !opt.text.toLowerCase().includes(term)) return;
+
+                    const o = document.createElement('option');
+                    o.value = opt.value;
+                    o.textContent = opt.text;
+                    if (opt.value === currentVal) o.selected = true;
+                    sel.appendChild(o);
                 });
+
+                // If the previously selected value was filtered out, clear it
+                if (currentVal && sel.value !== currentVal) {
+                    sel.value = '';
+                }
             });
         }
     });
