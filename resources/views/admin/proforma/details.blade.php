@@ -451,23 +451,35 @@
                         </div>
                         @endif
 
-                        {{-- Dynamic dropdowns: one per required shop --}}
+                        {{-- Combobox shop data for JS --}}
+                        <script>
+                        const inboxShopData = @json(
+                            $shops
+                                ->filter(fn($s) => !in_array($s->id, $alreadyInboxed))
+                                ->values()
+                                ->map(fn($s) => ['id' => $s->id, 'label' => $s->store_id . ' - ' . $s->name])
+                        );
+                        </script>
+
+                        {{-- Dynamic comboboxes: one per required shop --}}
                         @for($i = 1; $i <= $requiredShops; $i++)
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Shop Slot {{ $i }}</label>
-                            <input type="text"
-                                   class="form-control form-control-sm mb-1 inbox-shop-search"
-                                   data-slot="{{ $i }}"
-                                   placeholder="Search by store ID or name…"
-                                   autocomplete="off">
-                            <select name="spare_part_partners[]" class="form-select inbox-shop-select" data-slot="{{ $i }}">
-                                <option value="">-- Select Spare Part Shop --</option>
-                                @foreach($shops as $shop)
-                                    @if(!in_array($shop->id, $alreadyInboxed))
-                                    <option value="{{ $shop->id }}">{{ $shop->store_id }} - {{ $shop->name }}</option>
-                                    @endif
-                                @endforeach
-                            </select>
+                            <div class="inbox-shop-wrapper position-relative" data-slot="{{ $i }}">
+                                <input type="text"
+                                       class="form-control inbox-shop-search"
+                                       data-slot="{{ $i }}"
+                                       placeholder="Type store ID or name…"
+                                       autocomplete="off">
+                                <input type="hidden"
+                                       name="spare_part_partners[]"
+                                       class="inbox-shop-value"
+                                       data-slot="{{ $i }}"
+                                       value="">
+                                <div class="inbox-shop-dropdown list-group d-none"
+                                     data-slot="{{ $i }}"
+                                     style="position:absolute;top:100%;left:0;right:0;max-height:220px;overflow-y:auto;z-index:2000;"></div>
+                            </div>
                         </div>
                         @endfor
 
@@ -483,85 +495,113 @@
         </div>
     </div>
 
-    {{-- Dynamic dropdown filtering JS --}}
+    {{-- Combobox JS --}}
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const selects = document.querySelectorAll('.inbox-shop-select');
-        const searches = document.querySelectorAll('.inbox-shop-search');
-        if (!selects.length) return;
+        const searches  = document.querySelectorAll('.inbox-shop-search');
+        const hiddens   = document.querySelectorAll('.inbox-shop-value');
+        const dropdowns = document.querySelectorAll('.inbox-shop-dropdown');
+        if (!searches.length || typeof inboxShopData === 'undefined') return;
 
-        // Master list of all options (built once from the first select)
-        const allOptions = [];
-        selects[0].querySelectorAll('option').forEach(opt => {
-            allOptions.push({ value: opt.value, text: opt.textContent.trim() });
-        });
-
-        // Per-slot search terms map
-        const searchTerms = {};
-        searches.forEach(inp => { searchTerms[inp.dataset.slot] = ''; });
-
-        // Search input: update term and rebuild
-        searches.forEach(inp => {
-            inp.addEventListener('input', function() {
-                searchTerms[this.dataset.slot] = this.value.toLowerCase().trim();
-                updateDropdowns();
+        function getOtherSelectedIds(slot) {
+            const ids = [];
+            hiddens.forEach(h => {
+                if (h.dataset.slot !== String(slot) && h.value) ids.push(String(h.value));
             });
-        });
+            return ids;
+        }
 
-        // Select change: cross-slot deduplication
-        selects.forEach(sel => {
-            sel.addEventListener('change', () => updateDropdowns());
-        });
+        function renderDropdown(slot, term) {
+            const dropdown   = document.querySelector('.inbox-shop-dropdown[data-slot="' + slot + '"]');
+            const otherIds   = getOtherSelectedIds(slot);
+            const lowerTerm  = term.toLowerCase();
 
-        function updateDropdowns() {
-            // Gather currently selected values
-            const selected = {};
-            selects.forEach(sel => {
-                if (sel.value) selected[sel.dataset.slot] = sel.value;
+            const filtered = inboxShopData.filter(shop => {
+                if (otherIds.includes(String(shop.id))) return false;
+                if (term && !shop.label.toLowerCase().includes(lowerTerm)) return false;
+                return true;
             });
 
-            selects.forEach(sel => {
-                const currentVal = sel.value;
-                const slot = sel.dataset.slot;
-                const term = searchTerms[slot] || '';
+            dropdown.innerHTML = '';
 
-                // Values chosen in OTHER slots (to exclude from this slot)
-                const otherSelected = Object.entries(selected)
-                    .filter(([s]) => s !== slot)
-                    .map(([, v]) => v);
+            if (!filtered.length) {
+                dropdown.innerHTML = '<div class="list-group-item text-muted small py-2">No shops found</div>';
+            } else {
+                filtered.forEach(shop => {
+                    const btn = document.createElement('button');
+                    btn.type = 'button';
+                    btn.className = 'list-group-item list-group-item-action small py-2';
 
-                // Rebuild this slot's options
-                sel.innerHTML = '';
-
-                allOptions.forEach(opt => {
-                    // Always keep placeholder
-                    if (opt.value === '') {
-                        const o = document.createElement('option');
-                        o.value = '';
-                        o.textContent = opt.text;
-                        sel.appendChild(o);
-                        return;
+                    // Bold the matched portion
+                    if (term) {
+                        const idx = shop.label.toLowerCase().indexOf(lowerTerm);
+                        btn.innerHTML = shop.label.slice(0, idx)
+                            + '<strong>' + shop.label.slice(idx, idx + term.length) + '</strong>'
+                            + shop.label.slice(idx + term.length);
+                    } else {
+                        btn.textContent = shop.label;
                     }
 
-                    // Exclude options already picked in sibling slots
-                    if (otherSelected.includes(opt.value)) return;
-
-                    // Exclude options that don't match the search term
-                    if (term && !opt.text.toLowerCase().includes(term)) return;
-
-                    const o = document.createElement('option');
-                    o.value = opt.value;
-                    o.textContent = opt.text;
-                    if (opt.value === currentVal) o.selected = true;
-                    sel.appendChild(o);
+                    btn.addEventListener('mousedown', function(e) {
+                        e.preventDefault(); // keep focus on input so blur fires after
+                        selectShop(slot, String(shop.id), shop.label);
+                    });
+                    dropdown.appendChild(btn);
                 });
+            }
 
-                // If the previously selected value was filtered out, clear it
-                if (currentVal && sel.value !== currentVal) {
-                    sel.value = '';
+            dropdown.classList.remove('d-none');
+        }
+
+        function selectShop(slot, id, label) {
+            const search   = document.querySelector('.inbox-shop-search[data-slot="' + slot + '"]');
+            const hidden   = document.querySelector('.inbox-shop-value[data-slot="' + slot + '"]');
+            const dropdown = document.querySelector('.inbox-shop-dropdown[data-slot="' + slot + '"]');
+
+            search.value  = label;
+            hidden.value  = id;
+            dropdown.classList.add('d-none');
+
+            // If a sibling slot had this shop selected, clear it
+            hiddens.forEach(h => {
+                if (h.dataset.slot !== String(slot) && h.value === id) {
+                    h.value = '';
+                    const sibSearch = document.querySelector('.inbox-shop-search[data-slot="' + h.dataset.slot + '"]');
+                    if (sibSearch) sibSearch.value = '';
                 }
             });
         }
+
+        searches.forEach(inp => {
+            // While typing: clear value, show filtered dropdown
+            inp.addEventListener('input', function() {
+                const slot   = this.dataset.slot;
+                const hidden = document.querySelector('.inbox-shop-value[data-slot="' + slot + '"]');
+                hidden.value = '';
+                renderDropdown(slot, this.value.trim());
+            });
+
+            // On focus: show dropdown (all options if input is empty, filtered otherwise)
+            inp.addEventListener('focus', function() {
+                renderDropdown(this.dataset.slot, this.value.trim());
+            });
+
+            // On blur: close dropdown after brief delay (allows mousedown click to fire first)
+            inp.addEventListener('blur', function() {
+                const slot = this.dataset.slot;
+                setTimeout(function() {
+                    const dropdown = document.querySelector('.inbox-shop-dropdown[data-slot="' + slot + '"]');
+                    if (dropdown) dropdown.classList.add('d-none');
+                }, 160);
+            });
+        });
+
+        // Close all dropdowns on outside click
+        document.addEventListener('click', function(e) {
+            if (!e.target.closest('.inbox-shop-wrapper')) {
+                dropdowns.forEach(d => d.classList.add('d-none'));
+            }
+        });
     });
     </script>
     @endif
