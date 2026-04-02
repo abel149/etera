@@ -3816,36 +3816,76 @@ Route::post('/proformas', function (Request $request) {
             return redirect()->back()->with('error', 'All required slots are already locked by applied shops. You cannot replace them.');
         }
 
-        // Admin's desired recipients for the editable slots (excluding locked shops).
-        $requestedShopIds = array_values(array_filter(
-            array_unique($request->spare_part_partners),
-            fn($id) => !empty($id) && !in_array((string) $id, $lockedShopIds)
-        ));
+        // Best-effort per-slot behavior without a DB slot column:
+        // Treat request order as slot1..slotN. Replacing slot2 should not touch slot1.
+        $slotInputs = is_array($request->spare_part_partners) ? $request->spare_part_partners : [];
+        $slotInputs = array_slice($slotInputs, 0, $editableSlots);
 
-        if (count($requestedShopIds) > $editableSlots) {
-            return redirect()->back()->with('error', "You can select at most {$editableSlots} shop(s) for this proforma.");
+        // Normalize + enforce unique across slots (keep first occurrence).
+        $seen = [];
+        $desiredSlots = [];
+        foreach ($slotInputs as $raw) {
+            $id = !empty($raw) ? (string) $raw : '';
+            if ($id !== '' && (in_array($id, $lockedShopIds, true) || in_array($id, $seen, true))) {
+                $id = '';
+            }
+            if ($id !== '') {
+                $seen[] = $id;
+            }
+            $desiredSlots[] = $id;
         }
 
-        // Replacement behavior:
-        // - Keep locked (applied) shops always.
-        // - For non-locked inboxes, keep only those included in requestedShopIds; remove the rest.
-        // This frees slots automatically so admin can replace non-applied inboxes.
-        $currentInboxShopIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
-            ->pluck('user_id')
-            ->map(fn($id) => (string) $id)
-            ->unique()
-            ->toArray();
+        // Current editable (non-locked) inbox recipients, in creation order.
+        $currentEditableInbox = \App\Models\Inbox::where('proforma_id', $proforma->id)
+            ->whereNotIn('user_id', $lockedShopIds)
+            ->orderBy('created_at', 'asc')
+            ->get(['id', 'user_id']);
 
-        $removeInboxShopIds = array_diff($currentInboxShopIds, $lockedShopIds, $requestedShopIds);
-        if (!empty($removeInboxShopIds)) {
-            \App\Models\Inbox::where('proforma_id', $proforma->id)
-                ->whereIn('user_id', $removeInboxShopIds)
-                ->delete();
+        // Apply per-slot replacements.
+        for ($i = 0; $i < $editableSlots; $i++) {
+            $desiredUserId = $desiredSlots[$i] ?? '';
+            $existingRow = $currentEditableInbox[$i] ?? null;
+            $existingUserId = $existingRow ? (string) $existingRow->user_id : '';
+
+            // If slot is empty, do not change existing (admin didn't choose anything for this slot).
+            if ($desiredUserId === '') {
+                continue;
+            }
+
+            // If desired equals current, no change.
+            if ($existingUserId !== '' && $existingUserId === $desiredUserId) {
+                continue;
+            }
+
+            // Replace: remove existing row for this slot (if any), then create desired inbox.
+            if ($existingRow) {
+                $existingRow->delete();
+            }
+
+            $inboxRecord = Inbox::firstOrCreate([
+                'proforma_id' => $proforma->id,
+                'user_id' => $desiredUserId,
+            ]);
+
+            // Send Telegram notification to inboxed user
+            if ($inboxRecord->wasRecentlyCreated) {
+                try {
+                    $user = \App\Models\User::find($desiredUserId);
+                    if ($user && !empty($user->telegram_chat_id) && $telegram->isConfigured()) {
+                        $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Inbox Telegram notification failed', [
+                        'proforma_id' => $proforma->id,
+                        'user_id' => $desiredUserId,
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
         }
 
-        $uniqueSparePartPartners = $requestedShopIds;
-
-        foreach ($uniqueSparePartPartners as $inbox) {
+        // Backward-compat: keep the rest of the handler structure unchanged.
+        foreach ([] as $inbox) {
             if (empty($inbox)) {
                 continue;
             }
