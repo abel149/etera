@@ -94,7 +94,7 @@
                                     </tr>
                                     <tr>
                                         <td><strong>Created By:</strong></td>
-                                        <td>{{ $proforma->poster->name }} ({{ ucfirst($proforma->poster->role) }})</td>
+                                        <td>{{ $proforma->poster?->name ?? 'N/A' }} ({{ ucfirst($proforma->poster?->role ?? 'unknown') }})</td>
                                     </tr>
                                     <tr>
                                         <td><strong>Created At:</strong></td>
@@ -134,7 +134,7 @@
                                     </tr>
                                     <tr>
                                         <td><strong>Car:</strong></td>
-                                        <td>{{ $proforma->car_type }} {{ $proforma->brand->name }} {{ $proforma->model }} ({{ $proforma->year }})</td>
+                                        <td>{{ $proforma->car_type }} {{ $proforma->brand?->name ?? 'N/A' }} {{ $proforma->model }} ({{ $proforma->year }})</td>
                                     </tr>
                                     <tr>
                                         <td><strong>Proforma Requested:</strong></td>
@@ -345,8 +345,8 @@
                                         <tbody>
                                             @foreach($applications as $index => $application)
                                             <tr class="application-row" data-index="{{ $index }}" @if($proforma->isEteraCheretaMode() && $index >= 5) style="display:none;" @endif>
-                                                <td>{{ $application->applicationBy->name }}</td>
-                                                <td>{{ ucfirst($application->applicationBy->role) }}</td>
+                                                <td>{{ $application->applicationBy?->name ?? 'N/A' }}</td>
+                                                <td>{{ ucfirst($application->applicationBy?->role ?? 'unknown') }}</td>
                                                 <td>{{ $application->created_at->format('d M Y, h:i A') }}</td>
                                                 
                                                 <td>
@@ -358,7 +358,7 @@
                                                                     Your browser does not support the audio element.
                                                                 </audio>
                                                                 <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                                        onclick="playVoiceNote('{{ $voiceNote->getUrl() }}', '{{ $application->applicationBy->name }}')">
+                                                                        onclick="playVoiceNote('{{ $voiceNote->getUrl() }}', '{{ $application->applicationBy?->name ?? 'N/A' }}')">
                                                                     <i class="bx bx-play"></i>
                                                                 </button>
                                                             </div>
