@@ -749,7 +749,7 @@ Route::get('/', function () {
             'insurance' => '/insurance',
             'others' => '/business-owner',
             'garage' => '/garage/',
-            'shop' => '/spare-part-shops/',
+            'shop' => '/spare-part-shops/proformas',
             'marketer' => '/marketer',
             'employee' => '/employee',
             'manager' => '/manager/dashboard',
