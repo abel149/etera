@@ -416,7 +416,16 @@
         $alreadyInboxed = $proforma->inboxes ? $proforma->inboxes->pluck('user_id')->toArray() : [];
     @endphp
 
-    @if(!$isEteraChereta && $requiredShops > 0)
+    @if(!$isEteraChereta && $requiredShops > 0 && $availableInboxSlots === 0)
+    {{-- All slots consumed — disabled indicator --}}
+    <span class="rounded-circle shadow-lg d-flex align-items-center justify-content-center bg-secondary text-white"
+          title="All {{ $requiredShops }} inbox slot(s) are filled by active applicants"
+          style="position:fixed;bottom:2rem;right:2rem;width:56px;height:56px;font-size:1.4rem;z-index:1050;cursor:not-allowed;opacity:.6;">
+        <i class="bx bx-send"></i>
+    </span>
+    @endif
+
+    @if(!$isEteraChereta && $requiredShops > 0 && $availableInboxSlots > 0)
     {{-- Floating Action Button --}}
     <button type="button" class="btn btn-primary rounded-circle shadow-lg" id="inboxFab"
         data-bs-toggle="modal" data-bs-target="#inboxModal"
@@ -451,18 +460,30 @@
                         </div>
                         @endif
 
-                        {{-- Combobox shop data for JS --}}
+                        {{-- Active applicants already consuming slots --}}
+                        @if(count($activeApplicationShopIds) > 0)
+                        <div class="alert alert-warning py-2 mb-3">
+                            <small><strong>Slots taken by active applicants ({{ count($activeApplicationShopIds) }}/{{ $requiredShops }}):</strong></small>
+                            <div class="d-flex flex-wrap gap-1 mt-1">
+                                @foreach($shops->whereIn('id', $activeApplicationShopIds) as $activeShop)
+                                    <span class="badge bg-warning text-dark">{{ $activeShop->store_id }} - {{ $activeShop->name }}</span>
+                                @endforeach
+                            </div>
+                        </div>
+                        @endif
+
+                        {{-- Combobox shop data for JS (excludes already-inboxed AND active applicants) --}}
                         <script>
                         const inboxShopData = @json(
                             $shops
-                                ->filter(fn($s) => !in_array($s->id, $alreadyInboxed))
+                                ->filter(fn($s) => !in_array($s->id, $alreadyInboxed) && !in_array($s->id, $activeApplicationShopIds))
                                 ->values()
                                 ->map(fn($s) => ['id' => $s->id, 'label' => $s->store_id . ' - ' . $s->name])
                         );
                         </script>
 
-                        {{-- Dynamic comboboxes: one per required shop --}}
-                        @for($i = 1; $i <= $requiredShops; $i++)
+                        {{-- Dynamic comboboxes: one per available slot --}}
+                        @for($i = 1; $i <= $availableInboxSlots; $i++)
                         <div class="mb-3">
                             <label class="form-label fw-semibold">Shop Slot {{ $i }}</label>
                             <div class="inbox-shop-wrapper position-relative" data-slot="{{ $i }}">

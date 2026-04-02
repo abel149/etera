@@ -493,7 +493,7 @@ class TelegramService
         $text = "✅ <b>Proforma Completed!</b>\n\n"
             . "📋 File: <b>{$proforma->file_number}</b>\n"
             . "🚗 {$proforma->brand?->name} {$proforma->model} ({$proforma->year})\n"
-            . "Your proforma has been completed and returned to you.\n";
+            . "Your proforma has been completed and returned to you Please log in to your account and check your received proformas.\n";
 
         if ($invoiceUrl) {
             $text .= "\n🧾 View Invoice: {$invoiceUrl}";

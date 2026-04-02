@@ -373,7 +373,7 @@ Route::post('/login', function (Request $request) {
             case 'garage':
                 return redirect()->intended('/garage/');
             case 'shop':
-                return redirect()->intended('/spare-part-shops/');
+                return redirect()->intended('/spare-part-shops/proformas');
             case 'marketer':
                 return redirect()->intended('/marketer');
             case 'employee':
@@ -3788,7 +3788,36 @@ Route::post('/proformas', function (Request $request) {
     $telegram = new \App\Services\TelegramService();
 
     if ($request->spare_part_partners) {
-        $uniqueSparePartPartners = array_unique($request->spare_part_partners);
+        $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+        $isEteraChereta  = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
+
+        // IDs of shops with active (non-rejected) applications — each consumes one slot
+        $activeShopIds = $proforma->applications()
+            ->where('from', 'shop')
+            ->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'rejected');
+            })
+            ->pluck('application_by')
+            ->map(fn($id) => (string) $id)
+            ->unique()
+            ->toArray();
+
+        $availableSlots = !$isEteraChereta && $requiredShops > 0
+            ? max(0, $requiredShops - count($activeShopIds))
+            : PHP_INT_MAX;
+
+        if ($availableSlots === 0) {
+            return redirect()->back()->with('error', 'All inbox slots are filled by active applicants. No more shops can be inboxed for this proforma.');
+        }
+
+        $uniqueSparePartPartners = array_filter(
+            array_unique($request->spare_part_partners),
+            fn($id) => !empty($id) && !in_array((string) $id, $activeShopIds)
+        );
+
+        if (count($uniqueSparePartPartners) > $availableSlots) {
+            return redirect()->back()->with('error', "Only {$availableSlots} inbox slot(s) remaining. Please select at most {$availableSlots} shop(s).");
+        }
 
         foreach ($uniqueSparePartPartners as $inbox) {
             if (empty($inbox)) {
