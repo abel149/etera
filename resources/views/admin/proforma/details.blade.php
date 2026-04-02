@@ -473,13 +473,16 @@
                         @endif
 
                         {{-- Combobox shop data for JS (excludes already-inboxed AND active applicants) --}}
-                        <script>
-                        const inboxShopData = @json(
-                            $shops
+                        @php
+                            $inboxShopOptions = $shops
                                 ->filter(fn($s) => !in_array($s->id, $alreadyInboxed) && !in_array($s->id, $activeApplicationShopIds))
                                 ->values()
-                                ->map(fn($s) => ['id' => $s->id, 'label' => $s->store_id . ' - ' . $s->name])
-                        );
+                                ->map(fn($s) => ['id' => (int)$s->id, 'label' => ($s->store_id ?? '') . ' - ' . $s->name])
+                                ->values()
+                                ->toArray();
+                        @endphp
+                        <script>
+                        const inboxShopData = @json($inboxShopOptions);
                         </script>
 
                         {{-- Dynamic comboboxes: one per available slot --}}

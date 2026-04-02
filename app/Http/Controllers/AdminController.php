@@ -151,7 +151,6 @@ class AdminController extends Controller
             'brand',
             'parts',
             'applications.applicationBy',
-            'applications.prices.part',
             'inboxes.user',
         ])
             ->findOrFail($id);
