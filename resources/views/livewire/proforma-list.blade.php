@@ -149,23 +149,23 @@
                                                             <i class="bx bx-show me-0"></i>
                                                         </a>
                                                         
-                                                        @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected())
-                                                            @if(((int)($proforma->required_number_of_shops ?? 0) === 0) || ((int)($proforma->shop_inboxes_count ?? 0) < (int)($proforma->required_number_of_shops ?? 0)))
-                                                                <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-sm btn-primary">Float</a>
-                                                            @endif
+                                                        @php
+                                                            $allSlotsInboxed = (int)($proforma->required_number_of_shops ?? 0) > 0
+                                                                && (int)($proforma->shop_inboxes_count ?? 0) >= (int)($proforma->required_number_of_shops ?? 0);
+                                                        @endphp
+                                                        @if(($proforma->status === 'pending' || $proforma->status === 'opened') && !$proforma?->selected() && !$allSlotsInboxed)
+                                                            <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-sm btn-primary">Float</a>
                                                         @endif
-                                                        
-                                                        @if($proforma->status == 'closed')
+                                                        @if($proforma->status === 'closed')
                                                             <a href="/admin/verify/{{ $proforma->id }}" class="btn btn-sm btn-primary">Send To Owner</a>
                                                         @endif
-
                                                         @if($proforma->status !== 'closed' && $proforma->status !== 'completed')
-                                                            @if(!$proforma->applications->isEmpty())
+                                                            @if($allSlotsInboxed || !$proforma->applications->isEmpty())
                                                                 <form action="{{ route('proforma.close', $proforma->id) }}" method="POST" class="d-inline">
                                                                     @csrf
                                                                     @method('PATCH')
                                                                     <button type="submit" class="btn btn-primary btn-sm"
-                                                                        @if($proforma->status === 'pending' || $proforma->status === 'opened') hidden @endif>
+                                                                        @if(($proforma->status === 'pending' || $proforma->status === 'opened') && !$allSlotsInboxed) hidden @endif>
                                                                         Close
                                                                     </button>
                                                                 </form>

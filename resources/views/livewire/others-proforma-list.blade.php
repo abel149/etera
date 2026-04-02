@@ -164,40 +164,40 @@
                                                 </a>
                                             </td>
                                             @endif
-                                            @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected() && auth()->user()->role == 'admin')
-                                              <td>
+                                            @if(auth()->user()->role == 'admin')
+                                            @php
+                                                $allSlotsInboxed = (int)($proforma->required_number_of_shops ?? 0) > 0
+                                                    && (int)($proforma->shop_inboxes_count ?? 0) >= (int)($proforma->required_number_of_shops ?? 0);
+                                            @endphp
+                                            @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected() && !$allSlotsInboxed)
+                                            <td>
                                                 <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-primary">
                                                     Float
                                                 </a>
                                             </td>
                                             @endif
-                                     
-                                            @if(($proforma->status == 'closed') && auth()->user()->role == 'admin')
+                                            @if($proforma->status == 'closed')
                                             <td>
                                                 <a href="/admin/verify/{{ $proforma->id }}" class="btn btn-primary">
                                                     Send To Owner
                                                 </a>
                                             </td>
                                             @endif
-
-
-
                                             <td>
-                                                @if(auth()->user()->role == 'admin' && $proforma->status !== 'closed' && $proforma->status !== 'completed')
-                                                    @if($proforma->applications->isEmpty())
-                                                        <!-- If there are no applications, disable the button -->
-                                                    @else
+                                                @if($proforma->status !== 'closed' && $proforma->status !== 'completed')
+                                                    @if($allSlotsInboxed || !$proforma->applications->isEmpty())
                                                         <form action="{{ route('proforma.close', $proforma->id) }}" method="POST">
                                                             @csrf
                                                             @method('PATCH')
                                                             <button type="submit" class="btn btn-primary btn-sm"
-                                                                @if($proforma->status === 'pending' || $proforma->status === 'opened') hidden @endif>
+                                                                @if(($proforma->status === 'pending' || $proforma->status === 'opened') && !$allSlotsInboxed) hidden @endif>
                                                                 Close
                                                             </button>
                                                         </form>
                                                     @endif
                                                 @endif
                                             </td>
+                                            @endif
                                         </tr>
                                     @empty
                                         <tr class="mx-auto">
