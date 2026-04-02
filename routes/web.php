@@ -3791,12 +3791,18 @@ Route::post('/proformas', function (Request $request) {
         $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
         $isEteraChereta  = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
 
-        // IDs of shops with active (non-rejected) applications — each consumes one slot
-        $activeShopIds = $proforma->applications()
-            ->where('from', 'shop')
-            ->where(function ($q) {
+        // IDs of shops with active applications — each consumes one slot
+        // Some deployments may not have `status` column on `proforma_applications`.
+        // If the column exists, treat `rejected` as non-active; otherwise treat all as active.
+        $activeShopIdsQuery = $proforma->applications()->where('from', 'shop');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'status')) {
+            $activeShopIdsQuery->where(function ($q) {
                 $q->whereNull('status')->orWhere('status', '!=', 'rejected');
-            })
+            });
+        }
+
+        $activeShopIds = $activeShopIdsQuery
+            ->orderBy('created_at', 'desc')
             ->pluck('application_by')
             ->map(fn($id) => (string) $id)
             ->unique()
