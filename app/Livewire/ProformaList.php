@@ -92,7 +92,16 @@ class ProformaList extends Component
         $query->orderBy('created_at', $this->sortBy);
 
         return view('livewire.proforma-list', [
-            'proformas' => $query->with(['poster', 'brand'])->paginate(10),
+            'proformas' => $query
+                ->with(['poster', 'brand'])
+                ->withCount([
+                    'inboxes as shop_inboxes_count' => function ($q) {
+                        $q->whereHas('user', function ($u) {
+                            $u->where('role', 'shop');
+                        });
+                    },
+                ])
+                ->paginate(10),
         ]);
     }
 }

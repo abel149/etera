@@ -150,7 +150,9 @@
                                                         </a>
                                                         
                                                         @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected())
-                                                            <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-sm btn-primary">Float</a>
+                                                            @if(((int)($proforma->required_number_of_shops ?? 0) === 0) || ((int)($proforma->shop_inboxes_count ?? 0) < (int)($proforma->required_number_of_shops ?? 0)))
+                                                                <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-sm btn-primary">Float</a>
+                                                            @endif
                                                         @endif
                                                         
                                                         @if($proforma->status == 'closed')

@@ -1373,6 +1373,16 @@ Route::get('/float', function (Request $request) {
         return redirect()->back();
     }
 
+    $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+    if ($requiredShops > 0) {
+        $shopInboxCount = \App\Models\Inbox::where('proforma_id', $proforma->id)
+            ->whereHas('user', fn($q) => $q->where('role', 'shop'))
+            ->count();
+        if ($shopInboxCount >= $requiredShops) {
+            return redirect()->back()->with('error', 'This proforma already has all requested shop slots inboxed. You cannot float it.');
+        }
+    }
+
     $proforma->update(['status' => 'published', 'processed_by' => auth()->id()]);
 
     // Log Activity
@@ -3904,8 +3914,6 @@ Route::post('/proformas', function (Request $request) {
             }
         }
     }
-
-    $proforma->update(['status' => 'published']);
 
     return redirect()->back()->with('success', 'Proforma updated successfully!');
 })->name('proforma.store');
