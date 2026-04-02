@@ -475,7 +475,7 @@
                         {{-- Combobox shop data for JS (excludes already-inboxed AND active applicants) --}}
                         @php
                             $inboxShopOptions = $shops
-                                ->filter(fn($s) => !in_array($s->id, $alreadyInboxed) && !in_array($s->id, $activeApplicationShopIds))
+                                ->filter(fn($s) => !in_array($s->id, $activeApplicationShopIds))
                                 ->values()
                                 ->map(fn($s) => ['id' => (int)$s->id, 'label' => ($s->store_id ?? '') . ' - ' . $s->name])
                                 ->values()

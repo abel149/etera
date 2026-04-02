@@ -3791,39 +3791,59 @@ Route::post('/proformas', function (Request $request) {
         $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
         $isEteraChereta  = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
 
-        // IDs of shops with active applications — each consumes one slot
-        // Some deployments may not have `status` column on `proforma_applications`.
-        // If the column exists, treat `rejected` as non-active; otherwise treat all as active.
-        $activeShopIdsQuery = $proforma->applications()->where('from', 'shop');
+        // Shops with active applications lock their slot (cannot be replaced).
+        // Some deployments may not have `status` on `proforma_applications`.
+        // If it exists, treat `rejected` as non-active; otherwise treat all as active.
+        $lockedShopIdsQuery = $proforma->applications()->where('from', 'shop');
         if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'status')) {
-            $activeShopIdsQuery->where(function ($q) {
+            $lockedShopIdsQuery->where(function ($q) {
                 $q->whereNull('status')->orWhere('status', '!=', 'rejected');
             });
         }
 
-        $activeShopIds = $activeShopIdsQuery
-            ->orderBy('created_at', 'desc')
+        $lockedShopIds = $lockedShopIdsQuery
             ->pluck('application_by')
             ->map(fn($id) => (string) $id)
             ->unique()
             ->toArray();
 
-        $availableSlots = !$isEteraChereta && $requiredShops > 0
-            ? max(0, $requiredShops - count($activeShopIds))
+        // Editable slots are the remaining requested slots after locked (applied) shops.
+        $editableSlots = !$isEteraChereta && $requiredShops > 0
+            ? max(0, $requiredShops - count($lockedShopIds))
             : PHP_INT_MAX;
 
-        if ($availableSlots === 0) {
-            return redirect()->back()->with('error', 'All inbox slots are filled by active applicants. No more shops can be inboxed for this proforma.');
+        if ($editableSlots === 0) {
+            return redirect()->back()->with('error', 'All required slots are already locked by applied shops. You cannot replace them.');
         }
 
-        $uniqueSparePartPartners = array_filter(
+        // Admin's desired recipients for the editable slots (excluding locked shops).
+        $requestedShopIds = array_values(array_filter(
             array_unique($request->spare_part_partners),
-            fn($id) => !empty($id) && !in_array((string) $id, $activeShopIds)
-        );
+            fn($id) => !empty($id) && !in_array((string) $id, $lockedShopIds)
+        ));
 
-        if (count($uniqueSparePartPartners) > $availableSlots) {
-            return redirect()->back()->with('error', "Only {$availableSlots} inbox slot(s) remaining. Please select at most {$availableSlots} shop(s).");
+        if (count($requestedShopIds) > $editableSlots) {
+            return redirect()->back()->with('error', "You can select at most {$editableSlots} shop(s) for this proforma.");
         }
+
+        // Replacement behavior:
+        // - Keep locked (applied) shops always.
+        // - For non-locked inboxes, keep only those included in requestedShopIds; remove the rest.
+        // This frees slots automatically so admin can replace non-applied inboxes.
+        $currentInboxShopIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
+            ->pluck('user_id')
+            ->map(fn($id) => (string) $id)
+            ->unique()
+            ->toArray();
+
+        $removeInboxShopIds = array_diff($currentInboxShopIds, $lockedShopIds, $requestedShopIds);
+        if (!empty($removeInboxShopIds)) {
+            \App\Models\Inbox::where('proforma_id', $proforma->id)
+                ->whereIn('user_id', $removeInboxShopIds)
+                ->delete();
+        }
+
+        $uniqueSparePartPartners = $requestedShopIds;
 
         foreach ($uniqueSparePartPartners as $inbox) {
             if (empty($inbox)) {

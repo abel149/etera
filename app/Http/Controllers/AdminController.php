@@ -168,17 +168,16 @@ class AdminController extends Controller
         $shops = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
         $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
 
-        // Shops with active (non-rejected) applications → each consumes one inbox slot
+        // Shops with applications lock their slot (cannot be replaced)
         $activeApplicationShopIds = $proforma->applications
             ->where('from', 'shop')
-            ->filter(fn($app) => $app->status !== 'rejected')
             ->pluck('application_by')
             ->map(fn($uid) => (int) $uid)
             ->unique()
             ->values()
             ->toArray();
 
-        // Remaining inbox slots the admin can still fill
+        // Remaining *editable* inbox slots (requested slots minus locked applied slots)
         $availableInboxSlots = max(0, $requiredShops - count($activeApplicationShopIds));
 
         return view('admin.proforma.details', compact(
