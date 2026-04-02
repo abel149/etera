@@ -416,7 +416,7 @@
         $alreadyInboxed = $proforma->inboxes ? $proforma->inboxes->pluck('user_id')->toArray() : [];
     @endphp
 
-    @if(!$isEteraChereta && $requiredShops > 0 && $availableInboxSlots === 0 && $proforma->status !== 'closed')
+    @if(!$isEteraChereta && $requiredShops > 0 && $availableInboxSlots === 0 && $proforma->status !== 'closed' && $proforma->status !== 'completed')
     {{-- All slots consumed — disabled indicator --}}
     <span class="rounded-circle shadow-lg d-flex align-items-center justify-content-center bg-secondary text-white"
           title="All {{ $requiredShops }} inbox slot(s) are filled by active applicants"
@@ -425,7 +425,7 @@
     </span>
     @endif
 
-    @if(!$isEteraChereta && $requiredShops > 0 && $availableInboxSlots > 0 && $proforma->status !== 'closed')
+    @if(!$isEteraChereta && $requiredShops > 0 && $availableInboxSlots > 0 && $proforma->status !== 'closed' && $proforma->status !== 'completed')
     {{-- Floating Action Button --}}
     <button type="button" class="btn btn-primary rounded-circle shadow-lg" id="inboxFab"
         data-bs-toggle="modal" data-bs-target="#inboxModal"

@@ -69,6 +69,9 @@ class OthersProformaList extends Component
                             $u->where('role', 'shop');
                         });
                     },
+                    'applications as shop_applications_count' => function ($q) {
+                        $q->where('from', 'shop');
+                    },
                 ])
                 ->paginate(10),
         ]);
