@@ -378,7 +378,7 @@ class AdminController extends Controller
             \Illuminate\Support\Facades\Log::warning('Failed to send floater close notification', ['error' => $e->getMessage()]);
         }
 
-        return response()->json(['success' => true, 'message' => 'Proforma closed successfully']);
+        return redirect()->back()->with('success', 'Proforma closed successfully');
     }
 
     /**
