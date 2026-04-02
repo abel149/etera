@@ -505,7 +505,7 @@ Route::post('/api/notifications/read', function () {
 
 // Close proforma (admin only)
 Route::patch('/admin/proforma/{id}/close', [\App\Http\Controllers\AdminController::class, 'closeProforma'])
-    ->name('proforma.close')
+    ->name('admin.proforma.close')
     ->middleware('auth.user');
 
 // Telegram connect page (shown after signup)

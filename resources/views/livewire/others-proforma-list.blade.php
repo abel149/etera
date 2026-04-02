@@ -186,7 +186,7 @@
                                             <td>
                                                 @if($proforma->status !== 'closed' && $proforma->status !== 'completed')
                                                     @if($allSlotsInboxed || !$proforma->applications->isEmpty())
-                                                        <form action="{{ route('proforma.close', $proforma->id) }}" method="POST">
+                                                        <form action="{{ route('admin.proforma.close', $proforma->id) }}" method="POST">
                                                             @csrf
                                                             @method('PATCH')
                                                             <button type="submit" class="btn btn-primary btn-sm"
