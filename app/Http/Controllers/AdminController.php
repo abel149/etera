@@ -338,7 +338,11 @@ class AdminController extends Controller
         }
 
         $proforma = Proforma::findOrFail($id);
-        $proforma->update(['status' => 'closed']);
+        $updateData = ['status' => 'closed'];
+        if (empty($proforma->processed_by)) {
+            $updateData['processed_by'] = auth()->id();
+        }
+        $proforma->update($updateData);
 
         // Notify poster via database + Telegram
         try {
