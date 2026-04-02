@@ -71,12 +71,13 @@ class="current"
                         @forelse($applications as $index => $application)
                         @php
                             $proforma = $application->proforma;
-                            $status = $application->status ?? 'pending';
+                            $status = optional($application->proforma)->status ?? 'pending';
                             $statusColors = [
-                                'pending' => 'bg-warning text-dark',
-                                'accepted' => 'bg-success',
-                                'rejected' => 'bg-danger',
-                                'selected' => 'bg-primary',
+                                'pending'   => 'bg-warning text-dark',
+                                'opened'    => 'bg-info text-dark',
+                                'published' => 'bg-primary',
+                                'closed'    => 'bg-danger',
+                                'completed' => 'bg-success',
                             ];
                             $statusClass = $statusColors[$status] ?? 'bg-secondary';
 
