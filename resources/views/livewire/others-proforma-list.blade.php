@@ -185,7 +185,7 @@
                                             @endif
                                             <td>
                                                 @if($proforma->status !== 'closed' && $proforma->status !== 'completed')
-                                                    @if($allSlotsInboxed || !$proforma->applications->isEmpty())
+                                                    @if(!$proforma->applications->isEmpty())
                                                         <form action="{{ route('admin.proforma.close', $proforma->id) }}" method="POST">
                                                             @csrf
                                                             @method('PATCH')

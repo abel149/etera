@@ -160,7 +160,7 @@
                                                             <a href="/admin/verify/{{ $proforma->id }}" class="btn btn-sm btn-primary">Send To Owner</a>
                                                         @endif
                                                         @if($proforma->status !== 'closed' && $proforma->status !== 'completed')
-                                                            @if($allSlotsInboxed || !$proforma->applications->isEmpty())
+                                                            @if(!$proforma->applications->isEmpty())
                                                                 <form action="{{ route('admin.proforma.close', $proforma->id) }}" method="POST" class="d-inline">
                                                                     @csrf
                                                                     @method('PATCH')
