@@ -4543,7 +4543,7 @@ Route::prefix('role')
             if ($user->role === 'garage') {
                 return redirect('/garage/');
             } elseif ($user->role === 'shop') {
-                return redirect('/spare-part-shops/');
+                return redirect('/spare-part-shops/proformas');
             } elseif ($user->role === 'insurance') {
                 return redirect('/insurance/received-proformas');
             } else {
