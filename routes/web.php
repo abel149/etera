@@ -373,7 +373,8 @@ Route::post('/login', function (Request $request) {
             case 'garage':
                 return redirect()->intended('/garage/');
             case 'shop':
-                return redirect()->intended('/spare-part-shops/proformas');
+                Session::forget('url.intended');
+                return redirect('/spare-part-shops/proformas');
             case 'marketer':
                 return redirect()->intended('/marketer');
             case 'employee':
