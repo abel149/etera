@@ -132,7 +132,7 @@
                                                 <!--<div class="badge rounded-pill bg-{{ $proforma->status === 'pending' ? 'primary' : ($proforma->status === 'published' ? 'success' : 'danger') }} w-100">-->
                                                 <!--    {{ $proforma->status === 'pending' && $proforma->selected() ? "File Assigned": ucfirst($proforma->status) }}-->
                                                 <!--</div>-->
-                                                @if($proforma->close_request && $proforma->status == 'published')
+                                                @if($proforma->close_request && in_array($proforma->status, ['published', 'pending', 'opened']))
                                                 <span class="badge bg-danger fw-bold">Close Requested</span>
                                                 @elseif($proforma->status == 'completed')
                									<div class="badge rounded-pill bg-secondary w-100">{{ucfirst($proforma->status)}}</div>
