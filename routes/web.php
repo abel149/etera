@@ -3982,7 +3982,7 @@ Route::get('/telegram-connect', function (Request $request) {
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = match($user->role) {
         'garage' => '/garage/',
-        'shop' => '/spare-part-shops/',
+        'shop' => '/spare-part-shops/proformas',
         'admin' => '/admin',
         'insurance' => '/insurance',
         'others' => '/business-owner',
