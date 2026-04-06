@@ -1855,7 +1855,9 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             }
         }
         }else{
-             $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+             $applications = ProformaApplication::where('proforma_id', $proforma->id)
+                ->when($type === 'etera_chereta', fn($q) => $q->orderBy('amount', 'asc')->orderBy('created_at', 'asc')->limit(5))
+                ->get();
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
