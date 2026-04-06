@@ -291,8 +291,8 @@ public function edit(string $id)
             'tin_number' => 'required|unique:users,tin_number,' . $id,
             'brands' => 'required',
             'brands.*' => 'required|exists:brands,id', // Ensure the brand exists
-            'license_image' => 'nullable|file|image',
-            'stamp_image' => 'nullable|file|image',
+            'license_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
+            'stamp_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
 
 
         ]);
