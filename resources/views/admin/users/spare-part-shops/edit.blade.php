@@ -299,7 +299,7 @@
 
                     <div class="col-md-4">
                         <label for="input8" class="form-label">Email</label>
-                        <input name="email" type="email" class="form-control" id="input8" placeholder="Your Email" value="{{ old('email', $shop->email) }}">
+                        <input name="email" type="email" class="form-control" id="input8" placeholder="Your Email" autocomplete="off" value="{{ old('email', filter_var($shop->email, FILTER_VALIDATE_EMAIL) ? $shop->email : '') }}">
                     </div>
                     @error('email')
                     <span class="text-danger">{{ $message }}</span>
@@ -313,7 +313,7 @@
                         <input name="license_image" type="file" class="form-control" id="license_image">
                         @if($shop->license_image)
                             <p>Current Image: 
-                                <a href="{{ asset('storage/' . $shop->license_image) }}" target="_blank">View Image</a></p>
+                                <a href="{{ asset('storage/' . (str_starts_with($shop->license_image, 'public/') ? substr($shop->license_image, 7) : $shop->license_image)) }}" target="_blank">View Image</a></p>
                         @endif
                     </div>
                     @error('business_license_image')
@@ -324,7 +324,7 @@
                         <label for="stamp_image" class="form-label">Stamp Image</label>
                         <input name="stamp_image" type="file" class="form-control" id="stamp_image">
                         @if($shop->stamp_image)
-                            <p>Current Image: <a href="{{ asset('storage/' . $shop->stamp_image) }}" target="_blank">View Image</a></p>
+                            <p>Current Image: <a href="{{ asset('storage/' . (str_starts_with($shop->stamp_image, 'public/') ? substr($shop->stamp_image, 7) : $shop->stamp_image)) }}" target="_blank">View Image</a></p>
                         @endif
                     </div>
                     @error('stamp_image')

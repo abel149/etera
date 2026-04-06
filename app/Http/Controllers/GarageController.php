@@ -104,14 +104,20 @@ class GarageController extends Controller
 
     // Handle license image upload
     if ($request->hasFile('license_image')) {
-        $licenseImagePath = $request->file('license_image')->store('public/licenses');
-        $data['license_image'] = $licenseImagePath;
+        if ($garage->license_image) {
+            $oldPath = str_starts_with($garage->license_image, 'public/') ? substr($garage->license_image, 7) : $garage->license_image;
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath) && \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+        }
+        $data['license_image'] = $request->file('license_image')->store('licenses', 'public');
     }
 
     // Handle stamp image upload
     if ($request->hasFile('stamp_image')) {
-        $stampImagePath = $request->file('stamp_image')->store('public/stamps');
-        $data['stamp_image'] = $stampImagePath;
+        if ($garage->stamp_image) {
+            $oldPath = str_starts_with($garage->stamp_image, 'public/') ? substr($garage->stamp_image, 7) : $garage->stamp_image;
+            \Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath) && \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+        }
+        $data['stamp_image'] = $request->file('stamp_image')->store('stamps', 'public');
     }
 
     $garage->update($data);

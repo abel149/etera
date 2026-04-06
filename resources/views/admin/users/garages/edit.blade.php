@@ -258,7 +258,7 @@
 
                     <div class="col-md-4">
                         <label for="input7" class="form-label">Email</label>
-                        <input name="email" type="email" class="form-control" id="input7" placeholder="Your Email" value="{{ old('email', $garage->email) }}">
+                        <input name="email" type="email" class="form-control" id="input7" placeholder="Your Email" autocomplete="off" value="{{ old('email', filter_var($garage->email, FILTER_VALIDATE_EMAIL) ? $garage->email : '') }}">
                     </div>
                     @error('email')
                         <span class="text-danger">{{ $message }}</span>
@@ -271,7 +271,7 @@
                         <label for="license_image" class="form-label">Business License Image</label>
                         <input name="license_image" type="file" class="form-control" id="license_image">
                         @if($garage->license_image)
-                            <p>Current Image: <a href="{{ asset('storage/' . $garage->license_image) }}" >View Image</a></p>
+                            <p>Current Image: <a href="{{ asset('storage/' . (str_starts_with($garage->license_image, 'public/') ? substr($garage->license_image, 7) : $garage->license_image)) }}" target="_blank">View Image</a></p>
                         @endif
                     </div>
                     @error('license_image')
@@ -282,7 +282,7 @@
                         <label for="stamp_image" class="form-label">Stamp Image</label>
                         <input name="stamp_image" type="file" class="form-control" id="stamp_image">
                         @if($garage->stamp_image)
-                            <p>Current Image: <a href="{{ asset('storage/' . $garage->stamp_image) }}" >View Image</a></p>
+                            <p>Current Image: <a href="{{ asset('storage/' . (str_starts_with($garage->stamp_image, 'public/') ? substr($garage->stamp_image, 7) : $garage->stamp_image)) }}" target="_blank">View Image</a></p>
                         @endif
                     </div>
                     @error('stamp_image')
