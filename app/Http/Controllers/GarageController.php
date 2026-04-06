@@ -116,11 +116,15 @@ class GarageController extends Controller
 
     $garage->update($data);
 
-    if (auth()->user()->role === 'admin') {
-        return redirect()->to('admin/garages')->with(['user' => $garage]);
+    if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+        return redirect()->to('/admin/garages')->with('success', 'Garage updated successfully');
     } elseif (auth()->user()->role === 'marketer') {
-        return redirect()->to('/marketer/garages')->with(['user' => $garage]);
+        return redirect()->to('/marketer/garages')->with('success', 'Garage updated successfully');
+    } elseif (auth()->user()->role === 'garage') {
+        return redirect()->to('/garage/')->with('success', 'Profile updated successfully');
     }
+
+    return redirect()->to('/admin/garages')->with('success', 'Garage updated successfully');
 }
 
 

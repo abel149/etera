@@ -343,11 +343,15 @@ public function edit(string $id)
         }
     
         // Redirect based on the user role
-        if (auth()->user()->role === 'admin') {
+        if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
             return redirect()->to('/admin/spare-part-shops')->with('success', 'Shop updated successfully');
         } elseif (auth()->user()->role === 'marketer') {
             return redirect()->to('/marketer/spare-part-shops')->with('success', 'Shop updated successfully');
+        } elseif (auth()->user()->role === 'shop') {
+            return redirect()->to('/spare-part-shops/profile')->with('success', 'Profile updated successfully');
         }
+
+        return redirect()->to('/admin/spare-part-shops')->with('success', 'Shop updated successfully');
     }
     
     
