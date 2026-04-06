@@ -1855,9 +1855,17 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             }
         }
         }else{
-             $applications = ProformaApplication::where('proforma_id', $proforma->id)
-                ->when($type === 'etera_chereta', fn($q) => $q->orderBy('amount', 'asc')->orderBy('created_at', 'asc')->limit(5))
-                ->get();
+            if ($type === 'etera_chereta') {
+                // amount column is string type in DB — must CAST for correct numeric ordering
+                // Pool is frozen: auto-selector closes the proforma before commission runs
+                $applications = ProformaApplication::where('proforma_id', $proforma->id)
+                    ->orderByRaw('CAST(amount AS DECIMAL(15,2)) ASC')
+                    ->orderBy('created_at', 'asc')
+                    ->limit(5)
+                    ->get();
+            } else {
+                $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+            }
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
