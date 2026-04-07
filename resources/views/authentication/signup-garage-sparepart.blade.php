@@ -539,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             if (digits.length >= 2 && !(digits.startsWith('09') || digits.startsWith('07'))) {
-                showErr($(this), 'Phone number should start with 09 or 07.');
+                showErr(this, 'Phone number should start with 09 or 07.');
                 return;
             }
             clearErr(this);
