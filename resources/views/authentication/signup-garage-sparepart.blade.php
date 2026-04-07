@@ -539,7 +539,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 return;
             }
             if (digits.length >= 2 && !digits.startsWith('09')) {
-                showErr(this, 'Phone number should start with 09.');
+                showErr(this, 'Phone number should start with 09 or 07.');
                 return;
             }
             clearErr(this);
@@ -549,7 +549,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const digits = (this.value || '').replace(/\D/g, '');
             if (!digits) { showErr(this, 'Phone is required.'); return; }
             if (digits.length !== 10) { showErr(this, 'Phone number must be 10 digits.'); return; }
-            if (!digits.startsWith('09')) { showErr(this, 'Phone number should start with 09.'); return; }
+            if (!digits.startsWith('09')) { showErr(this, 'Phone number should start with 09 or 07.'); return; }
             clearErr(this);
         });
     }
@@ -564,7 +564,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const digits = (phoneEl.value || '').replace(/\D/g, '');
         if (!digits) { showErr(phoneEl, 'Phone is required.'); hasError = true; }
         else if (digits.length !== 10) { showErr(phoneEl, 'Phone number must be 10 digits.'); hasError = true; }
-        else if (!digits.startsWith('09')) { showErr(phoneEl, 'Phone number should start with 09.'); hasError = true; }
+        else if (!digits.startsWith('09')) { showErr(phoneEl, 'Phone number should start with 09 or 07.'); hasError = true; }
         else clearErr(phoneEl);
 
         // Email — optional, only validate format
