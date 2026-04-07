@@ -291,8 +291,6 @@ public function edit(string $id)
             'tin_number' => 'required|unique:users,tin_number,' . $id,
             'brands' => 'required',
             'brands.*' => 'required|exists:brands,id', // Ensure the brand exists
-            'license_image' => 'nullable|file|image',
-            'stamp_image' => 'nullable|file|image',
 
 
         ]);
@@ -301,23 +299,26 @@ public function edit(string $id)
         $shop = User::findOrFail($id);
     
     
-        // Handle image update if a new image is uploaded
-        if ($request->hasFile('license_image')) {
-            // Delete the old image if it exists
-            if ($shop->license_image && Storage::exists('public/licenses/' . $shop->license_image)) {
-                Storage::delete('public/licenses/' . $shop->license_image);
+        // Handle FilePond async license image upload
+        if ($request->filled('license_image_data')) {
+            $newPath = processTemporaryFile($request->license_image_data, 'licenses');
+            if ($newPath) {
+                if ($shop->license_image && Storage::disk('public')->exists($shop->license_image)) {
+                    Storage::disk('public')->delete($shop->license_image);
+                }
+                $shop->license_image = $newPath;
             }
-            // Store the new license image
-            $shop->license_image = $request->file('license_image')->store('licenses', 'public');
         }
     
-        if ($request->hasFile('stamp_image')) {
-            // Delete the old image if it exists
-            if ($shop->stamp_image && Storage::exists('public/stamps/' . $shop->stamp_image)) {
-                Storage::delete('public/stamps/' . $shop->stamp_image);
+        // Handle FilePond async stamp image upload
+        if ($request->filled('stamp_image_data')) {
+            $newPath = processTemporaryFile($request->stamp_image_data, 'stamps');
+            if ($newPath) {
+                if ($shop->stamp_image && Storage::disk('public')->exists($shop->stamp_image)) {
+                    Storage::disk('public')->delete($shop->stamp_image);
+                }
+                $shop->stamp_image = $newPath;
             }
-            // Store the new stamp image
-            $shop->stamp_image = $request->file('stamp_image')->store('stamps', 'public');
         }
     
         // Update other fields
