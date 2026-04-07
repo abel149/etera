@@ -301,8 +301,11 @@ public function edit(string $id)
     
         // Handle license image - FilePond async upload or direct file
         if ($request->filled('license_image_data')) {
-            $newPath = processTemporaryFile($request->license_image_data, 'licenses');
-            if ($newPath) {
+            $tempPath = $request->license_image_data;
+            if (Storage::disk('public')->exists($tempPath)) {
+                $filename = time() . '_' . basename($tempPath);
+                $newPath = 'licenses/' . $filename;
+                Storage::disk('public')->move($tempPath, $newPath);
                 if ($shop->license_image && Storage::disk('public')->exists($shop->license_image)) {
                     Storage::disk('public')->delete($shop->license_image);
                 }
@@ -314,8 +317,11 @@ public function edit(string $id)
     
         // Handle stamp image - FilePond async upload or direct file
         if ($request->filled('stamp_image_data')) {
-            $newPath = processTemporaryFile($request->stamp_image_data, 'stamps');
-            if ($newPath) {
+            $tempPath = $request->stamp_image_data;
+            if (Storage::disk('public')->exists($tempPath)) {
+                $filename = time() . '_' . basename($tempPath);
+                $newPath = 'stamps/' . $filename;
+                Storage::disk('public')->move($tempPath, $newPath);
                 if ($shop->stamp_image && Storage::disk('public')->exists($shop->stamp_image)) {
                     Storage::disk('public')->delete($shop->stamp_image);
                 }
