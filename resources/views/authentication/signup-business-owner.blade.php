@@ -305,7 +305,7 @@
                 showErr($(this), 'You reached 10 digits.');
                 return;
             }
-            if (digits.length >= 2 && !(digits.startsWith('09') || digits.startswith('07'))) {
+            if (digits.length >= 2 && !(digits.startsWith('09') || digits.startsWith('07'))) {
                 showErr($(this), 'Phone number should start with 09 or 07.');
                 return;
             }
@@ -320,7 +320,7 @@
             const digits = (v || '').replace(/\D/g, '');
             if (!digits) { showErr($(this), 'Phone is required.'); return; }
             if (digits.length !== 10) { showErr($(this), 'Phone number must be 10 digits.'); return; }
-            if (!digits.startsWith('09')) { showErr($(this), 'Phone number should start with 09 or 07.'); return; }
+            if (!(digits.startsWith('09') || digits.startsWith('07') )) { showErr($(this), 'Phone number should start with 09 or 07.'); return; }
             clearErr($(this));
         });
 
