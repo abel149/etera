@@ -538,8 +538,8 @@ document.addEventListener('DOMContentLoaded', function() {
                 showErr(this, 'You reached 10 digits.');
                 return;
             }
-            if (digits.length >= 2 && !digits.startsWith('09')) {
-                showErr(this, 'Phone number should start with 09 or 07.');
+            if (digits.length >= 2 && !(digits.startsWith('09') || digits.startsWith('07'))) {
+                showErr($(this), 'Phone number should start with 09 or 07.');
                 return;
             }
             clearErr(this);

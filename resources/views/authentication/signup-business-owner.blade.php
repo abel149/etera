@@ -305,7 +305,7 @@
                 showErr($(this), 'You reached 10 digits.');
                 return;
             }
-            if (digits.length >= 2 && !digits.startsWith('09')) {
+            if (digits.length >= 2 && !(digits.startsWith('09') || digits.startswith('07'))) {
                 showErr($(this), 'Phone number should start with 09 or 07.');
                 return;
             }
