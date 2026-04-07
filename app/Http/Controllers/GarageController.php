@@ -91,8 +91,8 @@ class GarageController extends Controller
         'business_license_number' => 'nullable|string|max:255',
         'license_expire_date' => 'nullable|date',
         'email' => 'nullable|email|max:255',
-        'license_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
-        'stamp_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
+        'license_image' => 'nullable|file|image',
+        'stamp_image' => 'nullable|file|image',
     ]);
 
     $garage = User::findOrFail($id);
@@ -102,21 +102,37 @@ class GarageController extends Controller
         'business_license_number', 'license_expire_date', 'email'
     ]);
 
-    // Handle license image upload
-    if ($request->hasFile('license_image')) {
-        if ($garage->license_image) {
-            $oldPath = str_starts_with($garage->license_image, 'public/') ? substr($garage->license_image, 7) : $garage->license_image;
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath) && \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+    // Handle license image - FilePond async upload or direct file
+    if ($request->filled('license_image_data')) {
+        $tempPath = $request->license_image_data;
+        if (\Storage::disk('public')->exists($tempPath)) {
+            $filename = time() . '_' . basename($tempPath);
+            $newPath = 'licenses/' . $filename;
+            \Storage::disk('public')->move($tempPath, $newPath);
+            // Delete old image if exists
+            if ($garage->license_image && \Storage::disk('public')->exists($garage->license_image)) {
+                \Storage::disk('public')->delete($garage->license_image);
+            }
+            $data['license_image'] = $newPath;
         }
+    } elseif ($request->hasFile('license_image')) {
         $data['license_image'] = $request->file('license_image')->store('licenses', 'public');
     }
 
-    // Handle stamp image upload
-    if ($request->hasFile('stamp_image')) {
-        if ($garage->stamp_image) {
-            $oldPath = str_starts_with($garage->stamp_image, 'public/') ? substr($garage->stamp_image, 7) : $garage->stamp_image;
-            \Illuminate\Support\Facades\Storage::disk('public')->exists($oldPath) && \Illuminate\Support\Facades\Storage::disk('public')->delete($oldPath);
+    // Handle stamp image - FilePond async upload or direct file
+    if ($request->filled('stamp_image_data')) {
+        $tempPath = $request->stamp_image_data;
+        if (\Storage::disk('public')->exists($tempPath)) {
+            $filename = time() . '_' . basename($tempPath);
+            $newPath = 'stamps/' . $filename;
+            \Storage::disk('public')->move($tempPath, $newPath);
+            // Delete old image if exists
+            if ($garage->stamp_image && \Storage::disk('public')->exists($garage->stamp_image)) {
+                \Storage::disk('public')->delete($garage->stamp_image);
+            }
+            $data['stamp_image'] = $newPath;
         }
+    } elseif ($request->hasFile('stamp_image')) {
         $data['stamp_image'] = $request->file('stamp_image')->store('stamps', 'public');
     }
 
