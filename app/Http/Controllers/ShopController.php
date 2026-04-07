@@ -291,6 +291,11 @@ public function edit(string $id)
             'tin_number' => 'required|unique:users,tin_number,' . $id,
             'brands' => 'required',
             'brands.*' => 'required|exists:brands,id', // Ensure the brand exists
+<<<<<<< HEAD
+=======
+            'license_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
+            'stamp_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
+>>>>>>> d5201b2849e3c3f2548be2bf8aca8a8787e2f5c4
 
 
         ]);
@@ -344,11 +349,15 @@ public function edit(string $id)
         }
     
         // Redirect based on the user role
-        if (auth()->user()->role === 'admin') {
+        if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
             return redirect()->to('/admin/spare-part-shops')->with('success', 'Shop updated successfully');
         } elseif (auth()->user()->role === 'marketer') {
             return redirect()->to('/marketer/spare-part-shops')->with('success', 'Shop updated successfully');
+        } elseif (auth()->user()->role === 'shop') {
+            return redirect()->to('/spare-part-shops/profile')->with('success', 'Profile updated successfully');
         }
+
+        return redirect()->to('/admin/spare-part-shops')->with('success', 'Shop updated successfully');
     }
     
     

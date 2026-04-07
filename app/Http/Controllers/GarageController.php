@@ -91,6 +91,8 @@ class GarageController extends Controller
         'business_license_number' => 'nullable|string|max:255',
         'license_expire_date' => 'nullable|date',
         'email' => 'nullable|email|max:255',
+        'license_image' => 'nullable|file|image',
+        'stamp_image' => 'nullable|file|image',
     ]);
 
     $garage = User::findOrFail($id);
@@ -100,37 +102,29 @@ class GarageController extends Controller
         'business_license_number', 'license_expire_date', 'email'
     ]);
 
-    // Handle FilePond async license image upload
-    if ($request->filled('license_image_data')) {
-        $newPath = processTemporaryFile($request->license_image_data, 'licenses');
-        if ($newPath) {
-            // Delete old image if exists
-            if ($garage->license_image && \Storage::disk('public')->exists($garage->license_image)) {
-                \Storage::disk('public')->delete($garage->license_image);
-            }
-            $data['license_image'] = $newPath;
-        }
+    // Handle license image upload
+    if ($request->hasFile('license_image')) {
+        $licenseImagePath = $request->file('license_image')->store('public/licenses');
+        $data['license_image'] = $licenseImagePath;
     }
 
-    // Handle FilePond async stamp image upload
-    if ($request->filled('stamp_image_data')) {
-        $newPath = processTemporaryFile($request->stamp_image_data, 'stamps');
-        if ($newPath) {
-            // Delete old image if exists
-            if ($garage->stamp_image && \Storage::disk('public')->exists($garage->stamp_image)) {
-                \Storage::disk('public')->delete($garage->stamp_image);
-            }
-            $data['stamp_image'] = $newPath;
-        }
+    // Handle stamp image upload
+    if ($request->hasFile('stamp_image')) {
+        $stampImagePath = $request->file('stamp_image')->store('public/stamps');
+        $data['stamp_image'] = $stampImagePath;
     }
 
     $garage->update($data);
 
-    if (auth()->user()->role === 'admin') {
-        return redirect()->to('admin/garages')->with(['user' => $garage]);
+    if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
+        return redirect()->to('/admin/garages')->with('success', 'Garage updated successfully');
     } elseif (auth()->user()->role === 'marketer') {
-        return redirect()->to('/marketer/garages')->with(['user' => $garage]);
+        return redirect()->to('/marketer/garages')->with('success', 'Garage updated successfully');
+    } elseif (auth()->user()->role === 'garage') {
+        return redirect()->to('/garage/')->with('success', 'Profile updated successfully');
     }
+
+    return redirect()->to('/admin/garages')->with('success', 'Garage updated successfully');
 }
 
 

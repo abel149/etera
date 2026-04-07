@@ -258,7 +258,7 @@
 
                     <div class="col-md-4">
                         <label for="input7" class="form-label">Email</label>
-                        <input name="email" type="email" class="form-control" id="input7" placeholder="Your Email" value="{{ old('email', $garage->email) }}">
+                        <input name="email" type="email" class="form-control" id="input7" placeholder="Your Email" autocomplete="off" value="{{ old('email', filter_var($garage->email, FILTER_VALIDATE_EMAIL) ? $garage->email : '') }}">
                     </div>
                     @error('email')
                         <span class="text-danger">{{ $message }}</span>
@@ -270,10 +270,14 @@
                     <div class="col-md-6">
                         <label class="form-label">Business License Image</label>
                         @if($garage->license_image)
+<<<<<<< HEAD
                             <div class="mb-2">
                                 <img src="{{ asset('storage/' . $garage->license_image) }}" alt="Current License" class="img-thumbnail" style="max-height: 120px;">
                                 <small class="d-block text-muted mt-1">Current image (upload new to replace)</small>
                             </div>
+=======
+                            <p>Current Image: <a href="{{ asset('storage/' . (str_starts_with($garage->license_image, 'public/') ? substr($garage->license_image, 7) : $garage->license_image)) }}" target="_blank">View Image</a></p>
+>>>>>>> d5201b2849e3c3f2548be2bf8aca8a8787e2f5c4
                         @endif
                         <input type="file" class="filepond-license" accept="image/png, image/jpeg, image/jpg">
                         <input type="hidden" id="license_image_data" name="license_image_data" value="">
@@ -285,10 +289,14 @@
                     <div class="col-md-6">
                         <label class="form-label">Stamp Image</label>
                         @if($garage->stamp_image)
+<<<<<<< HEAD
                             <div class="mb-2">
                                 <img src="{{ asset('storage/' . $garage->stamp_image) }}" alt="Current Stamp" class="img-thumbnail" style="max-height: 120px;">
                                 <small class="d-block text-muted mt-1">Current image (upload new to replace)</small>
                             </div>
+=======
+                            <p>Current Image: <a href="{{ asset('storage/' . (str_starts_with($garage->stamp_image, 'public/') ? substr($garage->stamp_image, 7) : $garage->stamp_image)) }}" target="_blank">View Image</a></p>
+>>>>>>> d5201b2849e3c3f2548be2bf8aca8a8787e2f5c4
                         @endif
                         <input type="file" class="filepond-stamp" accept="image/png, image/jpeg, image/jpg">
                         <input type="hidden" id="stamp_image_data" name="stamp_image_data" value="">

@@ -1855,7 +1855,17 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             }
         }
         }else{
-             $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+            if ($type === 'etera_chereta') {
+                // amount column is string type in DB — must CAST for correct numeric ordering
+                // Pool is frozen: auto-selector closes the proforma before commission runs
+                $applications = ProformaApplication::where('proforma_id', $proforma->id)
+                    ->orderByRaw('CAST(amount AS DECIMAL(15,2)) ASC')
+                    ->orderBy('created_at', 'asc')
+                    ->limit(5)
+                    ->get();
+            } else {
+                $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+            }
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
@@ -3982,7 +3992,7 @@ Route::get('/telegram-connect', function (Request $request) {
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = match($user->role) {
         'garage' => '/garage/',
-        'shop' => '/spare-part-shops/',
+        'shop' => '/spare-part-shops/proformas',
         'admin' => '/admin',
         'insurance' => '/insurance',
         'others' => '/business-owner',
