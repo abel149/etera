@@ -102,16 +102,30 @@ class GarageController extends Controller
         'business_license_number', 'license_expire_date', 'email'
     ]);
 
-    // Handle license image upload
-    if ($request->hasFile('license_image')) {
-        $licenseImagePath = $request->file('license_image')->store('public/licenses');
-        $data['license_image'] = $licenseImagePath;
+    // Handle license image - FilePond async upload or direct file
+    if ($request->filled('license_image_data')) {
+        $newPath = processTemporaryFile($request->license_image_data, 'licenses');
+        if ($newPath) {
+            if ($garage->license_image && \Storage::disk('public')->exists($garage->license_image)) {
+                \Storage::disk('public')->delete($garage->license_image);
+            }
+            $data['license_image'] = $newPath;
+        }
+    } elseif ($request->hasFile('license_image')) {
+        $data['license_image'] = $request->file('license_image')->store('public/licenses');
     }
 
-    // Handle stamp image upload
-    if ($request->hasFile('stamp_image')) {
-        $stampImagePath = $request->file('stamp_image')->store('public/stamps');
-        $data['stamp_image'] = $stampImagePath;
+    // Handle stamp image - FilePond async upload or direct file
+    if ($request->filled('stamp_image_data')) {
+        $newPath = processTemporaryFile($request->stamp_image_data, 'stamps');
+        if ($newPath) {
+            if ($garage->stamp_image && \Storage::disk('public')->exists($garage->stamp_image)) {
+                \Storage::disk('public')->delete($garage->stamp_image);
+            }
+            $data['stamp_image'] = $newPath;
+        }
+    } elseif ($request->hasFile('stamp_image')) {
+        $data['stamp_image'] = $request->file('stamp_image')->store('public/stamps');
     }
 
     $garage->update($data);

@@ -291,11 +291,6 @@ public function edit(string $id)
             'tin_number' => 'required|unique:users,tin_number,' . $id,
             'brands' => 'required',
             'brands.*' => 'required|exists:brands,id', // Ensure the brand exists
-<<<<<<< HEAD
-=======
-            'license_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
-            'stamp_image' => 'nullable|file|image|mimes:jpeg,jpg,png,gif|max:5120',
->>>>>>> d5201b2849e3c3f2548be2bf8aca8a8787e2f5c4
 
 
         ]);
@@ -304,7 +299,7 @@ public function edit(string $id)
         $shop = User::findOrFail($id);
     
     
-        // Handle FilePond async license image upload
+        // Handle license image - FilePond async upload or direct file
         if ($request->filled('license_image_data')) {
             $newPath = processTemporaryFile($request->license_image_data, 'licenses');
             if ($newPath) {
@@ -313,9 +308,11 @@ public function edit(string $id)
                 }
                 $shop->license_image = $newPath;
             }
+        } elseif ($request->hasFile('license_image')) {
+            $shop->license_image = $request->file('license_image')->store('licenses', 'public');
         }
     
-        // Handle FilePond async stamp image upload
+        // Handle stamp image - FilePond async upload or direct file
         if ($request->filled('stamp_image_data')) {
             $newPath = processTemporaryFile($request->stamp_image_data, 'stamps');
             if ($newPath) {
@@ -324,6 +321,8 @@ public function edit(string $id)
                 }
                 $shop->stamp_image = $newPath;
             }
+        } elseif ($request->hasFile('stamp_image')) {
+            $shop->stamp_image = $request->file('stamp_image')->store('stamps', 'public');
         }
     
         // Update other fields
