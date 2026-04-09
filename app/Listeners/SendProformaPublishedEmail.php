@@ -96,6 +96,16 @@ class SendProformaPublishedEmail
                 }
             }
         }
+
+        // Notify all marketers via Telegram
+        try {
+            $telegramService->sendProformaFloatedNotificationToMarketers($proforma);
+        } catch (\Throwable $e) {
+            Log::warning('Failed to send Telegram marketer float notification', [
+                'proforma_id' => $proforma->id,
+                'error' => $e->getMessage(),
+            ]);
+        }
     }
 }
 
