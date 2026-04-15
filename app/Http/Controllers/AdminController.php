@@ -250,6 +250,14 @@ class AdminController extends Controller
             \Illuminate\Support\Facades\Log::warning('Telegram float notification failed', ['error' => $e->getMessage()]);
         }
 
+        // Telegram: notify all marketers
+        try {
+            $telegram = $telegram ?? new TelegramService();
+            $telegram->sendProformaFloatedNotificationToMarketers($proforma);
+        } catch (\Throwable $e) {
+            \Illuminate\Support\Facades\Log::warning('Telegram marketer float notification failed', ['error' => $e->getMessage()]);
+        }
+
         // Broadcast via Reverb to all listening clients
         try {
             event(new ProformaStatusChanged($proforma, 'floated'));

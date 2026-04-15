@@ -589,6 +589,64 @@ class TelegramService
         return $this->sendMessage($chatId, $text);
     }
 
+    /**
+     * Notify all approved marketers that a new proforma has been floated.
+     * Sends to all marketers with a linked Telegram chat ID.
+     */
+    public function sendProformaFloatedNotificationToMarketers($proforma): void
+    {
+        try {
+            if (!$this->isConfigured()) {
+                return;
+            }
+
+            $marketers = \App\Models\User::where('role', \App\Models\User::ROLE_MARKETER)
+                ->where('approved', true)
+                ->whereNotNull('telegram_chat_id')
+                ->get();
+
+            if ($marketers->isEmpty()) {
+                Log::info('sendProformaFloatedNotificationToMarketers: No marketers with linked Telegram found');
+                return;
+            }
+
+            $brandName = $proforma->brand?->name ?? 'N/A';
+            $fileNumber = $proforma->file_number ?? $proforma->id;
+            $posterName = $proforma->poster?->name ?? 'Unknown';
+
+            $loginUrl = url('/login');
+
+            $text = "📢 <b>New Proforma Floated!</b>\n\n"
+                . "📋 File: <b>{$fileNumber}</b>\n"
+                . "👤 Posted by: <b>{$posterName}</b>\n"
+                . "🚗 Brand: {$brandName}\n"
+                . "📌 Model: {$proforma->model} ({$proforma->year})\n"
+                . "🪪 Plate: {$proforma->license_plate_number}\n"
+                . "🔧 Type: " . ($proforma->isEteraCheretaMode() ? 'Etera Chereta' : 'Regular') . "\n\n"
+                . "A new proforma is now available. Log in to view details.";
+
+            foreach ($marketers as $marketer) {
+                $this->sendMessageWithButton(
+                    (string) $marketer->telegram_chat_id,
+                    $text,
+                    'Go to Login',
+                    $loginUrl
+                );
+            }
+
+            Log::info('sendProformaFloatedNotificationToMarketers: Sent to marketers', [
+                'proforma_id' => $proforma->id ?? null,
+                'file_number' => $proforma->file_number ?? null,
+                'marketer_count' => $marketers->count(),
+            ]);
+        } catch (\Throwable $e) {
+            Log::warning('sendProformaFloatedNotificationToMarketers: Failed', [
+                'proforma_id' => $proforma->id ?? null,
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function sendPasswordResetLink(string $chatId, string $resetUrl, string $rejectAction, bool $rejectIsCallback = false, ?int &$messageId = null): bool
     {
         $text = "🔐 <b>Password Reset</b>\n\n"
