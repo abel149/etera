@@ -225,10 +225,7 @@ class="current"
                                     <label for="InputEmail2" class="form-label">Phone Number</label>
                                     <input type="text" name="customer_phone_number" class="form-control" id="InputEmail2" required placeholder="Example: +251900000000 or 0900000000" value="{{old('customer_phone_number')}}">
                                 </div>
-                                <div class="col-12 col-lg-6">
-                                    <label for="InputPassword" class="form-label">License Plate Number (Code, City & Number)/please note this will be used as your file number/</label>
-                                    <input type="text"  name="license_plate_number"class="form-control" id="InputPassword" required value="{{old('license_plate_number')}}" placeholder="Example: 2AA-12345">
-                                </div>
+                                
                                 <div class="col-12 col-lg-6">
     <label class="form-label">
         Chassis Number
