@@ -16,7 +16,11 @@ class Proforma extends Model implements HasMedia
     protected $appends = ['number_of_proformas', 'applicants_remaining', 'remaining_garages', 'remaining_shops'];
 
     protected $guarded = [];
-    
+
+    protected $attributes = [
+        'license_plate_number' => '',
+    ];
+
     protected $casts = [
         'timer_expires_at' => 'datetime',
         'auto_selection_enabled' => 'boolean',
