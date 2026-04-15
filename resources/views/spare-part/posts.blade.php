@@ -976,7 +976,6 @@ function validateStep1() {
 
 function validateStep2() {
     const phoneNumber = document.querySelector('input[name="customer_phone_number"]');
-    const licensePlate = document.querySelector('input[name="license_plate_number"]');
     const chassisNumber = document.querySelector('input[name="chassis_number"]');
     
     if (!phoneNumber || !phoneNumber.value.trim()) {
@@ -984,13 +983,6 @@ function validateStep2() {
         if (phoneNumber) phoneNumber.focus();
         return false;
     }
-    
-    if (!licensePlate || !licensePlate.value.trim()) {
-        alert('Please enter the license plate number.');
-        if (licensePlate) licensePlate.focus();
-        return false;
-    }
-    
     
     stepper1.next();
 }
