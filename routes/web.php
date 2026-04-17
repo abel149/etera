@@ -2086,7 +2086,7 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
 
         // Delete Admin (superadmin only)
         Route::delete('/admins/{id}', function ($id) {
-            if (auth()->user()->role !== 'superadmin') {
+            if (!auth()->user()->is_superadmin) {
                 abort(403);
             }
             $admin = \App\Models\User::findOrFail($id);
