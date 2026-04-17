@@ -224,6 +224,19 @@
 
 </div>
 
+                                    <div class="col-12 col-lg-6">
+                                        <label for="license_plate_input" class="form-label">License Plate Number</label>
+                                        <input type="text"
+                                               name="license_plate_number"
+                                               id="license_plate_input"
+                                               class="form-control required-field text-uppercase"
+                                               placeholder="Example: 2AA-12345"
+                                               value="{{ old('license_plate_number') }}">
+                                        @error('license_plate_number')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
                                     <div class="col-12">
                                         <div class="d-flex align-items-center gap-3">
                                             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="stepper3.previous()"><i class='bx bx-left-arrow-alt me-2'></i>Previous</button>
