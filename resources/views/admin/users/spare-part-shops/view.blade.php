@@ -53,7 +53,6 @@
 										<th>Name</th>
 										<th>Phone</th>
 										<th>Tin #</th>
-										<th>Brands</th>
 										<th>Registered By</th>
 										<th>Register Date</th>
 										<th>License Expiry</th>
@@ -125,11 +124,7 @@
     </td>
     <td>{{$shop->phone_number}}</td>
     <td>{{$shop->tin_number}}</td>
-    <td>
-        @foreach($shop->brands as $brand)
-            <span class="badge bg-secondary me-1">{{ $brand->name }}</span>
-        @endforeach
-    </td>
+    
     <td>No one</td>
     <td>{{$shop->created_at}}</td>
     <td>
