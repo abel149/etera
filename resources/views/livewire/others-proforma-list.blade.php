@@ -127,7 +127,7 @@
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td>{{ $proforma->license_plate_number }}</td>
+                                            <td>{{ $proforma->license_plate_number ?? 'N/A' }}</td>
                                             <td>
                                                 <!--<div class="badge rounded-pill bg-{{ $proforma->status === 'pending' ? 'primary' : ($proforma->status === 'published' ? 'success' : 'danger') }} w-100">-->
                                                 <!--    {{ $proforma->status === 'pending' && $proforma->selected() ? "File Assigned": ucfirst($proforma->status) }}-->

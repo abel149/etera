@@ -126,7 +126,7 @@
                                     </tr>
                                     <tr>
                                         <td><strong>License Plate:</strong></td>
-                                        <td>{{ $proforma->license_plate_number }}</td>
+                                        <td>{{ $proforma->license_plate_number ?? 'N/A' }}</td>
                                     </tr>
                                     <tr>
                                         <td><strong>Chassis Number:</strong></td>

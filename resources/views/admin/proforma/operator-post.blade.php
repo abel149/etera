@@ -37,7 +37,7 @@
                                         <td class="no-wrap"><b>Insurance</b>&nbsp;</td>
                                         <td class="proportional">{{ $proforma->insurance->name }}</td>
                                         <td class="no-wrap"><b>License Plate</b>&nbsp;</td>
-                                        <td class="proportional">{{ $proforma->license_plate_number }}</td>
+                                        <td class="proportional">{{ $proforma->license_plate_number ?? 'N/A' }}</td>
                                     </tr>
                                     <tr>
                                         <td class="no-wrap"><b>File #</b>&nbsp;</td>
