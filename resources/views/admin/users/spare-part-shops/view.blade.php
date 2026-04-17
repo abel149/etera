@@ -11,40 +11,35 @@
 					<div class="card-body">
 						<div class="row align-items-right">
 							<div class="col-lg-9 col-xl-10">
-								<form class="">
-									<div class="row row-cols-auto g-2">
-										<div class="col">
-											<div class="position-relative">
-												<input type="text" class="form-control ps-5 radius-30 " placeholder="Search Spare Part Shop..."> 
-												<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
-											</div>
+								<form method="GET" action="" class="">
+								<div class="row row-cols-auto g-2 align-items-center">
+									<div class="col">
+										<div class="position-relative">
+											<input type="text" name="search" value="{{ request('search') }}" class="form-control ps-5 radius-30" placeholder="Search by name, phone or TIN...">
+											<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 										</div>
-										<div class="col">
-											<div class="btn-group" role="group" aria-label="Button group with nested dropdown">
-												<button type="button" class="btn btn-white radius-30">
-												<i class="bx bx-filter"></i> Filter</button>
-												<div class="btn-group" role="group">
-												  <button id="btnGroupDrop1" type="button" class="btn btn-white radius-30 dropdown-toggle dropdown-toggle-nocaret px-1" data-bs-toggle="dropdown" aria-expanded="false">
-													<i class='bx bx-chevron-down'></i>
-												  </button>
-												  <ul class="dropdown-menu" aria-labelledby="btnGroupDrop1">
-													<li><a class="dropdown-item" href="#">Name</a></li>
-													<li><a class="dropdown-item" href="#">Tin #</a></li>
-													<li><a class="dropdown-item" href="#">Date Modified</a></li>
-												  </ul>
-												</div>
-											  </div>
-										</div>
-										<div class="col">
-											<div class="position-relative">
-												<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30 "><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
-											</div>
-										</div>
-										{{-- <div class="col">
-											<button type="button" class="btn btn-danger radius-30" data-bs-toggle="modal" data-bs-target="#selectedDelete"><i class="bx bx-trash me-0"></i> Delete</button>
-										</div> --}}
 									</div>
-								</form>
+									<div class="col">
+										<select name="brand_id" class="form-select radius-30" onchange="this.form.submit()">
+											<option value="">All Brands</option>
+											@foreach($brands as $brand)
+												<option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+											@endforeach
+										</select>
+									</div>
+									<div class="col">
+										<button type="submit" class="btn btn-primary radius-30"><i class="bx bx-search me-1"></i>Search</button>
+									</div>
+									@if(request('search') || request('brand_id'))
+									<div class="col">
+										<a href="{{ url()->current() }}" class="btn btn-outline-secondary radius-30">Clear</a>
+									</div>
+									@endif
+									<div class="col">
+										<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
+									</div>
+								</div>
+							</form>
 							</div>
 						</div>
 
@@ -58,6 +53,7 @@
 										<th>Name</th>
 										<th>Phone</th>
 										<th>Tin #</th>
+										<th>Brands</th>
 										<th>Registered By</th>
 										<th>Register Date</th>
 										<th>License Expiry</th>
@@ -129,6 +125,11 @@
     </td>
     <td>{{$shop->phone_number}}</td>
     <td>{{$shop->tin_number}}</td>
+    <td>
+        @foreach($shop->brands as $brand)
+            <span class="badge bg-secondary me-1">{{ $brand->name }}</span>
+        @endforeach
+    </td>
     <td>No one</td>
     <td>{{$shop->created_at}}</td>
     <td>

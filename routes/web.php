@@ -2149,8 +2149,20 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
 
         
         // View Garage
-        Route::get('/garages', function () {
-            $garages = \App\Models\User::where('role', 'garage')->get();
+        Route::get('/garages', function (Request $request) {
+            $query = \App\Models\User::where('role', 'garage');
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone_number', 'like', "%{$search}%")
+                      ->orWhere('tin_number', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
+
+            $garages = $query->orderBy('name', 'asc')->get();
 
             return view('admin.users.garages.view', [
                 'garages' => $garages,
@@ -2279,15 +2291,29 @@ Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
             ]);
         });
         // View Spare Part Shops
-        Route::get('/spare-part-shops', function () {
-            $shops = \App\Models\User::where('role', 'shop')->get();
+        Route::get('/spare-part-shops', function (Request $request) {
+            $query = \App\Models\User::where('role', 'shop')->with('brands');
 
-            // dd($shops);
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('name', 'like', "%{$search}%")
+                      ->orWhere('phone_number', 'like', "%{$search}%")
+                      ->orWhere('tin_number', 'like', "%{$search}%")
+                      ->orWhere('email', 'like', "%{$search}%");
+                });
+            }
 
+            if ($request->filled('brand_id')) {
+                $query->whereHas('brands', function ($q) use ($request) {
+                    $q->where('brands.id', $request->brand_id);
+                });
+            }
 
-            return view('admin.users.spare-part-shops.view', [
-                'shops' => $shops,
-            ]);
+            $shops  = $query->orderBy('name', 'asc')->get();
+            $brands = \App\Models\Brand::orderBy('name', 'asc')->get();
+
+            return view('admin.users.spare-part-shops.view', compact('shops', 'brands'));
         });
         // Add Insurance
         Route::post('/add-shop', [
