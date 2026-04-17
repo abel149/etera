@@ -255,4 +255,17 @@
 	</div>
 </div>
 <!-- End Single Delete Modal -->
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.querySelector('input[name="search"]');
+    if (!searchInput) return;
+    let debounceTimer;
+    searchInput.addEventListener('input', function () {
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            searchInput.closest('form').submit();
+        }, 400);
+    });
+});
+</script>
 @endsection
