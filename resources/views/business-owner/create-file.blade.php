@@ -1154,11 +1154,7 @@ p { color: #333 !important; }
             chassisNumber.focus();
             return false;
         }
-        if (!/^[A-Za-z0-9]{17}$/.test(chassisNumber.value.trim())) {
-            alert('Chassis number must be exactly 17 characters (letters and digits only).');
-            chassisNumber.focus();
-            return false;
-        }
+        
         
         stepper3.next();
         return true;
