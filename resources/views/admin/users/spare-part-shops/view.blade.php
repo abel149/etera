@@ -9,37 +9,15 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="row align-items-right">
-							<div class="col-lg-9 col-xl-10">
-								<form method="GET" action="" class="">
-								<div class="row row-cols-auto g-2 align-items-center">
-									<div class="col">
-										<div class="position-relative">
-											<input type="text" name="search" value="{{ request('search') }}" class="form-control ps-5 radius-30" placeholder="Search by name, phone or TIN...">
-											<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
-										</div>
-									</div>
-									<div class="col">
-										<select name="brand_id" class="form-select radius-30" onchange="this.form.submit()">
-											<option value="">All Brands</option>
-											@foreach($brands as $brand)
-												<option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
-											@endforeach
-										</select>
-									</div>
-									<div class="col">
-										<button type="submit" class="btn btn-primary radius-30"><i class="bx bx-search me-1"></i>Search</button>
-									</div>
-									@if(request('search') || request('brand_id'))
-									<div class="col">
-										<a href="{{ url()->current() }}" class="btn btn-outline-secondary radius-30">Clear</a>
-									</div>
-									@endif
-									<div class="col">
-										<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
-									</div>
+						<div class="row align-items-center mb-3">
+							<div class="col-lg-6 col-xl-5">
+								<div class="position-relative">
+									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
+									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 								</div>
-							</form>
+							</div>
+							<div class="col-auto ms-auto">
+								<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
 							</div>
 						</div>
 
@@ -276,14 +254,18 @@
 <!-- End Selected Delete Modal -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.querySelector('input[name="search"]');
+    const searchInput = document.getElementById('tableSearch');
     if (!searchInput) return;
-    let debounceTimer;
+    const table = document.querySelector('.lead-table table tbody');
+    if (!table) return;
     searchInput.addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function () {
-            searchInput.closest('form').submit();
-        }, 400);
+        const query = this.value.toLowerCase().trim();
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(function (row) {
+            const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
+            const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
+            row.style.display = (!query || name.includes(query) || phone.includes(query)) ? '' : 'none';
+        });
     });
 });
 </script>

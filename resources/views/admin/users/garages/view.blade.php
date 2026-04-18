@@ -8,34 +8,15 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="row align-items-right">
-							<div class="col-lg-9 col-xl-10">
-								<form method="GET" action="" class="">
-								<div class="row row-cols-auto g-2 align-items-center">
-									<div class="col">
-										<div class="position-relative">
-											<input type="text" name="search" value="{{ request('search') }}" class="form-control ps-5 radius-30" placeholder="Search by name, phone or TIN...">
-											<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
-										</div>
-									</div>
-									<div class="col">
-										<button type="submit" class="btn btn-primary radius-30"><i class="bx bx-search me-1"></i>Search</button>
-									</div>
-									@if(request('search'))
-									<div class="col">
-										<a href="{{ url()->current() }}" class="btn btn-outline-secondary radius-30">Clear</a>
-									</div>
-									@endif
-									<div class="col">
-										<div class="position-relative">
-											<a href="/admin/add-garage" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Garage</a>
-										</div>
-									</div>
-										{{-- <div class="col">
-										<button type="button" class="btn btn-danger radius-30" data-bs-toggle="modal" data-bs-target="#selectedDelete"><i class="bx bx-trash me-0"></i> Delete</button>
-									</div> --}}
-									</div>
-								</form>
+						<div class="row align-items-center mb-3">
+							<div class="col-lg-6 col-xl-5">
+								<div class="position-relative">
+									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
+									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
+								</div>
+							</div>
+							<div class="col-auto ms-auto">
+								<a href="/admin/add-garage" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Garage</a>
 							</div>
 						</div>
 
@@ -257,14 +238,18 @@
 <!-- End Single Delete Modal -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
-    const searchInput = document.querySelector('input[name="search"]');
+    const searchInput = document.getElementById('tableSearch');
     if (!searchInput) return;
-    let debounceTimer;
+    const table = document.querySelector('.lead-table table tbody');
+    if (!table) return;
     searchInput.addEventListener('input', function () {
-        clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function () {
-            searchInput.closest('form').submit();
-        }, 400);
+        const query = this.value.toLowerCase().trim();
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(function (row) {
+            const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
+            const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
+            row.style.display = (!query || name.includes(query) || phone.includes(query)) ? '' : 'none';
+        });
     });
 });
 </script>
