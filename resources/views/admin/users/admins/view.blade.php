@@ -27,8 +27,16 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="table-responsive lead-table">
-							<table class="table mb-0 align-middle">
+					<div class="row align-items-center mb-3">
+						<div class="col-lg-6 col-xl-5">
+							<div class="position-relative">
+								<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
+								<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
+							</div>
+						</div>
+					</div>
+					<div class="table-responsive lead-table">
+						<table class="table mb-0 align-middle" id="adminsTable">
 								<thead class="table-light">
 									<tr>
 										<th>#</th>
@@ -146,4 +154,21 @@
 		</div>
 	</div>
 </div>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('tableSearch');
+    if (!searchInput) return;
+    const table = document.querySelector('.lead-table table tbody');
+    if (!table) return;
+    searchInput.addEventListener('input', function () {
+        const query = this.value.toLowerCase().trim();
+        const rows = table.querySelectorAll('tr');
+        rows.forEach(function (row) {
+            const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
+            const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
+            row.style.display = (!query || name.includes(query) || phone.includes(query)) ? '' : 'none';
+        });
+    });
+});
+</script>
 @endsection
