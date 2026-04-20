@@ -9,12 +9,20 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="row align-items-center mb-3">
-							<div class="col-lg-6 col-xl-5">
+						<div class="row align-items-end mb-3 g-2">
+							<div class="col-lg-3 col-md-4">
 								<div class="position-relative">
 									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
 									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 								</div>
+							</div>
+							<div class="col-lg-3 col-md-4">
+								<select id="brandFilter" class="form-select radius-30">
+									<option value="">All Brands</option>
+									@foreach($brands as $brand)
+										<option value="{{ $brand->id }}">{{ $brand->name }}</option>
+									@endforeach
+								</select>
 							</div>
 							<div class="col-auto ms-auto">
 								<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
@@ -90,7 +98,7 @@
 						
 
 <!-- Table Row with Clickable Modal -->
-<tr >
+<tr data-brand-ids="{{ $shop->brands->pluck('id')->implode(',') }}">
     <td><input class="form-check-input" type="checkbox" value="" id="flexCheckDefault"></td>
     <td>
         <div class="d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#shopDetailModal{{$shop->id}}">
@@ -115,9 +123,12 @@
         @endif
     </td>
     <td>
-        <a href="{{ route('edit-shop', $shop->id) }}" class="btn radius-10 p-1">
+        <a href="{{ route('edit-shop', $shop->id) }}" class="btn radius-10 p-1" title="Edit">
             <i class="bx bx-edit me-0"></i>
         </a>
+        <button type="button" class="btn radius-10 p-1 text-info" data-bs-toggle="modal" data-bs-target="#shopBrandsModal{{$shop->id}}" title="View Brands">
+            <i class="bx bx-purchase-tag me-0"></i>
+        </button>
         <button type="button" class="btn radius-10 p-1 text-danger" data-bs-toggle="modal" data-bs-target="#singleDelete{{$shop->id}}">
             <i class="bx bx-trash me-0"></i>
         </button>
@@ -210,6 +221,32 @@
     </div>
 </div>
 
+<!-- Modal for Shop Brands -->
+<div class="modal fade" id="shopBrandsModal{{$shop->id}}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header" style="background: #17a2b8; color: white; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                <h5 class="modal-title fw-bold" style="color: white;"><i class="bx bx-purchase-tag me-1"></i> Brands — {{ $shop->name }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                @if($shop->brands->count())
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach($shop->brands as $brand)
+                            <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem;">{{ $brand->name }}</span>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-muted mb-0">No brands assigned to this shop.</p>
+                @endif
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary radius-30 px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 										</td>
 									</tr>
 									
@@ -255,18 +292,29 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('tableSearch');
-    if (!searchInput) return;
+    const brandFilter = document.getElementById('brandFilter');
     const table = document.querySelector('.lead-table table tbody');
-    if (!table) return;
-    searchInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
+    if (!searchInput || !brandFilter || !table) return;
+
+    function filterRows() {
+        const query = searchInput.value.toLowerCase().trim();
+        const selectedBrand = brandFilter.value;
         const rows = table.querySelectorAll('tr');
+
         rows.forEach(function (row) {
             const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
             const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
-            row.style.display = (!query || name.includes(query) || phone.includes(query)) ? '' : 'none';
+            const brandIds = (row.getAttribute('data-brand-ids') || '').split(',');
+
+            const matchesText = !query || name.includes(query) || phone.includes(query);
+            const matchesBrand = !selectedBrand || brandIds.includes(selectedBrand);
+
+            row.style.display = (matchesText && matchesBrand) ? '' : 'none';
         });
-    });
+    }
+
+    searchInput.addEventListener('input', filterRows);
+    brandFilter.addEventListener('change', filterRows);
 });
 </script>
 @endsection
