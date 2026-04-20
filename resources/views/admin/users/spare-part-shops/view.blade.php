@@ -9,17 +9,28 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="row align-items-center mb-3">
-							<div class="col-lg-6 col-xl-5">
+						<form method="GET" action="" class="row align-items-end mb-3 g-2">
+							<div class="col-lg-3 col-md-4">
 								<div class="position-relative">
-									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
+									<input type="text" name="search" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone..." value="{{ request('search') }}">
 									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 								</div>
+							</div>
+							<div class="col-lg-3 col-md-4">
+								<select name="brand_id" class="form-select radius-30">
+									<option value="">All Brands</option>
+									@foreach($brands as $brand)
+										<option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+									@endforeach
+								</select>
+							</div>
+							<div class="col-auto">
+								<button type="submit" class="btn btn-outline-primary radius-30"><i class="bx bx-search me-1"></i>Search</button>
 							</div>
 							<div class="col-auto ms-auto">
 								<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
 							</div>
-						</div>
+						</form>
 
 						<div class="table-responsive lead-table">
 							<table class="table mb-0 align-middle">
@@ -115,9 +126,12 @@
         @endif
     </td>
     <td>
-        <a href="{{ route('edit-shop', $shop->id) }}" class="btn radius-10 p-1">
+        <a href="{{ route('edit-shop', $shop->id) }}" class="btn radius-10 p-1" title="Edit">
             <i class="bx bx-edit me-0"></i>
         </a>
+        <button type="button" class="btn radius-10 p-1 text-info" data-bs-toggle="modal" data-bs-target="#shopBrandsModal{{$shop->id}}" title="View Brands">
+            <i class="bx bx-purchase-tag me-0"></i>
+        </button>
         <button type="button" class="btn radius-10 p-1 text-danger" data-bs-toggle="modal" data-bs-target="#singleDelete{{$shop->id}}">
             <i class="bx bx-trash me-0"></i>
         </button>
@@ -210,6 +224,32 @@
     </div>
 </div>
 
+<!-- Modal for Shop Brands -->
+<div class="modal fade" id="shopBrandsModal{{$shop->id}}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header" style="background: #17a2b8; color: white; border-top-left-radius: 10px; border-top-right-radius: 10px;">
+                <h5 class="modal-title fw-bold" style="color: white;"><i class="bx bx-purchase-tag me-1"></i> Brands — {{ $shop->name }}</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                @if($shop->brands->count())
+                    <div class="d-flex flex-wrap gap-2">
+                        @foreach($shop->brands as $brand)
+                            <span class="badge bg-primary rounded-pill px-3 py-2" style="font-size: 0.9rem;">{{ $brand->name }}</span>
+                        @endforeach
+                    </div>
+                @else
+                    <p class="text-muted mb-0">No brands assigned to this shop.</p>
+                @endif
+            </div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-outline-secondary radius-30 px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 										</td>
 									</tr>
 									
@@ -258,6 +298,7 @@ document.addEventListener('DOMContentLoaded', function () {
     if (!searchInput) return;
     const table = document.querySelector('.lead-table table tbody');
     if (!table) return;
+    // Instant client-side filtering while typing (works on already-loaded results)
     searchInput.addEventListener('input', function () {
         const query = this.value.toLowerCase().trim();
         const rows = table.querySelectorAll('tr');
