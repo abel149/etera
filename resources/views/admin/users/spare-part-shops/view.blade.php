@@ -9,28 +9,25 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<form method="GET" action="" class="row align-items-end mb-3 g-2">
+						<div class="row align-items-end mb-3 g-2">
 							<div class="col-lg-3 col-md-4">
 								<div class="position-relative">
-									<input type="text" name="search" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone..." value="{{ request('search') }}">
+									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
 									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 								</div>
 							</div>
 							<div class="col-lg-3 col-md-4">
-								<select name="brand_id" class="form-select radius-30">
+								<select id="brandFilter" class="form-select radius-30">
 									<option value="">All Brands</option>
 									@foreach($brands as $brand)
-										<option value="{{ $brand->id }}" {{ request('brand_id') == $brand->id ? 'selected' : '' }}>{{ $brand->name }}</option>
+										<option value="{{ $brand->id }}">{{ $brand->name }}</option>
 									@endforeach
 								</select>
-							</div>
-							<div class="col-auto">
-								<button type="submit" class="btn btn-outline-primary radius-30"><i class="bx bx-search me-1"></i>Search</button>
 							</div>
 							<div class="col-auto ms-auto">
 								<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
 							</div>
-						</form>
+						</div>
 
 						<div class="table-responsive lead-table">
 							<table class="table mb-0 align-middle">
@@ -101,7 +98,7 @@
 						
 
 <!-- Table Row with Clickable Modal -->
-<tr >
+<tr data-brand-ids="{{ $shop->brands->pluck('id')->implode(',') }}">
     <td><input class="form-check-input" type="checkbox" value="" id="flexCheckDefault"></td>
     <td>
         <div class="d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#shopDetailModal{{$shop->id}}">
@@ -295,19 +292,29 @@
 <script>
 document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('tableSearch');
-    if (!searchInput) return;
+    const brandFilter = document.getElementById('brandFilter');
     const table = document.querySelector('.lead-table table tbody');
-    if (!table) return;
-    // Instant client-side filtering while typing (works on already-loaded results)
-    searchInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
+    if (!searchInput || !brandFilter || !table) return;
+
+    function filterRows() {
+        const query = searchInput.value.toLowerCase().trim();
+        const selectedBrand = brandFilter.value;
         const rows = table.querySelectorAll('tr');
+
         rows.forEach(function (row) {
             const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
             const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
-            row.style.display = (!query || name.includes(query) || phone.includes(query)) ? '' : 'none';
+            const brandIds = (row.getAttribute('data-brand-ids') || '').split(',');
+
+            const matchesText = !query || name.includes(query) || phone.includes(query);
+            const matchesBrand = !selectedBrand || brandIds.includes(selectedBrand);
+
+            row.style.display = (matchesText && matchesBrand) ? '' : 'none';
         });
-    });
+    }
+
+    searchInput.addEventListener('input', filterRows);
+    brandFilter.addEventListener('change', filterRows);
 });
 </script>
 @endsection
