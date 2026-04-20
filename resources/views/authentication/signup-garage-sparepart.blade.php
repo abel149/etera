@@ -175,13 +175,6 @@
             </div>
         </div>
 
-        {{-- Email --}}
-        <div class="etera-input-group">
-            <label>Email Address <span style="color:var(--etera-text-muted); font-weight:400;">(optional)</span></label>
-            <input type="email" class="etera-input {{ $errors->has('email') ? 'error' : '' }}" name="email" placeholder="business@example.com" value="{{ old('email') }}">
-            @error('email')<div class="etera-error-text">{{ $message }}</div>@enderror
-        </div>
-
         {{-- TIN & Location --}}
         <div class="form-grid-2">
             <div class="etera-input-group">
@@ -505,11 +498,6 @@ document.addEventListener('DOMContentLoaded', function() {
 
     // Blur validation
     document.querySelector('input[name="name"]').addEventListener('blur', function(){ !this.value.trim() ? showErr(this, 'Name is required.') : clearErr(this); });
-    document.querySelector('input[name="email"]').addEventListener('blur', function(){
-        const v = this.value.trim();
-        if (v && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)) showErr(this, 'Enter a valid email.');
-        else clearErr(this);
-    });
     document.querySelector('input[name="tin_number"]').addEventListener('blur', function(){ !this.value.trim() ? showErr(this, 'TIN is required.') : clearErr(this); });
     document.querySelector('input[name="location"]').addEventListener('blur', function(){ !this.value.trim() ? showErr(this, 'Location is required.') : clearErr(this); });
     document.getElementById('password').addEventListener('blur', function(){
@@ -566,12 +554,6 @@ document.addEventListener('DOMContentLoaded', function() {
         else if (digits.length !== 10) { showErr(phoneEl, 'Phone number must be 10 digits.'); hasError = true; }
         else if (!digits.startsWith('09')) { showErr(phoneEl, 'Phone number should start with 09 or 07.'); hasError = true; }
         else clearErr(phoneEl);
-
-        // Email — optional, only validate format
-        const emailEl = document.querySelector('input[name="email"]');
-        const ev = emailEl.value.trim();
-        if (ev && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ev)) { showErr(emailEl, 'Enter a valid email.'); hasError = true; }
-        else clearErr(emailEl);
 
         const tinEl = document.querySelector('input[name="tin_number"]');
         if (!tinEl.value.trim()) { showErr(tinEl, 'TIN is required.'); hasError = true; } else clearErr(tinEl);
