@@ -302,9 +302,9 @@
 										$allProformas = $allProformasQuery->get();
 									@endphp
 						<tbody id="proformaTableBody">
-						@foreach($allProformas as $proforma)
+							@foreach($allProformas as $proforma)
 							@php try { @endphp
-							<tr>
+							<tr data-file="{{ $proforma->file_number ?? 'N/A' }}">
 								<td>{{$proforma->file_number ?? 'N/A'}}</td>
                         @php
                           $label = $proforma->poster ? ($proforma->poster->role == 'business_owner' ? 'Business Owner' : ucfirst($proforma->poster->role)) : 'Unknown';
@@ -337,7 +337,8 @@
 								<td>
 									@if($proforma->isEteraCheretaMode())
 										<span class="badge rounded-pill bg-primary w-100" 
-											  data-remaining-time="{{ $proforma->timer_expires_at?->toISOString() }}">
+											  data-remaining-time="{{ $proforma->timer_expires_at?->toISOString() }}"
+											  data-proforma-id="{{ $proforma->id }}">
 											{{ $proforma->getFormattedRemainingTime() }}
 										</span>
 									@else
@@ -418,12 +419,13 @@ document.addEventListener('DOMContentLoaded', function() {
 
                 let remainingTimeCell = '<span class="text-muted">N/A</span>';
                 if (p.is_etera_chereta && p.timer_expires_at) {
-                    remainingTimeCell = '<span class="badge rounded-pill bg-primary w-100" data-remaining-time="' + p.timer_expires_at + '">' + (p.remaining_time || 'N/A') + '</span>';
+                    remainingTimeCell = '<span class="badge rounded-pill bg-primary w-100" data-remaining-time="' + p.timer_expires_at + '" data-proforma-id="' + p.id + '">' + (p.remaining_time || 'N/A') + '</span>';
                 }
 
                 const garageCell = p.is_from_others ? 'N/A' : (p.garage_count || 0) + ' Garages Applied';
 
                 const newRow = document.createElement('tr');
+                newRow.setAttribute('data-file', fileNum);
                 newRow.innerHTML = `
                     <td>${fileNum}</td>
                     <td>${p.from}</td>
@@ -452,6 +454,24 @@ document.addEventListener('DOMContentLoaded', function() {
                 }
             });
 
+            // Update existing rows statuses (catches timer-expired closures)
+            data.proformas.forEach(p => {
+                const fileNum = p.file_number || 'N/A';
+                const existingRow = document.querySelector('#proformaTableBody tr[data-file="' + fileNum + '"]');
+                if (!existingRow) return;
+                // Status cell is column 6 (index 5)
+                const statusCell = existingRow.cells[5];
+                if (statusCell) statusCell.innerHTML = buildStatusBadge(p.status);
+                // Timer cell is column 7 (index 6)
+                const timerCell = existingRow.cells[6];
+                if (timerCell && p.is_etera_chereta && p.timer_expires_at) {
+                    const badge = timerCell.querySelector('[data-remaining-time]');
+                    if (badge) {
+                        badge.setAttribute('data-remaining-time', p.timer_expires_at);
+                    }
+                }
+            });
+
             if (hasNew) {
                 console.log('🔔 New proformas detected and added to table');
             }
@@ -467,6 +487,50 @@ document.addEventListener('DOMContentLoaded', function() {
     // Poll every 30 seconds
     setInterval(pollProformas, 30000);
     console.log('✅ Admin dashboard polling started (every 30s)');
+
+    // ── Live countdown timer for Etera-Chereta badges ──────────────────────
+    function updateAllCountdowns() {
+        document.querySelectorAll('#proformaTableBody [data-remaining-time]').forEach(function(badge) {
+            var expiresAt = new Date(badge.getAttribute('data-remaining-time'));
+            var diffMs = expiresAt - Date.now();
+
+            if (diffMs <= 0) {
+                // Timer expired: show Expired badge and update status cell to Closed
+                if (!badge.classList.contains('bg-danger')) {
+                    badge.textContent = 'Expired';
+                    badge.classList.remove('bg-primary', 'bg-warning');
+                    badge.classList.add('bg-danger');
+
+                    var row = badge.closest('tr');
+                    if (row) {
+                        var statusCell = row.cells[5];
+                        if (statusCell) {
+                            var current = statusCell.querySelector('.badge');
+                            if (current && !current.textContent.trim().toLowerCase().includes('closed')) {
+                                statusCell.innerHTML = '<div class="badge rounded-pill bg-danger w-100">Closed</div>';
+                            }
+                        }
+                    }
+                }
+            } else {
+                var totalSec = Math.floor(diffMs / 1000);
+                var h = Math.floor(totalSec / 3600);
+                var m = Math.floor((totalSec % 3600) / 60);
+                var s = totalSec % 60;
+                badge.textContent = String(h).padStart(2, '0') + ':' + String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+
+                // Turn orange when under 1 hour remaining
+                if (totalSec < 3600 && !badge.classList.contains('bg-warning')) {
+                    badge.classList.remove('bg-primary');
+                    badge.classList.add('bg-warning');
+                }
+            }
+        });
+    }
+
+    updateAllCountdowns();
+    setInterval(updateAllCountdowns, 1000);
+    // ───────────────────────────────────────────────────────────────────────
 });
 </script>
 
