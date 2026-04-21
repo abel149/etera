@@ -47,6 +47,8 @@ class ProformaClosingService
                             $billingData['vatAmount'],
                             $billingData['total']
                         );
+                        // Mark as delivered so it is never resent if the user reconnects later
+                        \App\Models\SentEmail::log('telegram_billing', 'via-telegram', $proforma->poster?->name, $proforma->poster_id, $proforma->id, "Telegram: Billing #{$proforma->file_number}", 'sent');
                     }
                 }
             } catch (\Throwable $e) {

@@ -647,6 +647,82 @@ class TelegramService
         }
     }
 
+    /**
+     * Send missed billing/closed notifications for proformas that were closed
+     * while the user had no Telegram linked. Called immediately on first connect.
+     */
+    public function sendMissedBillingNotifications(\App\Models\User $user, string $chatId): void
+    {
+        try {
+            // Only fetch proformas that have never had a Telegram billing notification logged
+            $alreadyNotifiedIds = \App\Models\SentEmail::where('user_id', $user->id)
+                ->where('type', 'telegram_billing')
+                ->whereNotNull('proforma_id')
+                ->pluck('proforma_id')
+                ->toArray();
+
+            $closedProformas = \App\Models\Proforma::where('poster_id', $user->id)
+                ->where('status', 'closed')
+                ->whereNotIn('id', $alreadyNotifiedIds)
+                ->orderBy('updated_at', 'desc')
+                ->get();
+
+            if ($closedProformas->isEmpty()) {
+                return;
+            }
+
+            $latestCost = \App\Models\Cost::latest()->first();
+            $vatRate    = 0.15;
+            $sentCount  = 0;
+
+            foreach ($closedProformas as $proforma) {
+                try {
+                    $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+                    $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+                    if ($requiredShops > 0 && $requiredGarages == 0) {
+                        $count = \App\Models\ProformaApplication::where('proforma_id', $proforma->id)->count();
+                        $field = "{$count}_proforma_cost";
+                        $total = $latestCost ? (float) ($latestCost->$field ?? 0) : 0;
+                    } elseif ($requiredShops == 3 && $requiredGarages == 3) {
+                        $total = $latestCost ? (float) ($proforma->insured
+                            ? ($latestCost->insured_cost ?? 0)
+                            : ($latestCost->insurance_proforma ?? 0)) : 0;
+                    } elseif ($requiredShops == 0 && $requiredGarages == 0) {
+                        $total = $latestCost ? (float) ($latestCost->etera_chereta_cost ?? 0) : 0;
+                    } else {
+                        $this->sendClosedNotification($chatId, $proforma);
+                        \App\Models\SentEmail::log('telegram_billing', 'via-telegram', $user->name, $user->id, $proforma->id, "Telegram: Closed #{$proforma->file_number}", 'sent');
+                        $sentCount++;
+                        continue;
+                    }
+
+                    if ($total > 0) {
+                        $charge    = $total / (1 + $vatRate);
+                        $vatAmount = $total - $charge;
+                        $this->sendBillingDetailsNotification($chatId, $proforma, $charge, $vatAmount, $total);
+                    } else {
+                        $this->sendClosedNotification($chatId, $proforma);
+                    }
+
+                    // Mark this proforma's Telegram billing as delivered so it is never resent
+                    \App\Models\SentEmail::log('telegram_billing', 'via-telegram', $user->name, $user->id, $proforma->id, "Telegram: Billing #{$proforma->file_number}", 'sent');
+                    $sentCount++;
+                } catch (\Throwable $e) {
+                    Log::warning("sendMissedBillingNotifications: Failed for proforma {$proforma->id}", [
+                        'error' => $e->getMessage(),
+                    ]);
+                }
+            }
+
+            Log::info("sendMissedBillingNotifications: Sent {$sentCount} missed notification(s) to user {$user->id}");
+        } catch (\Throwable $e) {
+            Log::warning("sendMissedBillingNotifications: Failed for user {$user->id}", [
+                'error' => $e->getMessage(),
+            ]);
+        }
+    }
+
     public function sendPasswordResetLink(string $chatId, string $resetUrl, string $rejectAction, bool $rejectIsCallback = false, ?int &$messageId = null): bool
     {
         $text = "🔐 <b>Password Reset</b>\n\n"

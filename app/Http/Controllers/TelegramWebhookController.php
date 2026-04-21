@@ -167,6 +167,16 @@ class TelegramWebhookController extends Controller
 
                     $user->update(['telegram_chat_id' => (string) $chatId]);
 
+                    // Send any missed billing notifications the user skipped by not being on Telegram
+                    try {
+                        app(TelegramService::class)->sendMissedBillingNotifications($user, (string) $chatId);
+                    } catch (\Throwable $e) {
+                        Log::warning('Telegram connect: sendMissedBillingNotifications failed', [
+                            'user_id' => $userId,
+                            'error'   => $e->getMessage(),
+                        ]);
+                    }
+
                     Log::info('Telegram chat ID linked', [
                         'user_id' => $userId,
                         'chat_id' => $chatId,
