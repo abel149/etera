@@ -266,7 +266,7 @@ class="current"
                                             <h3 class="mb-4">Add the required spare parts</h3>
                                             <br>
                                         </div>
-                                        <button type="button" id="add-repeater" class="button radius-30">Add another part</button>
+                                        
                                     </div>
                                     <div id="repeater-items">
                                         <div class="repeater-item">
@@ -325,6 +325,7 @@ class="current"
                                             </div>
                                         </div>
                                     </div>
+                                    <button type="button" id="add-repeater" class="button radius-30">Add another part</button>
                                 </div>
                             </div>
                             <div >
