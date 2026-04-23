@@ -648,6 +648,57 @@ class TelegramService
     }
 
     /**
+     * Send the "How did you hear about us?" survey with a 2×2 inline keyboard.
+     * Buttons use callback_data so responses are tracked when tapped.
+     */
+    public function sendHowDidYouHearSurvey(string $chatId): bool
+    {
+        if (empty($this->botToken) || empty($chatId)) {
+            return false;
+        }
+
+        try {
+            $text = "📣 <b>How did you hear about us?</b>\n\n"
+                  . "We'd love to know how you found Etera! Tap an option below:";
+
+            $keyboard = [
+                [
+                    ['text' => '📘 Facebook',  'callback_data' => 'hear_about_us_facebook'],
+                    ['text' => '📸 Instagram', 'callback_data' => 'hear_about_us_instagram'],
+                ],
+                [
+                    ['text' => '🎵 TikTok',    'callback_data' => 'hear_about_us_tiktok'],
+                    ['text' => '🔗 Others',    'callback_data' => 'hear_about_us_others'],
+                ],
+            ];
+
+            $response = Http::connectTimeout(5)->timeout(10)->post("{$this->apiBase}/sendMessage", [
+                'chat_id'     => $chatId,
+                'text'        => $text,
+                'parse_mode'  => 'HTML',
+                'reply_markup' => json_encode(['inline_keyboard' => $keyboard]),
+            ]);
+
+            if ($response->successful() && $response->json('ok')) {
+                Log::info('TelegramService: How-did-you-hear survey sent', ['chat_id' => $chatId]);
+                return true;
+            }
+
+            Log::warning('TelegramService: sendHowDidYouHearSurvey API error', [
+                'chat_id'  => $chatId,
+                'response' => $response->json(),
+            ]);
+            return false;
+        } catch (\Throwable $e) {
+            Log::warning('TelegramService: sendHowDidYouHearSurvey exception', [
+                'chat_id' => $chatId,
+                'error'   => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Send missed billing/closed notifications for proformas that were closed
      * while the user had no Telegram linked. Called immediately on first connect.
      */

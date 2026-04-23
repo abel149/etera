@@ -51,7 +51,8 @@
                     <a href="{{ $tgLink }}" target="_blank" 
                        style="display:flex;align-items:center;justify-content:center;gap:8px;width:100%;padding:13px 20px;background:linear-gradient(135deg,#0088cc,#00aaee);color:#fff;border:none;border-radius:50px;font-size:0.95rem;font-weight:600;text-decoration:none;box-shadow:0 4px 18px rgba(0,136,204,0.3);transition:all 0.3s ease;margin-bottom:10px;"
                        onmouseover="this.style.transform='translateY(-2px)';this.style.boxShadow='0 8px 28px rgba(0,136,204,0.4)'"
-                       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(0,136,204,0.3)'">
+                       onmouseout="this.style.transform='';this.style.boxShadow='0 4px 18px rgba(0,136,204,0.3)'"
+                       onclick="startTgPopupPolling()">
                         <i class="bx bxl-telegram" style="font-size:1.2rem;"></i> Open Telegram & Connect
                     </a>
                     <button type="button" class="btn" data-bs-dismiss="modal"
@@ -77,9 +78,32 @@ document.addEventListener('DOMContentLoaded', function() {
         setTimeout(function() {
             var modal = new bootstrap.Modal(document.getElementById('telegramConnectModal'));
             modal.show();
-        }, 1500); // Small delay so the page loads first
+        }, 1500);
     }
 });
+
+var _popupPolling  = null;
+var _popupAttempts = 0;
+
+function startTgPopupPolling() {
+    if (_popupPolling) return;
+    _popupPolling = setInterval(function() {
+        _popupAttempts++;
+        if (_popupAttempts > 150) { clearInterval(_popupPolling); return; }
+
+        fetch('/api/telegram/check-connected?user_id={{ auth()->id() }}&token={{ hash_hmac("sha256", (string) auth()->id(), config("app.key")) }}')
+            .then(function(r){ return r.json(); })
+            .then(function(data) {
+                if (data.connected) {
+                    clearInterval(_popupPolling);
+                    var modal = bootstrap.Modal.getInstance(document.getElementById('telegramConnectModal'));
+                    if (modal) modal.hide();
+                    window.location.href = data.redirect;
+                }
+            })
+            .catch(function(){});
+    }, 2000);
+}
 </script>
 @endif
 @endif
