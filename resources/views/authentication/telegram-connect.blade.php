@@ -201,33 +201,14 @@
     </p>
 
     {{-- Buttons --}}
-    <div class="tg-buttons" id="tg-buttons">
-        <a href="{{ $telegramLink }}" target="_blank" class="tg-btn-connect" id="tg-connect-btn" onclick="startPolling()">
+    <div class="tg-buttons">
+        <a href="{{ $telegramLink }}" target="_blank" class="tg-btn-connect">
             <i class="bx bxl-telegram"></i> Open Telegram & Connect
         </a>
 
         <a href="{{ $skipUrl }}" class="tg-btn-skip">
             Skip for Now
         </a>
-    </div>
-
-    {{-- Waiting state (shown after user clicks connect) --}}
-    <div id="tg-waiting" style="display:none; text-align:center; padding: 1rem 0;">
-        <div style="width:64px;height:64px;margin:0 auto 1rem;border-radius:50%;background:linear-gradient(135deg,#0088cc15,#0088cc30);display:flex;align-items:center;justify-content:center;">
-            <div class="spinner-border text-primary" role="status" style="width:28px;height:28px;"></div>
-        </div>
-        <h6 style="font-weight:600;color:#1a1a2e;margin-bottom:0.4rem;">Waiting for connection...</h6>
-        <p style="color:#6b7280;font-size:0.88rem;margin-bottom:1.25rem;">
-            Press <strong>Start</strong> in Telegram, then <strong>switch back to this tab</strong>.
-        </p>
-        <a href="{{ $skipUrl }}" style="color:#9ca3af;font-size:0.82rem;text-decoration:none;">Skip for now</a>
-    </div>
-
-    {{-- Success state --}}
-    <div id="tg-success" style="display:none; text-align:center; padding: 1rem 0;">
-        <div style="font-size:56px;line-height:1;">✅</div>
-        <h5 style="font-weight:700;color:#28a745;margin:0.75rem 0 0.3rem;">Connected!</h5>
-        <p style="color:#6b7280;font-size:0.9rem;">Redirecting you to your account...</p>
     </div>
 
     {{-- Steps Guide --}}
@@ -247,50 +228,6 @@
             <span class="tg-step-num">3</span>
             <span>Done! You'll receive notifications instantly</span>
         </div>
-        <div class="tg-step">
-            <span class="tg-step-num">4</span>
-            <span><strong>Switch back to this tab</strong> — it will redirect you automatically</span>
-        </div>
     </div>
 </div>
-
-@push('scripts')
-<script>
-var _tgUserId  = '{{ $userId }}';
-var _tgToken   = '{{ $token }}';
-var _polling   = null;
-var _attempts  = 0;
-var _maxWait   = 150; // 150 × 2s = 5 minutes
-
-function startPolling() {
-    if (_polling) return;
-    setTimeout(function () {
-        document.getElementById('tg-buttons').style.display = 'none';
-        document.getElementById('tg-waiting').style.display = 'block';
-    }, 400);
-    _polling = setInterval(checkConnection, 2000);
-}
-
-function checkConnection() {
-    _attempts++;
-    if (_attempts > _maxWait) {
-        clearInterval(_polling);
-        document.getElementById('tg-waiting').style.display = 'none';
-        document.getElementById('tg-buttons').style.display = 'flex';
-        return;
-    }
-    fetch('/api/telegram/check-connected?user_id=' + _tgUserId + '&token=' + _tgToken)
-        .then(function(r){ return r.json(); })
-        .then(function(data) {
-            if (data.connected) {
-                clearInterval(_polling);
-                document.getElementById('tg-waiting').style.display = 'none';
-                document.getElementById('tg-success').style.display = 'block';
-                setTimeout(function(){ window.location.href = data.redirect; }, 1200);
-            }
-        })
-        .catch(function(){});
-}
-</script>
-@endpush
 @endsection

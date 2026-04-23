@@ -4025,47 +4025,8 @@ Route::get('/telegram-connect', function (Request $request) {
         'employee' => '/employee',
         default => '/',
     };
-    $userId  = $user->id;
-    $token   = hash_hmac('sha256', (string) $userId, config('app.key'));
-    return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl', 'userId', 'token'));
+    return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl'));
 })->name('telegram.connect');
-
-// Polling endpoint — Chrome tab calls this every 2s to detect Telegram connection
-Route::get('/api/telegram/check-connected', function (Request $request) {
-    $userId = $request->query('user_id');
-    $token  = $request->query('token');
-
-    if (!$userId || !$token) {
-        return response()->json(['connected' => false]);
-    }
-
-    $expected = hash_hmac('sha256', (string) $userId, config('app.key'));
-    if (!hash_equals($expected, $token)) {
-        return response()->json(['connected' => false], 403);
-    }
-
-    $user = \App\Models\User::find($userId);
-    if (!$user) {
-        return response()->json(['connected' => false]);
-    }
-
-    $redirect = match($user->role) {
-        'garage'    => '/garage/',
-        'shop'      => '/spare-part-shops/proformas',
-        'admin'     => '/admin',
-        'insurance' => '/insurance',
-        'others'    => '/business-owner',
-        'marketer'  => '/marketer',
-        'operator'  => '/operator/dashboard',
-        'employee'  => '/employee',
-        default     => '/',
-    };
-
-    return response()->json([
-        'connected' => !empty($user->telegram_chat_id),
-        'redirect'  => $redirect,
-    ]);
-});
 
 // Telegram Webhook handler (called by Telegram servers — no CSRF, no session needed)
 Route::post('/api/telegram/webhook', [\App\Http\Controllers\TelegramWebhookController::class, 'handle'])
