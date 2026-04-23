@@ -10,3 +10,6 @@ Artisan::command('inspire', function () {
 
 // Auto-close expired etera chereta proformas every minute
 Schedule::command('proformas:close-expired')->everyMinute();
+
+// Send Telegram patience notifications to users waiting for proforma results
+Schedule::command('proformas:send-waiting-notifications')->everyTwelveHours();
