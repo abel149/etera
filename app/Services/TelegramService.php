@@ -648,6 +648,40 @@ class TelegramService
     }
 
     /**
+     * Send a message with a login_url button.
+     * login_url buttons open in the device's EXTERNAL browser (Chrome/Safari),
+     * not Telegram's built-in WebView.
+     * Requires the domain to be registered with BotFather via /setdomain once.
+     */
+    public function sendMessageWithLoginUrlButton(string $chatId, string $text, string $buttonText, string $loginUrl): bool
+    {
+        if (empty($this->botToken) || empty($chatId)) {
+            return false;
+        }
+
+        try {
+            $response = Http::connectTimeout(5)->timeout(10)->post("{$this->apiBase}/sendMessage", [
+                'chat_id'      => $chatId,
+                'text'         => $text,
+                'parse_mode'   => 'HTML',
+                'reply_markup' => json_encode([
+                    'inline_keyboard' => [[
+                        ['text' => $buttonText, 'login_url' => ['url' => $loginUrl]],
+                    ]],
+                ]),
+            ]);
+
+            return $response->successful() && $response->json('ok');
+        } catch (\Throwable $e) {
+            Log::warning('TelegramService: sendMessageWithLoginUrlButton failed', [
+                'chat_id' => $chatId,
+                'error'   => $e->getMessage(),
+            ]);
+            return false;
+        }
+    }
+
+    /**
      * Send the "How did you hear about us?" survey with a 2×2 inline keyboard.
      * Buttons use callback_data so responses are tracked when tapped.
      */

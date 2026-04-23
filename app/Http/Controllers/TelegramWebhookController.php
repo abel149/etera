@@ -89,10 +89,27 @@ class TelegramWebhookController extends Controller
                     );
                 }
 
-                // Reply with a simple thank-you
+                // Reply with thank-you + a login_url button (opens in Chrome/Safari, not Telegram WebView)
                 if ($chatId) {
                     try {
-                        app(TelegramService::class)->sendMessage((string) $chatId, "🙏 <b>Thank you for letting us know!</b>\n\n👉 <b>Switch back to your browser tab</b> — your account is ready there.");
+                        $dashboardUrl = match($responder?->role) {
+                            'garage'    => config('app.url') . '/garage/',
+                            'shop'      => config('app.url') . '/spare-part-shops/proformas',
+                            'admin'     => config('app.url') . '/admin',
+                            'insurance' => config('app.url') . '/insurance',
+                            'others'    => config('app.url') . '/business-owner',
+                            'marketer'  => config('app.url') . '/marketer',
+                            'operator'  => config('app.url') . '/operator/dashboard',
+                            'employee'  => config('app.url') . '/employee',
+                            default     => config('app.url') . '/',
+                        };
+
+                        app(TelegramService::class)->sendMessageWithLoginUrlButton(
+                            (string) $chatId,
+                            "🙏 <b>Thank you for letting us know!</b>",
+                            "🏠 Go to My Account →",
+                            $dashboardUrl
+                        );
                     } catch (\Throwable $e) {
                         Log::warning('Telegram survey: reply failed', ['error' => $e->getMessage()]);
                     }
