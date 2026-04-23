@@ -11,7 +11,7 @@ use Illuminate\Support\Facades\Log;
 class SendProformaWaitingNotifications extends Command
 {
     protected $signature   = 'proformas:send-waiting-notifications';
-    protected $description = 'Send Telegram patience notifications to users waiting for proforma results (every 12 h, final notice after 3 days)';
+    protected $description = 'Send Telegram patience notifications to users waiting for proforma results (every 24 h, final notice after 3 days)';
 
     public function handle(): void
     {
@@ -58,7 +58,7 @@ class SendProformaWaitingNotifications extends Command
             return;
         }
 
-        if ($ageHours >= 72) {
+        if ($ageHours >= 120) {
             // ── 3+ days: send the final notice exactly once ──────────────
             $message = "Hi, your request was unsuccessful, please try again later, "
                      . "or contact us for international sourcing.";
@@ -79,13 +79,13 @@ class SendProformaWaitingNotifications extends Command
             Log::info("SendProformaWaitingNotifications: final notice sent for proforma {$proforma->id}");
 
         } else {
-            // ── Under 3 days: send "still looking" if 12 h have elapsed since the last one ──
+            // ── Under 3 days: send "still looking" if 24 h have elapsed since the last one ──
             $lastSent = SentEmail::where('proforma_id', $proforma->id)
                 ->where('type', 'telegram_patience_12h')
                 ->latest('created_at')
                 ->first();
 
-            if ($lastSent && $lastSent->created_at->diffInHours(now()) < 12) {
+            if ($lastSent && $lastSent->created_at->diffInHours(now()) < 24) {
                 return; // Too soon
             }
 

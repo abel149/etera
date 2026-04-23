@@ -12,4 +12,4 @@ Artisan::command('inspire', function () {
 Schedule::command('proformas:close-expired')->everyMinute();
 
 // Send Telegram patience notifications to users waiting for proforma results
-Schedule::command('proformas:send-waiting-notifications')->everyTwelveHours();
+Schedule::command('proformas:send-waiting-notifications')->daily();
