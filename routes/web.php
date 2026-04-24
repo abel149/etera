@@ -1370,6 +1370,8 @@ Route::get('/float', function (Request $request) {
     }
 
     $proforma = \App\Models\Proforma::find($request->query('proforma_id'));
+    
+
     if (! $proforma || $proforma?->status != 'pending') {
         return redirect()->back();
     }
@@ -1385,7 +1387,10 @@ Route::get('/float', function (Request $request) {
     }
 
     $proforma->update(['status' => 'published', 'processed_by' => auth()->id()]);
-
+    $poster = \App\Models\User::find($proforma->poster_id);
+    if ($poster && $poster->telegram_chat_id) {
+        (new \App\Services\TelegramService())->sendProformaFloatedNotification($poster->telegram_chat_id, $poster);
+    }
     // Log Activity
     \App\Models\ProformaActivityLog::create([
         'proforma_id' => $proforma->id,

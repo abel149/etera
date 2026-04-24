@@ -588,7 +588,16 @@ class TelegramService
 
         return $this->sendMessage($chatId, $text);
     }
+     public function sendProformaFloatedNotification(string $chatId, $user): bool
+    {
+        
+        $text = "🆕 👤 Name: <b>{$user->name}</b>\n\n"
+            . "Your Online Proforma Invoice has been Posted \n"
+            . "You will receive notifications on the status of your request."
+            . "Thank you for using etera!";
 
+        return $this->sendMessage($chatId, $text);
+    }
     /**
      * Notify all approved marketers that a new proforma has been floated.
      * Sends to all marketers with a linked Telegram chat ID.
