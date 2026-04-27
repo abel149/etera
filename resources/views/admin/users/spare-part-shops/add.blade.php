@@ -33,7 +33,7 @@
                     <!-- Tin Number Field -->
                     <div class="col-md-6">
                         <label for="input3" class="form-label">Tin #</label>
-                        <input name="tin_number" type="text" class="form-control" id="input3" placeholder="Your Company Tin #" required>
+                        <input name="tin_number" type="text" class="form-control" id="input3" placeholder="Your Company Tin #">
                         @error('tin_number')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror

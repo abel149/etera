@@ -41,7 +41,7 @@ public function store(Request $request)
         // Password is optional; if null, default will be applied
         'password' => 'nullable|min:6|max:6|confirmed',
 
-        'tin_number' => 'required|unique:users,tin_number',
+        'tin_number' => 'nullable|unique:users,tin_number',
         'brands' => 'required',
         'brands.*' => 'required|exists:brands,id',
 
@@ -288,7 +288,7 @@ public function edit(string $id)
             'location' => 'required',
             // 'business_license_number' => 'required|unique:users,business_license_number,' . $id,
             // 'license_expire_date' => 'required|date',
-            'tin_number' => 'required|unique:users,tin_number,' . $id,
+            'tin_number' => 'nullable|unique:users,tin_number,' . $id,
             'brands' => 'required',
             'brands.*' => 'required|exists:brands,id', // Ensure the brand exists
 
