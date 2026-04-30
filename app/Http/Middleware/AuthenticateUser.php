@@ -44,6 +44,15 @@ class AuthenticateUser
         // Update last activity
         Session::put('last_activity', time());
 
+        // Redirect to Telegram connect if user hasn't linked Telegram yet
+        if (!empty(Auth::user()->telegram_chat_id) === false 
+            && !$request->is('telegram-connect') 
+            && !$request->is('telegram*')
+            && !$request->ajax()
+            && app(\App\Services\TelegramService::class)->isConfigured()) {
+            return redirect('/telegram-connect');
+        }
+
         $response = $next($request);
 
         // Prevent caching of authenticated pages so that after logout the browser back button
