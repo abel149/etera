@@ -48,6 +48,7 @@ class AuthenticateUser
         if (!empty(Auth::user()->telegram_chat_id) === false 
             && !$request->is('telegram-connect') 
             && !$request->is('telegram*')
+            && !$request->is('logout')
             && !$request->ajax()
             && app(\App\Services\TelegramService::class)->isConfigured()) {
             return redirect('/telegram-connect');
