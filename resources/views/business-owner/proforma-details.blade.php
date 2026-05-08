@@ -452,10 +452,8 @@
                                     <tbody>
                                         @foreach($proforma->parts as $part)
                                             @php
-                                                $partPrice = $application->prices->where('car_part_id', $part->id)->first();
-                                                if (!$partPrice) {
-                                                    $partPrice = $application->prices->values()->get($loop->index);
-                                                }
+                                                // Match price by index (prices are stored in order matching parts)
+                                                $partPrice = $application->prices->values()->get($loop->index);
                                             @endphp
                                             <tr>
                                                 <td>{{ $loop->index + 1 }}</td>
@@ -464,10 +462,10 @@
                                                 <td>{{ $part->condition ?? 'N/A' }}</td>
                                                 <td>{{ $part->grade }}</td>
                                                 <td>{{ $part->country }}</td>
-                                                <td>{{ $part->quantity }}</td>
+                                                <td>{{ $partPrice ? $partPrice->quantity : $part->quantity }}</td>
                                                 @if($partPrice)
                                                     <td class="price-tag">{{ number_format($partPrice->unit_price, 2) }} ETB</td>
-                                                    <td class="price-tag">{{ number_format($partPrice->part_total ?? ($partPrice->unit_price * ($part->quantity ?? 1)), 2) }} ETB</td>
+                                                    <td class="price-tag">{{ number_format($partPrice->part_total ?? ($partPrice->unit_price * $partPrice->quantity), 2) }} ETB</td>
                                                 @else
                                                     <td class="price-tag">0.00 ETB</td>
                                                     <td class="price-tag">0.00 ETB</td>
