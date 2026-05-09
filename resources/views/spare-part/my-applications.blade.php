@@ -83,7 +83,14 @@ class="current"
 
                             // Calculate final amount
                             if ($application->from === 'shop' && $application->prices->count() > 0) {
-                                $subtotal = $application->prices->sum('part_total');
+                                $proformaParts = $application->proforma->parts ?? collect();
+                                $subtotal = 0;
+                                foreach ($proformaParts as $idx => $part) {
+                                    $price = $application->prices->values()->get($idx);
+                                    if ($price) {
+                                        $subtotal += $price->unit_price * ($part->quantity ?? 1);
+                                    }
+                                }
                                 $discountPct = (float)($application->discount ?? 0);
                                 $discountAmt = ($subtotal * $discountPct) / 100;
                                 $finalAmount = $subtotal - $discountAmt;
@@ -155,7 +162,13 @@ class="current"
         $parts = $proforma->parts ?? collect();
         $prices = $application->prices ?? collect();
         $discountPct = (float)($application->discount ?? 0);
-        $subtotalParts = (float) $prices->sum('part_total');
+        $subtotalParts = 0;
+        foreach ($parts as $idx => $part) {
+            $price = $prices->values()->get($idx);
+            if ($price) {
+                $subtotalParts += $price->unit_price * ($part->quantity ?? 1);
+            }
+        }
         $usingParts = $subtotalParts > 0;
         $subtotal = $usingParts ? $subtotalParts : (float) $application->amount;
         $discountAmt = $usingParts ? (($subtotal * $discountPct) / 100) : 0.0;
@@ -220,10 +233,7 @@ class="current"
                             <tbody>
                                 @foreach($parts as $pIdx => $part)
                                     @php
-                                        $partPrice = $prices->where('car_part_id', $part->id)->first();
-                                        if (!$partPrice) {
-                                            $partPrice = $prices->values()->get($loop->index);
-                                        }
+                                        $partPrice = $prices->values()->get($loop->index);
                                     @endphp
                                     <tr>
                                         <td>{{ $pIdx + 1 }}</td>
@@ -234,7 +244,7 @@ class="current"
                                         <td>{{ $part->quantity ?? 1 }}</td>
                                         @if($partPrice)
                                             <td class="text-end">{{ number_format($partPrice->unit_price, 2) }} ETB</td>
-                                            <td class="text-end">{{ number_format($partPrice->part_total ?? ($partPrice->unit_price * ($part->quantity ?? 1)), 2) }} ETB</td>
+                                            <td class="text-end">{{ number_format($partPrice->unit_price * ($part->quantity ?? 1), 2) }} ETB</td>
                                         @else
                                             <td class="text-end">0.00 ETB</td>
                                             <td class="text-end">0.00 ETB</td>

@@ -210,13 +210,9 @@
                                         @endphp
                                         @foreach($proforma->parts as $part)
                                         @php
-                                        // Try foreign key match; fallback to index-based mapping
-                                        $partPrice = $application->prices->where('car_part_id', $part->id)->first();
-                                        if (!$partPrice) {
-                                            $partPrice = $application->prices->values()->get($loop->index);
-                                        }
+                                        $partPrice = $application->prices->values()->get($loop->index);
                                         $unitPrice = $partPrice ? $partPrice->unit_price : 0;
-                                        $totalPrice = $partPrice ? ($partPrice->part_total ?? ($unitPrice * ($part->quantity ?? 1))) : 0;
+                                        $totalPrice = $partPrice ? ($unitPrice * $part->quantity) : 0;
                                         $shopSubtotal += $totalPrice;
                                         @endphp
                                         <tr>

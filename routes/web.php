@@ -785,9 +785,15 @@ Route::get('/received-details', function (Request $request) {
         ->get();
 
     // Sort applications by actual final price (lowest first)
-    $applications = $proforma->applications->sortBy(function($application) {
+    $applications = $proforma->applications->sortBy(function($application) use ($proforma) {
         if ($application->from === 'shop' && $application->prices->count() > 0) {
-            $subtotal = $application->prices->sum('part_total');
+            $subtotal = 0;
+            foreach ($proforma->parts as $idx => $part) {
+                $price = $application->prices->values()->get($idx);
+                if ($price) {
+                    $subtotal += $price->unit_price * $part->quantity;
+                }
+            }
             $discountPct = (float)($application->discount ?? 0);
             $discountAmt = ($subtotal * $discountPct) / 100;
             return $subtotal - $discountAmt;
@@ -2970,10 +2976,16 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'applications.applicationBy',
                 'parts',
             ])->findOrFail($request->query('proforma_id'));
-            $applications = $proforma->applications->sortBy(function($application) {
+            $applications = $proforma->applications->sortBy(function($application) use ($proforma) {
                 // For shops: calculate final price from parts minus discount
                 if ($application->from === 'shop' && $application->prices->count() > 0) {
-                    $subtotal = $application->prices->sum('part_total');
+                    $subtotal = 0;
+                    foreach ($proforma->parts as $idx => $part) {
+                        $price = $application->prices->values()->get($idx);
+                        if ($price) {
+                            $subtotal += $price->unit_price * $part->quantity;
+                        }
+                    }
                     $discountPct = (float)($application->discount ?? 0);
                     $discountAmt = ($subtotal * $discountPct) / 100;
                     return $subtotal - $discountAmt;
@@ -3486,10 +3498,16 @@ Route::get('/received-details', function (Request $request) {
         ->with(['prices', 'applicationBy']) // ✅ Added 'applicationBy'
         ->orderBy('created_at', 'desc')
         ->get()
-        ->sortByDesc(function($application) {
+        ->sortByDesc(function($application) use ($proforma) {
             // This sorting logic remains the same
             if ($application->applicationBy->role === 'shop' && $application->prices->count() > 0) {
-                $subtotal = $application->prices->sum('part_total');
+                $subtotal = 0;
+                foreach ($proforma->parts as $idx => $part) {
+                    $price = $application->prices->values()->get($idx);
+                    if ($price) {
+                        $subtotal += $price->unit_price * $part->quantity;
+                    }
+                }
                 $discountPct = (float)($application->discount ?? 0);
                 $discountAmt = ($subtotal * $discountPct) / 100;
                 return $subtotal - $discountAmt;
@@ -4425,10 +4443,16 @@ Route::get('proforma-details', function (Request $request) {
     $allApplications = $proforma->applications;
 
     // Attach calculated price
-    $allApplications = $allApplications->map(function ($application) {
+    $allApplications = $allApplications->map(function ($application) use ($proforma) {
 
         if ($application->from === 'shop' && $application->prices->isNotEmpty()) {
-            $subtotal = $application->prices->sum('part_total');
+            $subtotal = 0;
+            foreach ($proforma->parts as $idx => $part) {
+                $price = $application->prices->values()->get($idx);
+                if ($price) {
+                    $subtotal += $price->unit_price * $part->quantity;
+                }
+            }
             $discount = (float) ($application->discount ?? 0);
 
             $application->final_price = $subtotal - ($subtotal * $discount / 100);

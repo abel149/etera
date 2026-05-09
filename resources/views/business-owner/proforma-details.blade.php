@@ -452,10 +452,7 @@
                                     <tbody>
                                         @foreach($proforma->parts as $part)
                                             @php
-                                                $partPrice = $application->prices->where('car_part_id', $part->id)->first();
-                                                if (!$partPrice) {
-                                                    $partPrice = $application->prices->values()->get($loop->index);
-                                                }
+                                                $partPrice = $application->prices->values()->get($loop->index);
                                             @endphp
                                             <tr>
                                                 <td>{{ $loop->index + 1 }}</td>
@@ -467,7 +464,7 @@
                                                 <td>{{ $part->quantity }}</td>
                                                 @if($partPrice)
                                                     <td class="price-tag">{{ number_format($partPrice->unit_price, 2) }} ETB</td>
-                                                    <td class="price-tag">{{ number_format($partPrice->part_total ?? ($partPrice->unit_price * ($part->quantity ?? 1)), 2) }} ETB</td>
+                                                    <td class="price-tag">{{ number_format($partPrice->unit_price * $part->quantity, 2) }} ETB</td>
                                                 @else
                                                     <td class="price-tag">0.00 ETB</td>
                                                     <td class="price-tag">0.00 ETB</td>
@@ -478,7 +475,13 @@
                                     <tfoot>
                                         @php
                                             $discountPct = (float)($application->discount ?? 0);
-                                            $subtotalParts = (float) $application->prices->sum('part_total');
+                                            $subtotalParts = 0;
+                                            foreach ($proforma->parts as $index => $part) {
+                                                $price = $application->prices->values()->get($index);
+                                                if ($price) {
+                                                    $subtotalParts += $price->unit_price * $part->quantity;
+                                                }
+                                            }
                                             $usingParts = $subtotalParts > 0;
                                             $subtotal = $usingParts ? $subtotalParts : (float) $application->amount;
                                             $discountAmt = $usingParts ? (($subtotal * $discountPct) / 100) : 0.0;

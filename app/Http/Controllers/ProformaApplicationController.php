@@ -198,31 +198,25 @@ class ProformaApplicationController extends Controller
                     $partsProcessed = 0;
                     foreach ($proforma->parts as $index => $part) {
                         $unitPrice = floatval($request->total[$index] ?? 0);
+                        $quantity = $part->quantity ?? 1;
+                        $partTotal = $unitPrice * $quantity;
+                        $resolvedCarPartId = \App\Models\CarPart::firstOrCreate([
+                            'name' => $part->component ?: ($part->number ?: ('Part-' . $part->id))
+                        ], [
+                            'component' => $part->component ?: 'Mechanical Parts'
+                        ])->id;
+
+                        $application->prices()->create([
+                            'car_part_id' => $resolvedCarPartId,
+                            'quantity' => $quantity,
+                            'unit_price' => $unitPrice,
+                            'part_total' => $partTotal,
+                        ]);
+
                         if ($unitPrice > 0) {
-                            $quantity = $part->quantity ?? 1;
-                            $partTotal = $unitPrice * $quantity;
-                            $resolvedCarPartId = \App\Models\CarPart::firstOrCreate([
-                                'name' => $part->component ?: ($part->number ?: ('Part-' . $part->id))
-                            ], [
-                                'component' => $part->component ?: 'Mechanical Parts'
-                            ])->id;
-
-                            $application->prices()->create([
-                                'car_part_id' => $resolvedCarPartId,
-                                'quantity' => $quantity,
-                                'unit_price' => $unitPrice,
-                                'part_total' => $partTotal,
-                            ]);
-
                             $partsProcessed++;
                         }
                     }
-
-                    Log::info('Price quote submission: shop part prices saved', [
-                        'application_id' => $application->id,
-                        'parts_processed' => $partsProcessed,
-                        'total_parts' => $proforma->parts->count()
-                    ]);
                 }
 
                 // Step 8: Check if the proforma should be closed.
