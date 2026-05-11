@@ -71,6 +71,7 @@ class User extends Authenticatable
         'password',
         'role',
         'is_new',
+        'is_test',
         'store_id',
         'approved',
         'registered_by',
