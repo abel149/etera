@@ -1392,7 +1392,30 @@ Route::get('/float', function (Request $request) {
         }
     }
 
-    $proforma->update(['status' => 'published', 'processed_by' => auth()->id()]);
+    // For Etera Chereta proformas, start the timer when floated
+    $isEteraChereta = $proforma->isEteraCheretaMode();
+    $timerExpiresAt = $proforma->timer_expires_at;
+    
+    if ($isEteraChereta && is_null($timerExpiresAt) && $proforma->timer_duration > 0) {
+        $timerExpiresAt = now()->addMinutes($proforma->timer_duration);
+        $proforma->update([
+            'status' => 'published',
+            'processed_by' => auth()->id(),
+            'timer_expires_at' => $timerExpiresAt,
+        ]);
+        
+        // Schedule auto-selection job now that timer has started
+        \App\Jobs\AutoSelectProformaOffers::dispatch($proforma->id)->delay($timerExpiresAt);
+        
+        Log::info('⏰ Etera Chereta timer started on float', [
+            'proforma_id' => $proforma->id,
+            'duration_minutes' => $proforma->timer_duration,
+            'expires_at' => $timerExpiresAt,
+        ]);
+    } else {
+        $proforma->update(['status' => 'published', 'processed_by' => auth()->id()]);
+    }
+    
     $poster = \App\Models\User::find($proforma->poster_id);
     if ($poster && $poster->telegram_chat_id) {
         (new \App\Services\TelegramService())->sendProformaFloatedNotification($poster->telegram_chat_id, $poster);
@@ -3194,8 +3217,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             if ($isEteraChereta) {
                 $eteraHours = (int) $request->input('etera_chereta_hours', 24);
                 $timerMinutes = $eteraHours * 60;
-                $timerEnabled = true;
-                $timerExpiresAt = now()->addMinutes($timerMinutes);
+                // Timer starts when admin floats, not on creation
+                $timerExpiresAt = null;
                 $requiredShops = 0; // Float mode - no limit on shops
                 $requiredGarages = 0; // Float mode - no limit on garages
             } else {
@@ -3301,10 +3324,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             // 🔔 Broadcast to admin dashboard in real-time
             event(new ProformaCreated($proforma));
 
-            // If Etera-Chereta mode, dispatch auto-selection after expiry
-            if ($isEteraChereta) {
-                \App\Jobs\AutoSelectProformaOffers::dispatch($proforma->id)->delay(now()->addMinutes($timerMinutes));
-            }
+            // Note: Timer and auto-selection will start when admin floats the proforma
 
             return redirect()->back()->with('success', 'Proforma created successfully');
         })->name('insurance.create-file');
@@ -4281,7 +4301,8 @@ Route::prefix('business-owner')
                 $eteraHours = (int) $request->input('etera_chereta_hours', 24);
                 $requiredShops = $isEteraChereta ? 0 : (int) $request->input('number_of_proformas', 3);
                 $timerMinutes = $isEteraChereta ? $eteraHours * 60 : null;
-                $timerExpiresAt = $isEteraChereta ? now()->addMinutes($timerMinutes) : null;
+                // Timer starts when admin floats, not on creation
+                $timerExpiresAt = null;
 
                 $proforma = Proforma::create([
                     'poster_id' => auth()->id(),
@@ -4388,14 +4409,12 @@ Route::prefix('business-owner')
                 // 🔔 Broadcast to admin dashboard in real-time
                 event(new ProformaCreated($proforma));
 
-                // 🔹 Step 5 — Schedule Etera-Chereta AutoSelect
-                if ($isEteraChereta) {
-                    AutoSelectProformaOffers::dispatch($proforma->id)->delay(now()->addMinutes($timerMinutes));
-                    Log::info('⏰ Etera-Chereta scheduled for business-owner', [
-                        'proforma_id' => $proforma->id,
-                        'delay_minutes' => $timerMinutes
-                    ]);
-                }
+                // 🔹 Step 5 — Note: Timer and auto-selection will start when admin floats the proforma
+                Log::info('✅ Proforma created for business-owner (timer will start on float)', [
+                    'proforma_id' => $proforma->id,
+                    'is_etera_chereta' => $isEteraChereta,
+                    'timer_minutes' => $timerMinutes
+                ]);
 
                 return redirect()->back()->with('success', 'Proforma created successfully!');
             } catch (\Exception $e) {
