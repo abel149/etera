@@ -317,7 +317,7 @@ class="current"
                                                 </div>
                                                 <div class="repeater-remove-btn remove-repeater col-12 col-lg-1">
                                                     <label for="inputEmail1" class="form-label"> &nbsp</label>
-                                                    <button type="button" class="remove-repeater btn btn-danger button red radius-30"><i class="icon-feather-trash-2"></i></button>
+                                                    <button type="button" class="remove-repeater btn btn-danger button red radius-30"><i class="bx bx-trash"></i></button>
                                                 </div>
                                                 <div class="col-12">
                                                     <hr/>
@@ -618,7 +618,7 @@ function initializeRepeater() {
                 <div class="col-12 col-lg-1">
                     <label class="form-label">&nbsp;</label>
                     <button type="button" class="remove-repeater btn btn-danger radius-30">
-                        <i class="icon-feather-trash-2"></i>
+                        <i class="bx bx-trash"></i>
                     </button>
                 </div>
                 <div class="col-12"><hr/></div>
