@@ -39,8 +39,7 @@
         $hasApplied = $proforma->applications->contains('application_by', $userId);
     @endphp
 
-    @if(!$hasApplied)
-
+    
     <a href="{{ url('/proforma-details?proforma=' . $proforma->id) }}" class="job-listing with-apply-button">
         <div class="job-listing-details">
             <div class="job-listing-company-logo">
@@ -68,7 +67,7 @@
         </div>
     </a>
 
-    @endif
+  
 @endforeach
             </div>
 

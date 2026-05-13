@@ -138,6 +138,11 @@ class ProformaApplicationController extends Controller
                     'discount' => $discount,
                 ]);
 
+                // Remove inbox record now that the user has actually applied
+                \App\Models\Inbox::where('user_id', auth()->id())
+                    ->where('proforma_id', $proforma->id)
+                    ->delete();
+
                 Log::info('Price quote submission: application created', [
                     'proforma_id' => $proforma->id,
                     'application_id' => $application->id,

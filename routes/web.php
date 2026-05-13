@@ -3373,14 +3373,6 @@ Route::get('proforma-details', function (Request $request) {
         return redirect()->back();
     }
 
-    // Reset inbox count when user opens proforma details
-   /* if (auth()->check()) {
-        // Remove the proforma from user's inbox to reset the ticker
-        \App\Models\Inbox::where('user_id', auth()->id())
-            ->where('proforma_id', $proforma->id)
-            ->delete();
-    }*/
-
     return view('spare-part.details', compact('proforma'));
 })->name('proforma-details');
 
@@ -3443,14 +3435,6 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             if (! $proforma) {
                 return redirect()->back();
             }
-
-            // Reset inbox count when user opens proforma details
-           /* if (auth()->check()) {
-                // Remove the proforma from user's inbox to reset the ticker
-                \App\Models\Inbox::where('user_id', auth()->id())
-                    ->where('proforma_id', $proforma->id)
-                    ->delete();
-            }*/
 
             return view('spare-part.details', compact('proforma'));
         })->name('garage.proforma-details');
@@ -3825,14 +3809,6 @@ Route::prefix('spare-part-shops')
             if (! $proforma) {
                 return redirect()->back();
             }
-
-            // Reset inbox count when user opens proforma details
-           /* if (auth()->check()) {
-                // Remove the proforma from user's inbox to reset the ticker
-                \App\Models\Inbox::where('user_id', auth()->id())
-                    ->where('proforma_id', $proforma->id)
-                    ->delete();
-            }*/
 
             return view('spare-part.details', compact('proforma'));
         })->name('proforma-details');
