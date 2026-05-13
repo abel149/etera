@@ -3485,8 +3485,11 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             }
 
             // Remove inbox record if exists
-            $proforma->inboxes()->where('user_id', auth()->id())->delete();
-
+            //$proforma->inboxes()->where('user_id', auth()->id())->delete();
+             //TEST
+            \App\Models\Inbox::where('user_id', auth()->id())
+                    ->where('proforma_id', $proforma->id)
+                    ->delete();
             // Check if proforma should be closed (both garage and shop requirements met)
             $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
             $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
