@@ -2994,42 +2994,64 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 });
 
         Route::get('proforma-details', function (Request $request) {
+
             $proforma = \App\Models\Proforma::with([
                 'applications.prices',
                 'applications.applicationBy',
                 'parts',
             ])->findOrFail($request->query('proforma_id'));
-            $applications = $proforma->applications->sortBy(function($application) use ($proforma) {
-                // For shops: calculate final price from parts minus discount
-                if ($application->from === 'shop' && $application->prices->count() > 0) {
+
+            // Shop applications
+            $shopApplications = $proforma->applications
+                ->where('from', 'shop')
+                ->sortBy(function($application) use ($proforma) {
+
                     $subtotal = 0;
+
                     foreach ($proforma->parts as $idx => $part) {
+
                         $price = $application->prices->values()->get($idx);
+
                         if ($price) {
                             $subtotal += $price->unit_price * $part->quantity;
                         }
                     }
+
                     $discountPct = (float)($application->discount ?? 0);
                     $discountAmt = ($subtotal * $discountPct) / 100;
+
                     return $subtotal - $discountAmt;
-                }
-                // For garages: use amount field
-                return $application->amount ?? 0;
-            });
+                });
 
-            // Limit to requested number for non-Etera Chereta
+            // Garage applications
+            $garageApplications = $proforma->applications
+                ->where('from', 'garage')
+                ->sortBy(function($application) {
+
+                    return $application->amount ?? 0;
+                });
+
+            // Limits
             $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
+            $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+            // Shop limit
             if ($requiredShops > 0) {
-                $applications = $applications->take($requiredShops);
+                $shopApplications = $shopApplications->take($requiredShops);
+            } else {
+                $shopApplications = $shopApplications->take(5);
             }
 
-            // Etera Chereta (0 shops requested): show only top 5 lowest price
-            if ($requiredShops === 0) {
-                $applications = $applications->take(5);
-            }
+            // Garage limit
+            if ($requiredGarages > 0) {
+                $garageApplications = $garageApplications->take($requiredGarages);
+            } 
 
-            return view('insurance.proforma-details', compact('proforma','applications'));
-        });
+            // Merge collections
+            $applications = $shopApplications->concat($garageApplications);
+
+            return view('insurance.proforma-details', compact('proforma', 'applications'));
+});
         Route::get('/add-parts', function () {
             return view('insurance.parts.add');
         });
