@@ -32,42 +32,44 @@
                 @endphp
 
                 @foreach($user->myInbox as $proformaInbox)
-                    @php 
-                        $proforma = $proformaInbox->proforma;
-                        $isInboxedUser = $proforma->inboxes->contains('user_id', $userId);
-                        $totalApplications = $proforma->applications->count();
-                        $hasApplied = $proforma->applications->contains('application_by', $userId);
-                    @endphp
+    @php 
+        $proforma = $proformaInbox->proforma;
+        $isInboxedUser = $proforma->inboxes->contains('user_id', $userId);
+        $totalApplications = $proforma->applications->count();
+        $hasApplied = $proforma->applications->contains('application_by', $userId);
+    @endphp
 
-                    {{-- Always show items sent to the user's inbox --}}
+    @if(!$hasApplied)
 
-                    <a href="{{ url('/proforma-details?proforma=' . $proforma->id) }}" class="job-listing with-apply-button">
-                        <div class="job-listing-details">
-                            <div class="job-listing-company-logo">
-                                <img src="{{ asset('asset/images/company-logo-01.png') }}" alt="">
-                            </div>
+    <a href="{{ url('/proforma-details?proforma=' . $proforma->id) }}" class="job-listing with-apply-button">
+        <div class="job-listing-details">
+            <div class="job-listing-company-logo">
+                <img src="{{ asset('asset/images/company-logo-01.png') }}" alt="">
+            </div>
 
-                            <div class="job-listing-description">
-                                <h3 class="job-listing-title">{{ $proforma->poster->name }}</h3>
+            <div class="job-listing-description">
+                <h3 class="job-listing-title">{{ $proforma->poster->name }}</h3>
 
-                                <div class="job-listing-footer">
-                                    <ul>
-                                        <li>
-                                            <i class="icon-material-outline-directions-car"></i> 
-                                            {{ $proforma->brand->name }}, {{ $proforma->model }}
-                                        </li>
-                                        <li>
-                                            <i class="icon-material-outline-access-time"></i> 
-                                            {{ $proforma->created_at->diffForHumans() }}
-                                        </li>
-                                    </ul>
-                                </div>
-                            </div>
+                <div class="job-listing-footer">
+                    <ul>
+                        <li>
+                            <i class="icon-material-outline-directions-car"></i> 
+                            {{ $proforma->brand->name }}, {{ $proforma->model }}
+                        </li>
+                        <li>
+                            <i class="icon-material-outline-access-time"></i> 
+                            {{ $proforma->created_at->diffForHumans() }}
+                        </li>
+                    </ul>
+                </div>
+            </div>
 
-                            <span class="list-apply-button radius-30 ripple-effect">Apply Now</span>
-                        </div>
-                    </a>
-                @endforeach
+            <span class="list-apply-button radius-30 ripple-effect">Apply Now</span>
+        </div>
+    </a>
+
+    @endif
+@endforeach
             </div>
 
             <div class="clearfix"></div>
