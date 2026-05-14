@@ -62,10 +62,13 @@ class GarageProformasList extends Component
          * Base Query
          * Only published proformas from insurance
          */
+        $isTest = Auth::user()->is_test ?? false;
+
         $query = Proforma::query()
             ->where('status', 'published')
-            ->whereHas('poster', function ($q) {
-                $q->where('role', 'insurance');
+            ->whereHas('poster', function ($q) use ($isTest) {
+                $q->where('role', 'insurance')
+                  ->where('is_test', $isTest);
             });
 
         /**
