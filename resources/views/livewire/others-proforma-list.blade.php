@@ -166,8 +166,10 @@
                                             @endif
                                             @if(auth()->user()->role == 'admin')
                                             @php
-                                                $allSlotsInboxed = (int)($proforma->required_number_of_shops ?? 0) > 0
-                                                    && ((int)($proforma->shop_inboxes_count ?? 0) + (int)($proforma->shop_applications_count ?? 0)) >= (int)($proforma->required_number_of_shops ?? 0);
+                                                $reqShops = (int)($proforma->required_number_of_shops ?? 0);
+                                                $allSlotsInboxed = !$proforma->isEteraCheretaMode()
+                                                    && $reqShops > 0
+                                                    && $proforma->floatShopQuota() <= 0;
                                             @endphp
                                             @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected() && !$allSlotsInboxed)
                                             <td>

@@ -8,22 +8,18 @@
                         <label class="mt-2 mb-1">Insurance Side</label>
                         
                         
-                @if($proforma->inboxes?->count())
                 @php
                     $shop_data = [];
                     $garage_data = [];
-                @endphp
-                @foreach($proforma->inboxes as $inbox)
-                    @php
+                    foreach (($proforma->inboxes ?? collect()) as $inbox) {
+                        if (($inbox->source ?? '') !== 'insurance') continue;
                         $role = $inbox->user?->role;
                         $name = $inbox->user?->name ?? 'N/A';
-                        if ($role === 'shop') {
-                            $shop_data[] = $name;
-                        } else {
-                            $garage_data[] = $name;
-                        }
-                    @endphp
-                @endforeach
+                        if ($role === 'shop') { $shop_data[] = $name; }
+                        else { $garage_data[] = $name; }
+                    }
+                @endphp
+                @if(count($shop_data))
                     <div class="input-group">
     <input type="text" 
            name="shopPay" 
@@ -62,8 +58,8 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{$selectedClientShop1 || $proforma->status != 'pending' ? 'disabled' : ''}} multiple class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
-                                <option value="">Select Spare Part Shop</option>
+                            <select name="spare_part_partners[]" {{ $proforma->status != 'pending' ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
+                                <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
                                 @endforeach
@@ -105,8 +101,8 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]"  {{$selectedClientShop2 || $proforma->status != 'pending' ? 'disabled' : ''}} multiple class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
-                                <option value="">Select Spare Part Shop</option>
+                            <select name="spare_part_partners[]" {{ $proforma->status != 'pending' ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
+                                <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
                                 @endforeach
@@ -153,17 +149,15 @@
                         <label class="mt-2 mb-1">Insurance Side</label>
                         <div class="input-group">
                             
-                @if($proforma->inboxes?->count())
+                @if(count($garage_data))
                 <div class="input-group">
-                    <input type="text" 
-           name="Garage" 
-           class="form-control bg-light text-muted" 
-           value="{{ implode(', ', $garage_data ?? []) }}" 
-           readonly>
-    <span class="input-group-text">
-        <i class="bx bx-lock text-danger"></i>
-    </span>
-</div>
+                    <input type="text"
+                           name="Garage"
+                           class="form-control bg-light text-muted"
+                           value="{{ implode(', ', $garage_data) }}"
+                           readonly>
+                    <span class="input-group-text"><i class="bx bx-lock text-danger"></i></span>
+                </div>
                 @else
                 
                             <select name="garage_partners[]" {{$selectedInsuranceGarage || $proforma->status != 'pending' ? 'disabled' : ''}} multiple class="form-select" id="multiple4" wire:model.live="selectedInsuranceGarage">
@@ -190,8 +184,8 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="garage_partners[]"  {{$selectedClientGarage1 || $proforma->status != 'pending' ? 'disabled' : ''}} multiple class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
-                                <option value="">Select Garage</option>
+                            <select name="garage_partners[]" class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
+                                <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
                                 @endforeach
@@ -212,8 +206,8 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{$selectedClientGarage2 || $proforma->status != 'pending' ? 'disabled' : ''}} multiple class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
-                                <option value="">Select Garage</option>
+                            <select name="garage_partners[]" {{ $proforma->status != 'pending' ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
+                                <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
                                 @endforeach

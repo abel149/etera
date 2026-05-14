@@ -150,8 +150,14 @@
                                                         </a>
                                                         
                                                         @php
-                                                            $allSlotsInboxed = (int)($proforma->required_number_of_shops ?? 0) > 0
-                                                                && ((int)($proforma->shop_inboxes_count ?? 0) + (int)($proforma->shop_applications_count ?? 0)) >= (int)($proforma->required_number_of_shops ?? 0);
+                                                            $reqShops   = (int)($proforma->required_number_of_shops ?? 0);
+                                                            $reqGarages = (int)($proforma->required_number_of_garages ?? 0);
+                                                            // Hide float only when all public float slots are taken by admin inboxes.
+                                                            // Insurance partner inboxes (source='insurance') must NOT count here.
+                                                            $allSlotsInboxed = !$proforma->isEteraCheretaMode()
+                                                                && ($reqShops === 0   || $proforma->floatShopQuota()   <= 0)
+                                                                && ($reqGarages === 0 || $proforma->floatGarageQuota() <= 0)
+                                                                && ($reqShops > 0 || $reqGarages > 0);
                                                         @endphp
                                                         @if(($proforma->status === 'pending' || $proforma->status === 'opened') && !$proforma?->selected() && !$allSlotsInboxed)
                                                             <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-sm btn-primary">Float</a>

@@ -3487,15 +3487,11 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 'application_source' => $applicationSource,
             ]);
 
-            // Send notification to proforma poster
-            if ($proforma->poster && $proforma->poster->id !== auth()->id()) {
-                $proforma->poster->notify(new ProformaApplicationReceived($proforma, $application, auth()->user()));
-            }
-
+            // ── Inbox cleanup (always runs before notification) ──────────────
             // Remove own inbox record
             \App\Models\Inbox::where('user_id', auth()->id())
-                    ->where('proforma_id', $proforma->id)
-                    ->delete();
+                ->where('proforma_id', $proforma->id)
+                ->delete();
 
             // If insurance partner applied, delete all other insurance garage inboxes
             // Admin inboxes are NOT affected — they each have their own dedicated slot
@@ -3506,20 +3502,32 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                     ->delete();
             }
 
-            // Check if proforma should be closed (both garage and shop requirements met)
+            // ── Proforma closure check ────────────────────────────────────────
             $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
-            $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
+            $shopApplicationsCount   = $proforma->applications()->where('from', 'shop')->count();
             $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
-            $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
-            
-            // Check if BOTH garage and shop requirements are met and not an Etera-Chereta (0,0) proforma
-            $isEteraChereta = ($requiredGarages + $requiredShops) === 0;
+            $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+
+            $isEteraChereta       = ($requiredGarages + $requiredShops) === 0;
             $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
-            $shopRequirementMet = $requiredShops === 0 || $shopApplicationsCount >= $requiredShops;
-            
+            $shopRequirementMet   = $requiredShops   === 0 || $shopApplicationsCount   >= $requiredShops;
+
             if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet && ($requiredGarages > 0 || $requiredShops > 0)) {
                 $proforma->update(['status' => 'closed']);
                 $proforma->inboxes()->delete();
+            }
+
+            // ── Notify poster (best-effort — must not crash the apply flow) ──
+            try {
+                if ($proforma->poster && $proforma->poster->id !== auth()->id()) {
+                    $proforma->poster->notify(new ProformaApplicationReceived($proforma, $application, auth()->user()));
+                }
+            } catch (\Throwable $e) {
+                \Illuminate\Support\Facades\Log::warning('Garage application notification failed', [
+                    'proforma_id' => $proforma->id,
+                    'user_id'     => auth()->id(),
+                    'error'       => $e->getMessage(),
+                ]);
             }
 
             return redirect('/garage/proformas')
