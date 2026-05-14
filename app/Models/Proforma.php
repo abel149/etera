@@ -125,16 +125,102 @@ class Proforma extends Model implements HasMedia
 
     public function getRemainingShopsAttribute()
     {
-        // If Etera-Chereta mode (required_number_of_shops is 0), return infinity symbol
         if ($this->required_number_of_shops == 0) {
             return '∞';
         }
-        return ($this->required_number_of_shops ?? 3) - ($this->numberOfInboxesSentToShops() + $this->applicationsFromShops()->count());
+        return max(0, $this->required_number_of_shops - $this->applicationsFromShops()->count());
     }
 
     public function getRemainingGaragesAttribute()
     {
-    return ($this->required_number_of_garages ?? 3) - ($this->numberOfInboxesSentToGarages() + $this->applicationsFromGarages()->count());
+        return max(0, $this->required_number_of_garages - $this->applicationsFromGarages()->count());
+    }
+
+    // ── Insurance partner quota (exactly 1 slot if any insurance inbox exists) ──
+
+    public function shopPartnerQuota(): int
+    {
+        $hasInsuranceInbox = $this->inboxes()
+            ->where('source', 'insurance')
+            ->whereHas('user', fn($q) => $q->where('role', 'shop'))
+            ->exists();
+        return ($hasInsuranceInbox || $this->hasPartnerShopApplied()) ? 1 : 0;
+    }
+
+    public function garagePartnerQuota(): int
+    {
+        $hasInsuranceInbox = $this->inboxes()
+            ->where('source', 'insurance')
+            ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+            ->exists();
+        return ($hasInsuranceInbox || $this->hasPartnerGarageApplied()) ? 1 : 0;
+    }
+
+    public function hasPartnerShopApplied(): bool
+    {
+        return $this->applications()->where('from', 'shop')->where('application_source', 'partner')->exists();
+    }
+
+    public function hasPartnerGarageApplied(): bool
+    {
+        return $this->applications()->where('from', 'garage')->where('application_source', 'partner')->exists();
+    }
+
+    // ── Admin inbox quota (each admin inbox entry = 1 dedicated slot) ──
+
+    public function adminShopInboxCount(): int
+    {
+        return $this->inboxes()
+            ->where('source', 'admin')
+            ->whereHas('user', fn($q) => $q->where('role', 'shop'))
+            ->count();
+    }
+
+    public function adminGarageInboxCount(): int
+    {
+        return $this->inboxes()
+            ->where('source', 'admin')
+            ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+            ->count();
+    }
+
+    public function adminShopApplicationsCount(): int
+    {
+        return $this->applications()->where('from', 'shop')->where('application_source', 'admin')->count();
+    }
+
+    public function adminGarageApplicationsCount(): int
+    {
+        return $this->applications()->where('from', 'garage')->where('application_source', 'admin')->count();
+    }
+
+    // ── Float (public) quota ──
+    // = required - partnerQuota - (adminInboxRemaining + adminApplied)
+
+    public function floatShopQuota(): int
+    {
+        return max(0, $this->required_number_of_shops
+            - $this->shopPartnerQuota()
+            - $this->adminShopApplicationsCount()
+            - $this->adminShopInboxCount());
+    }
+
+    public function floatGarageQuota(): int
+    {
+        return max(0, $this->required_number_of_garages
+            - $this->garagePartnerQuota()
+            - $this->adminGarageApplicationsCount()
+            - $this->adminGarageInboxCount());
+    }
+
+    public function publicShopApplicationsCount(): int
+    {
+        return $this->applications()->where('from', 'shop')->where('application_source', 'public')->count();
+    }
+
+    public function publicGarageApplicationsCount(): int
+    {
+        return $this->applications()->where('from', 'garage')->where('application_source', 'public')->count();
     }
 
     public function parts()
@@ -215,16 +301,55 @@ class Proforma extends Model implements HasMedia
 
     public function isApplicableBy(User $applicant)
     {
-        $inboxes = $this->inboxes;
-
-        // For Etera-Chereta mode, check if timer has expired
+        // Etera-Chereta timer expiry check
         if ($this->isEteraCheretaMode() && $this->timer_expires_at && now()->isAfter($this->timer_expires_at)) {
             return false;
         }
 
-        return ($applicant?->role == 'shop' && $this->canBeAppliedByShop()  && ($this->remaining_shops === '∞' || $this->remaining_shops > 0)
-        || $applicant?->role == 'garage' && $this->canBeAppliedByGarage()   && $this->remaining_garages > 0
-        );
+        // Etera-Chereta: unlimited applicants
+        if ($this->isEteraCheretaMode()) {
+            return ($applicant->role === 'shop' && $this->canBeAppliedByShop())
+                || ($applicant->role === 'garage' && $this->canBeAppliedByGarage());
+        }
+
+        if ($applicant->role === 'shop') {
+            if (!$this->canBeAppliedByShop()) return false;
+
+            $isInsuranceInboxed = $this->inboxes()
+                ->where('user_id', $applicant->id)->where('source', 'insurance')->exists();
+            $isAdminInboxed = !$isInsuranceInboxed && $this->inboxes()
+                ->where('user_id', $applicant->id)->where('source', 'admin')->exists();
+
+            if ($isInsuranceInboxed) {
+                // Insurance partner slot: first-come-first-served among inboxed
+                return !$this->hasPartnerShopApplied();
+            } elseif ($isAdminInboxed) {
+                // Admin-designated slot: dedicated to this specific user
+                return true;
+            } else {
+                // Public float slot
+                return $this->publicShopApplicationsCount() < $this->floatShopQuota();
+            }
+        }
+
+        if ($applicant->role === 'garage') {
+            if (!$this->canBeAppliedByGarage()) return false;
+
+            $isInsuranceInboxed = $this->inboxes()
+                ->where('user_id', $applicant->id)->where('source', 'insurance')->exists();
+            $isAdminInboxed = !$isInsuranceInboxed && $this->inboxes()
+                ->where('user_id', $applicant->id)->where('source', 'admin')->exists();
+
+            if ($isInsuranceInboxed) {
+                return !$this->hasPartnerGarageApplied();
+            } elseif ($isAdminInboxed) {
+                return true;
+            } else {
+                return $this->publicGarageApplicationsCount() < $this->floatGarageQuota();
+            }
+        }
+
+        return false;
     }
 
     public function numberOfInboxesSentToShops()

@@ -1382,13 +1382,26 @@ Route::get('/float', function (Request $request) {
         return redirect()->back();
     }
 
-    $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
-    if ($requiredShops > 0) {
-        $shopInboxCount = \App\Models\Inbox::where('proforma_id', $proforma->id)
-            ->whereHas('user', fn($q) => $q->where('role', 'shop'))
-            ->count();
-        if ($shopInboxCount >= $requiredShops) {
-            return redirect()->back()->with('error', 'This proforma already has all requested shop slots inboxed. You cannot float it.');
+    // Block float for ALL non-Etera-Chereta proformas when all slots are filled by inboxes.
+    // When all slots are inboxed, inboxed contacts can apply directly (status='pending' is allowed).
+    // Admin must remove at least one inbox entry to open a public float slot.
+    $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+    $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+    if (!$proforma->isEteraCheretaMode()) {
+        if ($requiredShops > 0 && $proforma->floatShopQuota() <= 0) {
+            return redirect()->back()->with('error',
+                'All ' . $requiredShops . ' shop slot(s) are assigned to inboxed contacts. ' .
+                'Inboxed contacts can already apply directly — no float needed. ' .
+                'To open public slots, remove one or more shop inbox entries first.'
+            );
+        }
+        if ($requiredGarages > 0 && $proforma->floatGarageQuota() <= 0) {
+            return redirect()->back()->with('error',
+                'All ' . $requiredGarages . ' garage slot(s) are assigned to inboxed contacts. ' .
+                'Inboxed contacts can already apply directly — no float needed. ' .
+                'To open public slots, remove one or more garage inbox entries first.'
+            );
         }
     }
 
@@ -3285,17 +3298,19 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                     Inbox::create([
                         'proforma_id' => $proforma->id,
                         'user_id' => $inbox,
+                        'source' => 'insurance',
                     ]);
                 }
             }
 
-            // add garage partneer
+            // add garage partner
         
             if ($request->garage_partners) {
                 foreach ($request->garage_partners as $inbox) {
                     Inbox::create([
                         'proforma_id' => $proforma->id,
                         'user_id' => $inbox,
+                        'source' => 'insurance',
                     ]);
                 }
             }
@@ -3456,11 +3471,20 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             // Ensure minimum amount
             $finalAmount = max($finalAmount, 1);
 
+            // Detect inbox source BEFORE deleting inbox
+            $isInsuranceInboxed = $proforma->inboxes()
+                ->where('user_id', auth()->id())->where('source', 'insurance')->exists();
+            $isAdminInboxed = !$isInsuranceInboxed && $proforma->inboxes()
+                ->where('user_id', auth()->id())->where('source', 'admin')->exists();
+
+            $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
+
             $application = $proforma->applications()->create([
                 'application_by' => auth()->id(),
                 'from' => 'garage',
                 'amount' => $finalAmount,
                 'discount' => $discount,
+                'application_source' => $applicationSource,
             ]);
 
             // Send notification to proforma poster
@@ -3468,12 +3492,20 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $proforma->poster->notify(new ProformaApplicationReceived($proforma, $application, auth()->user()));
             }
 
-            // Remove inbox record if exists
-            //$proforma->inboxes()->where('user_id', auth()->id())->delete();
-             //TEST
+            // Remove own inbox record
             \App\Models\Inbox::where('user_id', auth()->id())
                     ->where('proforma_id', $proforma->id)
                     ->delete();
+
+            // If insurance partner applied, delete all other insurance garage inboxes
+            // Admin inboxes are NOT affected — they each have their own dedicated slot
+            if ($isInsuranceInboxed) {
+                $proforma->inboxes()
+                    ->where('source', 'insurance')
+                    ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+                    ->delete();
+            }
+
             // Check if proforma should be closed (both garage and shop requirements met)
             $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
             $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
@@ -3490,7 +3522,7 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $proforma->inboxes()->delete();
             }
 
-            return redirect('/role/proformas')
+            return redirect('/garage/proformas')
                 ->with('success', 'Price quote submitted successfully!');
         })->name('garage.proforma.apply');
 
@@ -3894,12 +3926,27 @@ Route::post('/proformas', function (Request $request) {
             ->unique()
             ->toArray();
 
-        $editableSlots = !$isEteraChereta && $requiredShops > 0
-            ? max(0, $requiredShops - count($lockedShopIds))
+        // Admin quota = required - partnerSlot (1 if any insurance inbox exists, else 0)
+        // This prevents admin from over-provisioning beyond their allowed slots
+        $adminShopSlotCap = !$isEteraChereta && $requiredShops > 0
+            ? max(0, $requiredShops - $proforma->shopPartnerQuota())
             : PHP_INT_MAX;
 
+        // Deduct admin slots already consumed by applied admin-inboxed shops
+        $lockedAdminShopCount = 0;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
+            $lockedAdminShopCount = $proforma->applications()
+                ->where('from', 'shop')
+                ->where('application_source', 'admin')
+                ->count();
+        }
+
+        $editableSlots = $adminShopSlotCap === PHP_INT_MAX
+            ? PHP_INT_MAX
+            : max(0, $adminShopSlotCap - $lockedAdminShopCount);
+
         if ($editableSlots === 0) {
-            return redirect()->back()->with('error', 'All required slots are already locked by applied shops. You cannot replace them.');
+            return redirect()->back()->with('error', 'All admin-designated shop slots are filled. Remove an admin inbox entry or wait for the partner slot to be filled first.');
         }
 
         $slotInputs = is_array($request->spare_part_partners) ? $request->spare_part_partners : [];
@@ -3919,6 +3966,7 @@ Route::post('/proformas', function (Request $request) {
         }
 
         $currentEditableInbox = \App\Models\Inbox::where('proforma_id', $proforma->id)
+            ->where('source', 'admin')
             ->whereNotIn('user_id', $lockedShopIds)
             ->orderBy('created_at', 'asc')
             ->get(['id', 'user_id']);
@@ -3929,6 +3977,10 @@ Route::post('/proformas', function (Request $request) {
             $existingUserId = $existingRow ? (string) $existingRow->user_id : '';
 
             if ($desiredUserId === '') {
+                // Admin cleared this slot — remove the existing inbox entry so the slot opens up
+                if ($existingRow) {
+                    $existingRow->delete();
+                }
                 continue;
             }
 
@@ -3940,10 +3992,9 @@ Route::post('/proformas', function (Request $request) {
                 $existingRow->delete();
             }
 
-            $inboxRecord = Inbox::firstOrCreate([
-                'proforma_id' => $proforma->id,
-                'user_id' => $desiredUserId,
-            ]);
+            $inboxRecord = Inbox::firstOrCreate(
+                ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
+            );
 
             // Send Telegram notification to inboxed user
             if ($inboxRecord->wasRecentlyCreated) {
@@ -3971,10 +4022,9 @@ Route::post('/proformas', function (Request $request) {
             if (empty($inbox)) {
                 continue;
             }
-            $inboxRecord = Inbox::firstOrCreate([
-                'proforma_id' => $proforma->id,
-                'user_id' => $inbox,
-            ]);
+            $inboxRecord = Inbox::firstOrCreate(
+                ['proforma_id' => $proforma->id, 'user_id' => $inbox, 'source' => 'admin'],
+            );
 
             // Send Telegram notification to inboxed user
             if ($inboxRecord->wasRecentlyCreated) {

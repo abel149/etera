@@ -130,18 +130,37 @@ class ProformaApplicationController extends Controller
                     'role' => auth()->user()->role ?? null,
                 ]);
 
-                // Step 4: Create a new application record.
+                // Step 4: Detect inbox source BEFORE deleting inbox
+                $role = auth()->user()->role;
+                $isInsuranceInboxed = $proforma->inboxes()
+                    ->where('user_id', auth()->id())->where('source', 'insurance')->exists();
+                $isAdminInboxed = !$isInsuranceInboxed && $proforma->inboxes()
+                    ->where('user_id', auth()->id())->where('source', 'admin')->exists();
+
+                $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
+
+                // Step 4b: Create a new application record.
                 $application = $proforma->applications()->create([
                     'application_by' => auth()->id(),
-                    'from' => auth()->user()->role,
+                    'from' => $role,
                     'amount' => $finalAmount,
                     'discount' => $discount,
+                    'application_source' => $applicationSource,
                 ]);
 
-                // Remove inbox record now that the user has actually applied
+                // Remove own inbox record (insurance or admin)
                 \App\Models\Inbox::where('user_id', auth()->id())
                     ->where('proforma_id', $proforma->id)
                     ->delete();
+
+                // If insurance partner applied, delete all other insurance inboxes for this role
+                // Admin inboxes are NOT affected — they each have their own dedicated slot
+                if ($isInsuranceInboxed) {
+                    $proforma->inboxes()
+                        ->where('source', 'insurance')
+                        ->whereHas('user', fn($q) => $q->where('role', $role))
+                        ->delete();
+                }
 
                 Log::info('Price quote submission: application created', [
                     'proforma_id' => $proforma->id,
