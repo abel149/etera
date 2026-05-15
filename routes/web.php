@@ -204,7 +204,7 @@ Route::middleware(['guest'])->group(function () {
 Route::post('/login', function (Request $request) {
     // Validate the password field
     $request->validate([
-        'password' => 'required|min:6|max:10',
+        'password' => 'required|min:6',
         'email_or_phone' => 'required',
     ]);
     
@@ -1177,7 +1177,7 @@ Route::post('/reset-password', function (Request $request) {
     $request->validate([
         'token' => 'required',
         'email' => 'required|string',
-        'password' => 'required|min:6|max:6|confirmed',
+        'password' => 'required|min:6|confirmed',
     ]);
 
     $record = DB::table('password_reset_tokens')->where('email', $request->email)->first();
@@ -1389,18 +1389,23 @@ Route::get('/float', function (Request $request) {
     $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
     if (!$proforma->isEteraCheretaMode()) {
-        if ($requiredShops > 0 && $proforma->floatShopQuota() <= 0) {
+        $shopsFull   = $requiredShops   > 0 && $proforma->floatShopQuota()   <= 0;
+        $garagesFull = $requiredGarages > 0 && $proforma->floatGarageQuota() <= 0;
+
+        // Block only when ALL required types are fully covered by inboxes —
+        // if one type still has public slots, float must proceed for that type.
+        $allFull = ($requiredShops   === 0 || $shopsFull)
+                && ($requiredGarages === 0 || $garagesFull)
+                && ($requiredShops > 0 || $requiredGarages > 0);
+
+        if ($allFull) {
+            $msg = [];
+            if ($shopsFull)   $msg[] = 'all ' . $requiredShops   . ' shop slot(s)';
+            if ($garagesFull) $msg[] = 'all ' . $requiredGarages . ' garage slot(s)';
             return redirect()->back()->with('error',
-                'All ' . $requiredShops . ' shop slot(s) are assigned to inboxed contacts. ' .
+                ucfirst(implode(' and ', $msg)) . ' are assigned to inboxed contacts. ' .
                 'Inboxed contacts can already apply directly — no float needed. ' .
-                'To open public slots, remove one or more shop inbox entries first.'
-            );
-        }
-        if ($requiredGarages > 0 && $proforma->floatGarageQuota() <= 0) {
-            return redirect()->back()->with('error',
-                'All ' . $requiredGarages . ' garage slot(s) are assigned to inboxed contacts. ' .
-                'Inboxed contacts can already apply directly — no float needed. ' .
-                'To open public slots, remove one or more garage inbox entries first.'
+                'To open public slots, remove one or more inbox entries first.'
             );
         }
     }
@@ -3916,7 +3921,7 @@ Route::post('/proformas', function (Request $request) {
     $proforma = \App\Models\Proforma::findOrFail($request->proforma);
     $telegram = new \App\Services\TelegramService();
 
-    if ($request->spare_part_partners) {
+    if ($request->has('spare_part_partners')) {
         $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
         $isEteraChereta  = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
 
@@ -3975,6 +3980,7 @@ Route::post('/proformas', function (Request $request) {
 
         $currentEditableInbox = \App\Models\Inbox::where('proforma_id', $proforma->id)
             ->where('source', 'admin')
+            ->whereHas('user', fn($q) => $q->where('role', 'shop'))
             ->whereNotIn('user_id', $lockedShopIds)
             ->orderBy('created_at', 'asc')
             ->get(['id', 'user_id']);
@@ -4023,28 +4029,99 @@ Route::post('/proformas', function (Request $request) {
 
     }
 
-    if ($request->garage_partners) {
-        $uniqueGaragePartners = array_unique($request->garage_partners);
+    if ($request->has('garage_partners')) {
+        $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+        $isEteraCheretaG = (int)($proforma->required_number_of_shops ?? 0) === 0 && $requiredGarages === 0;
 
-        foreach ($uniqueGaragePartners as $inbox) {
-            if (empty($inbox)) {
+        $lockedGarageIdsQuery = $proforma->applications()->where('from', 'garage');
+        if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'status')) {
+            $lockedGarageIdsQuery->where(function ($q) {
+                $q->whereNull('status')->orWhere('status', '!=', 'rejected');
+            });
+        }
+        $lockedGarageIds = $lockedGarageIdsQuery
+            ->pluck('application_by')
+            ->map(fn($id) => (string) $id)
+            ->unique()
+            ->toArray();
+
+        $adminGarageSlotCap = !$isEteraCheretaG && $requiredGarages > 0
+            ? max(0, $requiredGarages - $proforma->garagePartnerQuota())
+            : PHP_INT_MAX;
+
+        $lockedAdminGarageCount = 0;
+        if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
+            $lockedAdminGarageCount = $proforma->applications()
+                ->where('from', 'garage')
+                ->where('application_source', 'admin')
+                ->count();
+        }
+
+        $editableGarageSlots = $adminGarageSlotCap === PHP_INT_MAX
+            ? PHP_INT_MAX
+            : max(0, $adminGarageSlotCap - $lockedAdminGarageCount);
+
+        $garageSlotInputs = is_array($request->garage_partners) ? $request->garage_partners : [];
+        if ($editableGarageSlots !== PHP_INT_MAX) {
+            $garageSlotInputs = array_slice($garageSlotInputs, 0, $editableGarageSlots);
+        }
+
+        $seenG = [];
+        $desiredGarageSlots = [];
+        foreach ($garageSlotInputs as $raw) {
+            $id = !empty($raw) ? (string) $raw : '';
+            if ($id !== '' && (in_array($id, $lockedGarageIds, true) || in_array($id, $seenG, true))) {
+                $id = '';
+            }
+            if ($id !== '') {
+                $seenG[] = $id;
+            }
+            $desiredGarageSlots[] = $id;
+        }
+
+        $currentEditableGarageInbox = \App\Models\Inbox::where('proforma_id', $proforma->id)
+            ->where('source', 'admin')
+            ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+            ->whereNotIn('user_id', $lockedGarageIds)
+            ->orderBy('created_at', 'asc')
+            ->get(['id', 'user_id']);
+
+        $garageSlotCount = count($garageSlotInputs);
+        for ($i = 0; $i < $garageSlotCount; $i++) {
+            $desiredUserId  = $desiredGarageSlots[$i] ?? '';
+            $existingRow    = $currentEditableGarageInbox[$i] ?? null;
+            $existingUserId = $existingRow ? (string) $existingRow->user_id : '';
+
+            if ($desiredUserId === '') {
+                // Admin cleared this slot — remove existing entry so slot opens for float
+                if ($existingRow) {
+                    $existingRow->delete();
+                }
                 continue;
             }
+
+            if ($existingUserId !== '' && $existingUserId === $desiredUserId) {
+                continue; // No change
+            }
+
+            if ($existingRow) {
+                $existingRow->delete(); // Remove previous person from this slot
+            }
+
             $inboxRecord = Inbox::firstOrCreate(
-                ['proforma_id' => $proforma->id, 'user_id' => $inbox, 'source' => 'admin'],
+                ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
             );
 
-            // Send Telegram notification to inboxed user
             if ($inboxRecord->wasRecentlyCreated) {
                 try {
-                    $user = \App\Models\User::find($inbox);
+                    $user = \App\Models\User::find($desiredUserId);
                     if ($user && !empty($user->telegram_chat_id) && $telegram->isConfigured()) {
                         $telegram->sendInboxReceivedNotification((string) $user->telegram_chat_id, $proforma);
                     }
                 } catch (\Throwable $e) {
                     \Illuminate\Support\Facades\Log::warning('Inbox Telegram notification failed', [
                         'proforma_id' => $proforma->id,
-                        'user_id' => $inbox,
+                        'user_id' => $desiredUserId,
                         'error' => $e->getMessage(),
                     ]);
                 }

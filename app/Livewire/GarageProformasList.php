@@ -68,7 +68,13 @@ class GarageProformasList extends Component
             ->where('status', 'published')
             ->whereHas('poster', function ($q) use ($isTest) {
                 $q->where('role', 'insurance')
-                  ->where('is_test', $isTest);
+                  ->where(function ($q2) use ($isTest) {
+                      if ($isTest) {
+                          $q2->where('is_test', true);
+                      } else {
+                          $q2->where(fn($q3) => $q3->where('is_test', false)->orWhereNull('is_test'));
+                      }
+                  });
             });
 
         /**

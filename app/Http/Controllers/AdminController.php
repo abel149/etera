@@ -164,25 +164,50 @@ class AdminController extends Controller
             $applications = $applications->take($requiredShops);
         }
 
+        $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
         // Shops and garages for the send-to-inbox form
-        $shops = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
+        $shops   = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
         $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
 
-        // Shops with applications lock their slot (cannot be replaced)
+        // IDs locked by active applications (cannot be replaced)
         $activeApplicationShopIds = $proforma->applications
-            ->where('from', 'shop')
-            ->pluck('application_by')
-            ->map(fn($uid) => (int) $uid)
-            ->unique()
-            ->values()
-            ->toArray();
+            ->where('from', 'shop')->pluck('application_by')
+            ->map(fn($id) => (int)$id)->unique()->values()->toArray();
+        $activeApplicationGarageIds = $proforma->applications
+            ->where('from', 'garage')->pluck('application_by')
+            ->map(fn($id) => (int)$id)->unique()->values()->toArray();
 
-        // Remaining *editable* inbox slots (requested slots minus locked applied slots)
-        $availableInboxSlots = max(0, $requiredShops - count($activeApplicationShopIds));
+        // Admin-manageable slot caps (total required minus insurance partner slot)
+        $adminShopSlotCap   = max(0, $requiredShops   - $proforma->shopPartnerQuota());
+        $adminGarageSlotCap = max(0, $requiredGarages - $proforma->garagePartnerQuota());
+
+        // Existing admin inboxes (pre-populate the modal)
+        $adminShopInboxes = $proforma->inboxes
+            ->filter(fn($i) => ($i->source ?? '') === 'admin' && ($i->user?->role === 'shop'))
+            ->sortBy('created_at')->values();
+        $adminGarageInboxes = $proforma->inboxes
+            ->filter(fn($i) => ($i->source ?? '') === 'admin' && ($i->user?->role === 'garage'))
+            ->sortBy('created_at')->values();
+
+        // IDs already inboxed (any source) — excluded from dropdown options
+        $alreadyInboxedShopIds   = $proforma->inboxes
+            ->filter(fn($i) => $i->user?->role === 'shop')->pluck('user_id')
+            ->map(fn($id) => (int)$id)->unique()->values()->toArray();
+        $alreadyInboxedGarageIds = $proforma->inboxes
+            ->filter(fn($i) => $i->user?->role === 'garage')->pluck('user_id')
+            ->map(fn($id) => (int)$id)->unique()->values()->toArray();
+
+        // Legacy variable kept for blade compatibility
+        $availableInboxSlots = $adminShopSlotCap;
 
         return view('admin.proforma.details', compact(
             'proforma', 'applications', 'shops', 'garages',
-            'activeApplicationShopIds', 'availableInboxSlots'
+            'activeApplicationShopIds', 'activeApplicationGarageIds',
+            'adminShopSlotCap', 'adminGarageSlotCap',
+            'adminShopInboxes', 'adminGarageInboxes',
+            'alreadyInboxedShopIds', 'alreadyInboxedGarageIds',
+            'availableInboxSlots', 'requiredGarages'
         ));
     }
 

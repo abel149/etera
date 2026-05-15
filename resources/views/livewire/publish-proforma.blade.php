@@ -147,8 +147,6 @@
                     <h4 class="mb-3">Garages</h4>
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Insurance Side</label>
-                        <div class="input-group">
-                            
                 @if(count($garage_data))
                 <div class="input-group">
                     <input type="text"
@@ -159,7 +157,7 @@
                     <span class="input-group-text"><i class="bx bx-lock text-danger"></i></span>
                 </div>
                 @else
-                
+                        <div class="input-group">
                             <select name="garage_partners[]" {{$selectedInsuranceGarage || $proforma->status != 'pending' ? 'disabled' : ''}} multiple class="form-select" id="multiple4" wire:model.live="selectedInsuranceGarage">
                                 <option value="">Select Garage</option>
                                 @foreach($garages as $garage)
