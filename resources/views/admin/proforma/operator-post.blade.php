@@ -69,9 +69,9 @@
                                 </tbody>
                             </table>
                         </div>
-                        @if($proforma->isFromInsurance() && $proforma->status == "pending")
+                        @if($proforma->isFromInsurance() && in_array($proforma->status, ['pending','opened','published']))
                         <livewire:publish-proforma :proforma="$proforma" />
-                        @elseif($proforma->isFromOthers() && $proforma->status == "pending")
+                        @elseif($proforma->isFromOthers() && in_array($proforma->status, ['pending','opened','published']))
                         <livewire:publish-proforma-from-others :proforma="$proforma" />
                         @endif
                 </form>

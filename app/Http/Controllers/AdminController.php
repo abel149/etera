@@ -178,9 +178,11 @@ class AdminController extends Controller
             ->where('from', 'garage')->pluck('application_by')
             ->map(fn($id) => (int)$id)->unique()->values()->toArray();
 
-        // Admin-manageable slot caps (total required minus insurance partner slot)
-        $adminShopSlotCap   = max(0, $requiredShops   - $proforma->shopPartnerQuota());
-        $adminGarageSlotCap = max(0, $requiredGarages - $proforma->garagePartnerQuota());
+        // Admin-manageable slot caps (total required minus insurance partner slot).
+        // Only call quota methods when required > 0 — mirrors float route short-circuit and avoids
+        // QueryException on environments where the application_source column may not exist yet.
+        $adminShopSlotCap   = $requiredShops   > 0 ? max(0, $requiredShops   - $proforma->shopPartnerQuota())   : 0;
+        $adminGarageSlotCap = $requiredGarages > 0 ? max(0, $requiredGarages - $proforma->garagePartnerQuota()) : 0;
 
         // Existing admin inboxes (pre-populate the modal)
         $adminShopInboxes = $proforma->inboxes
