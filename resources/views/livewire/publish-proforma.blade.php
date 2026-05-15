@@ -58,7 +58,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ $proforma->status != 'pending' ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
+                            <select name="spare_part_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
@@ -101,7 +101,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ $proforma->status != 'pending' ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
+                            <select name="spare_part_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
@@ -182,7 +182,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
+                            <select name="garage_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
@@ -204,7 +204,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ $proforma->status != 'pending' ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
+                            <select name="garage_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
@@ -230,6 +230,9 @@
  @if(($proforma?->status == 'pending' || $proforma?->status == 'opened') && (!$proforma?->selected() || $proforma->selectedBy()->employee_id == auth()->id()))
                 <button type="submit" class="btn btn-primary radius-30 px-4" onclick="notification('Proforma Posted')"> Float
                 </button>
+                @endif
+                @if($proforma?->status == 'published')
+                <button type="submit" class="btn btn-success radius-30 px-4">Save Inbox Changes</button>
                 @endif
 
                 &nbsp
