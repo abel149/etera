@@ -158,11 +158,17 @@ class Proforma extends Model implements HasMedia
 
     public function hasPartnerShopApplied(): bool
     {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
+            return false;
+        }
         return $this->applications()->where('from', 'shop')->where('application_source', 'partner')->exists();
     }
 
     public function hasPartnerGarageApplied(): bool
     {
+        if (!\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
+            return false;
+        }
         return $this->applications()->where('from', 'garage')->where('application_source', 'partner')->exists();
     }
 

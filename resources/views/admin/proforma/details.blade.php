@@ -442,8 +442,8 @@
                     <div class="modal-body">
 
                         @php
-                            {{-- For dropdown: exclude already-inboxed AND applied users from options,
-                                 but include the user currently in each slot so they show as selected --}}
+                            // For dropdown: exclude already-inboxed AND applied users from options,
+                            // but include the user currently in each slot so they show as selected
                             $shopDropdownExclude   = array_merge($alreadyInboxedShopIds,   $activeApplicationShopIds);
                             $garageDropdownExclude = array_merge($alreadyInboxedGarageIds, $activeApplicationGarageIds);
 
