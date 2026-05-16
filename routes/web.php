@@ -4129,6 +4129,14 @@ Route::post('/proformas', function (Request $request) {
         }
     }
 
+    // Claim this proforma for the current admin if not yet processed,
+    // so it remains visible in the admin list after auto-close.
+    if (empty($proforma->processed_by)
+        && auth()->check()
+        && in_array(auth()->user()->role ?? '', ['admin', 'superadmin'])) {
+        $proforma->update(['processed_by' => auth()->id()]);
+    }
+
     return redirect()->back()->with('success', 'Proforma updated successfully!');
 })->name('proforma.store');
 

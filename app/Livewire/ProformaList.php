@@ -59,11 +59,14 @@ class ProformaList extends Component
     {
         $query = Proforma::fromInsurances()->whereHas('poster');
 
-        // Admin mode: show pending to all, non-pending only to the admin who processed them
+        // Admin mode: show pending to all, non-pending only to the admin who processed them.
+        // Also show proformas with no processor (null processed_by) so auto-closed proformas
+        // that were never floated (processed_by never set) remain visible to all admins.
         if ($this->mode === 'admin') {
             $query->where(function ($q) {
                 $q->where('status', 'pending')
-                  ->orWhere('processed_by', auth()->id());
+                  ->orWhere('processed_by', auth()->id())
+                  ->orWhereNull('processed_by');
             });
         }
 
