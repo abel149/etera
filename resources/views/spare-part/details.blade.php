@@ -567,10 +567,10 @@
 
                                             @if (auth()->check() && auth()->user()->role == 'shop')
                                                 <td>
-                                                    <input type="number" required
+                                                    <input type="number"
                                                         name="total[{{ $loop->index }}]"
-                                                        class="with-border unit-price-input" placeholder="Unit Price" value=""
-                                                        step="any" min="0">
+                                                        class="with-border unit-price-input" placeholder="Blank = unavailable" value=""
+                                                        step="any" min="1">
                                                 </td>
                                                 <td>
                                                     <input type="number" class="with-border part-total" placeholder="Total"

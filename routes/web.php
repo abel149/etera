@@ -3232,7 +3232,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'parts.*.number' => 'required|string',
                 'parts.*.grade' => 'required|string',
                 'parts.*.country' => 'required|string',
-                'parts.*.quantity' => 'nullable|numeric',
+                'parts.*.quantity' => 'nullable|integer|min:1',
                 'parts.*.condition' => 'nullable|string',
                 'parts.*.component' => 'nullable|string',
                 'parts.*.images.*' => 'nullable|image|max:10240', // Validate images
@@ -3671,8 +3671,8 @@ Route::prefix('garage')
                     'parts.grade.*' => ['required', 'string'],
                     'parts.country' => ['required', 'array'],
                     'parts.country.*' => ['required', 'string'],
-                    'parts.quantity' => ['required', 'array'],
-                    'parts.quantity.*' => ['required', 'integer'],
+                    'parts.quantity' => ['nullable', 'array'],
+                    'parts.quantity.*' => ['nullable', 'integer', 'min:1'],
                     'parts.component' => ['required', 'array', 'min:1'],
                     'parts.component.*' => ['required', 'string', 'in:Body Parts,Mechanical Parts'],
                     // ⚠️ FilePond now sends uploaded paths, not actual image files
@@ -4417,8 +4417,8 @@ Route::prefix('business-owner')
                     'parts.grade.*' => ['required', 'string'],
                     'parts.country' => ['required', 'array'],
                     'parts.country.*' => ['required', 'string'],
-                    'parts.quantity' => ['required', 'array'],
-                    'parts.quantity.*' => ['required', 'integer'],
+                    'parts.quantity' => ['nullable', 'array'],
+                    'parts.quantity.*' => ['nullable', 'integer', 'min:1'],
                     'parts.component' => ['required', 'array', 'min:1'],
                     'parts.component.*' => ['required', 'string', 'in:Body Parts,Mechanical Parts'],
                     // ⚠️ FilePond now sends uploaded paths, not actual image files

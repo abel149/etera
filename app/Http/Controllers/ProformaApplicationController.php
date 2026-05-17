@@ -79,14 +79,12 @@ class ProformaApplicationController extends Controller
                     ]);
                 } else { // 'shop' role
                     $request->validate([
-                        'total' => 'required|array',
-                        'total.*' => 'required|numeric|min:0',
+                        'total' => 'nullable|array',
+                        'total.*' => 'nullable|numeric|min:1',
                         'discount' => 'nullable|numeric|min:0|max:100',
                     ], [
-                        'total.required' => 'Unit prices are required.',
-                        'total.*.required' => 'Unit price is required for all parts.',
                         'total.*.numeric' => 'Unit price must be a valid number.',
-                        'total.*.min' => 'Unit price cannot be negative.',
+                        'total.*.min' => 'Unit price must be at least 1. Leave the field blank if you do not carry this part.',
                         'discount.numeric' => 'Discount must be a valid number.',
                         'discount.min' => 'Discount cannot be negative.',
                         'discount.max' => 'Discount cannot exceed 100%.',

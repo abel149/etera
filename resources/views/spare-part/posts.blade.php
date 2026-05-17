@@ -301,7 +301,7 @@ class="current"
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="inputName1" class="form-label">Qty</label>
-                                                    <input name="parts[quantity][]" value="{{old('parts[quantity][]')}}" type="number" class="form-control" id="inputName1" placeholder="" data-name="name">
+                                                    <input name="parts[quantity][]" value="{{old('parts[quantity][]')}}" type="number" class="form-control" id="inputName1" placeholder="" data-name="name" min="1">
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="component" class="form-label">Component</label>
@@ -595,7 +595,7 @@ function initializeRepeater() {
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Qty</label>
-                    <input name="parts[quantity][]" type="number" class="form-control">
+                    <input name="parts[quantity][]" type="number" class="form-control" min="1">
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Component</label>
