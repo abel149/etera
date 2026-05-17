@@ -1201,6 +1201,13 @@ p { color: #333 !important; }
                 country.focus();
                 return false;
             }
+
+            const quantity = document.querySelectorAll('input[name="parts[quantity][]"]')[i];
+            if (!quantity.value || parseInt(quantity.value) < 1) {
+                alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
+                quantity.focus();
+                return false;
+            }
         }
         
         stepper3.next();
@@ -1213,8 +1220,17 @@ p { color: #333 !important; }
 
     // Handle form submission
     document.getElementById('createFileForm').addEventListener('submit', function(e) {
-        // The overlay is already shown by the onclick handler
-        // Additional form validation can be added here if needed
+        // Validate quantity fields are >= 1
+        const quantityInputs = document.querySelectorAll('input[name="parts[quantity][]"]');
+        for (let i = 0; i < quantityInputs.length; i++) {
+            const val = parseInt(quantityInputs[i].value);
+            if (!quantityInputs[i].value || val < 1) {
+                e.preventDefault();
+                alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
+                quantityInputs[i].focus();
+                return false;
+            }
+        }
         return true;
     });
 </script>

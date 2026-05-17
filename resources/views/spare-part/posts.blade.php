@@ -906,6 +906,18 @@ function initializeVoiceRecording() {
                 alert('Please stop the voice recording before submitting the form.');
                 return false;
             }
+
+            // Validate quantity fields are >= 1
+            const quantityInputs = document.querySelectorAll('input[name="parts[quantity][]"]');
+            for (let i = 0; i < quantityInputs.length; i++) {
+                const val = parseInt(quantityInputs[i].value);
+                if (!quantityInputs[i].value || val < 1) {
+                    e.preventDefault();
+                    alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
+                    quantityInputs[i].focus();
+                    return false;
+                }
+            }
             
             const submitText = submitButton.querySelector('.submit-text');
             const loadingText = submitButton.querySelector('.loading-text');
@@ -1016,6 +1028,13 @@ function validateStep3() {
         if (!component || !component.value) {
             alert('Please select component for all spare parts.');
             if (component) component.focus();
+            return false;
+        }
+
+        const quantity = partRow ? partRow.querySelector('input[name="parts[quantity][]"]') : null;
+        if (!quantity || !quantity.value || parseInt(quantity.value) < 1) {
+            alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
+            if (quantity) quantity.focus();
             return false;
         }
     }

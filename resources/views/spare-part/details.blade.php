@@ -569,7 +569,7 @@
                                                 <td>
                                                     <input type="number"
                                                         name="total[{{ $loop->index }}]"
-                                                        class="with-border unit-price-input" placeholder="Blank = unavailable" value=""
+                                                        class="with-border unit-price-input" placeholder="unit price" value=""
                                                         step="any" min="1">
                                                 </td>
                                                 <td>
@@ -836,6 +836,16 @@
                     event.preventDefault();
                     alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
                     return;
+                }
+                // Check no filled price is less than 1
+                for (let i = 0; i < priceInputs.length; i++) {
+                    const val = priceInputs[i].value.trim();
+                    if (val !== '' && parseFloat(val) < 1) {
+                        event.preventDefault();
+                        alert('Unit price must be at least 1 ETB.\nLeave the field blank if you do not carry this part.');
+                        priceInputs[i].focus();
+                        return;
+                    }
                 }
             }
 

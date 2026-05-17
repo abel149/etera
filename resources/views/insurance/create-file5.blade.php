@@ -654,7 +654,23 @@ document.addEventListener('click', function (e) {
             }
         });
 
-        if (allFilled && stepper3) {
+        if (!allFilled) return;
+
+        // Validate quantity fields are >= 1
+        const quantityInputs = currentPane.querySelectorAll('input[name*="[quantity]"]');
+        for (let i = 0; i < quantityInputs.length; i++) {
+            const val = parseInt(quantityInputs[i].value);
+            if (!quantityInputs[i].value || val < 1) {
+                quantityInputs[i].classList.add('is-invalid');
+                alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
+                quantityInputs[i].focus();
+                return;
+            } else {
+                quantityInputs[i].classList.remove('is-invalid');
+            }
+        }
+
+        if (stepper3) {
             stepper3.next();
         }
     }
@@ -709,6 +725,20 @@ document.addEventListener('click', function (e) {
                     }
                 });
             });
+        }
+    }
+});
+
+// Form submit validation — safety net for quantity
+document.querySelector('form').addEventListener('submit', function(e) {
+    const quantityInputs = document.querySelectorAll('input[name*="[quantity]"]');
+    for (let i = 0; i < quantityInputs.length; i++) {
+        const val = parseInt(quantityInputs[i].value);
+        if (!quantityInputs[i].value || val < 1) {
+            e.preventDefault();
+            alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
+            quantityInputs[i].focus();
+            return;
         }
     }
 });
