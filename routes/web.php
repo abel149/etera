@@ -3958,10 +3958,8 @@ Route::post('/proformas', function (Request $request) {
             ? PHP_INT_MAX
             : max(0, $adminShopSlotCap - $lockedAdminShopCount);
 
-        if ($editableSlots === 0) {
-            return redirect()->back()->with('error', 'All admin-designated shop slots are filled. Remove an admin inbox entry or wait for the partner slot to be filled first.');
-        }
-
+        // If editableSlots === 0, array_slice produces [] and the loop below runs 0 times.
+        // We do NOT early-return here so the garage section still gets processed.
         $slotInputs = is_array($request->spare_part_partners) ? $request->spare_part_partners : [];
         $slotInputs = array_slice($slotInputs, 0, $editableSlots);
 

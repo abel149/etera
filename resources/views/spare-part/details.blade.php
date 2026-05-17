@@ -606,7 +606,7 @@
                                     <td colspan="2">
                                         <input type="number" name="amount" class="with-border" required
                                             id="total-amount" value="0"
-                                            {{ auth()->check() && auth()->user()->role == 'shop' ? 'disabled' : '' }} min="0"
+                                            {{ auth()->check() && auth()->user()->role == 'shop' ? 'disabled' : '' }} min="1"
                                             step="any">
                                         @error('amount')
                                             <span class="text-danger">{{ $message }}</span>
