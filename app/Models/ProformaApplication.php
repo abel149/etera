@@ -34,7 +34,7 @@ class ProformaApplication extends Model implements HasMedia
 
     public function prices()
     {
-        return $this->hasMany(ProformaPartPrice::class, 'application_id');
+        return $this->hasMany(ProformaPartPrice::class, 'application_id')->orderBy('id', 'asc');
     }
 
     public function media(): MorphMany

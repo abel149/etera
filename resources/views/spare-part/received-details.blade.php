@@ -254,12 +254,12 @@
                                                     <td>{{ $part->grade }}</td>
                                                     <td>{{ $part->country }}</td>
                                                     <td>{{ $part->quantity }}</td>
-                                                    @if($partPrice)
+                                                    @if($partPrice && $partPrice->unit_price > 0)
                                                         <td>{{ number_format($partPrice->unit_price, 2) }} ETB</td>
                                                         <td>{{ number_format($partPrice->unit_price * $part->quantity, 2) }} ETB</td>
                                                     @else
-                                                        <td>0.00 ETB</td>
-                                                        <td>0.00 ETB</td>
+                                                        <td class="text-muted fst-italic">— Not available</td>
+                                                        <td class="text-muted">—</td>
                                                     @endif
                                                 </tr>
                                             @endforeach

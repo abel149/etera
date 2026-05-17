@@ -211,8 +211,9 @@
                                         @foreach($proforma->parts as $part)
                                         @php
                                         $partPrice = $application->prices->values()->get($loop->index);
-                                        $unitPrice = $partPrice ? $partPrice->unit_price : 0;
-                                        $totalPrice = $partPrice ? ($unitPrice * $part->quantity) : 0;
+                                        $hasPrice = $partPrice && $partPrice->unit_price > 0;
+                                        $unitPrice = $hasPrice ? $partPrice->unit_price : 0;
+                                        $totalPrice = $hasPrice ? ($unitPrice * $part->quantity) : 0;
                                         $shopSubtotal += $totalPrice;
                                         @endphp
                                         <tr>
@@ -222,12 +223,12 @@
                                             <td>{{ $part->grade }}</td>
                                             <td>{{ $part->country }}</td>
                                             <td>{{ $part->quantity }}</td>
-                                            @if($partPrice)
+                                            @if($hasPrice)
                                             <td>{{ number_format($unitPrice, 2) }} ETB</td>
                                             <td>{{ number_format($totalPrice, 2) }} ETB</td>
                                             @else
-                                            <td>0.00 ETB</td>
-                                            <td>0.00 ETB</td>
+                                            <td class="text-muted fst-italic">— Not available</td>
+                                            <td class="text-muted">—</td>
                                             @endif
                                         </tr>
                                         @endforeach
