@@ -89,6 +89,18 @@ class ProformaApplicationController extends Controller
                         'discount.min' => 'Discount cannot be negative.',
                         'discount.max' => 'Discount cannot exceed 100%.',
                     ]);
+
+                    // Require at least one part price to be filled.
+                    // All-blank means the shop carries none of the parts — no useful quote.
+                    $hasAtLeastOnePrice = collect($request->input('total', []))
+                        ->filter(fn($v) => $v !== null && floatval($v) > 0)
+                        ->isNotEmpty();
+
+                    if (!$hasAtLeastOnePrice) {
+                        return redirect()->back()
+                            ->withErrors(['total' => 'Please enter a price for at least one part. Leave fields blank only for parts you do not carry.'])
+                            ->withInput();
+                    }
                 }
 
                 Log::info('Price quote submission: validation passed', [

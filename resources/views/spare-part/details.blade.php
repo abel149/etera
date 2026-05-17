@@ -825,6 +825,19 @@
                 return;
             }
 
+            // Shop role: require at least one part price to be filled
+            const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+            if (isShopRole) {
+                const priceInputs = form.querySelectorAll('.unit-price-input');
+                const hasAtLeastOne = Array.from(priceInputs).some(function(inp) {
+                    return inp.value.trim() !== '' && parseFloat(inp.value) > 0;
+                });
+                if (!hasAtLeastOne) {
+                    alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
+                    return;
+                }
+            }
+
             // Show loading state
             submitBtn.disabled = true;
             const btnText = submitBtn.querySelector('.btn-text');
