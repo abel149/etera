@@ -833,6 +833,7 @@
                     return inp.value.trim() !== '' && parseFloat(inp.value) > 0;
                 });
                 if (!hasAtLeastOne) {
+                    event.preventDefault();
                     alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
                     return;
                 }
@@ -909,7 +910,7 @@
             const form = document.getElementById('proforma-quote-form');
             if (form) {
                 form.addEventListener('submit', function(e) {
-                    submitQuote();
+                    submitQuote(e);
                 });
             }
         });
