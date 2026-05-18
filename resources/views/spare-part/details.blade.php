@@ -570,7 +570,9 @@
                                                     <input type="number"
                                                         name="total[{{ $loop->index }}]"
                                                         class="with-border unit-price-input" placeholder="unit price" value=""
-                                                        step="any" min="1">
+                                                        step="any" min="1"
+                                                        oninvalid="this.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable')"
+                                                        oninput="this.setCustomValidity('')">
                                                 </td>
                                                 <td>
                                                     <input type="number" class="with-border part-total" placeholder="Total"
@@ -842,8 +844,8 @@
                     const val = priceInputs[i].value.trim();
                     if (val !== '' && parseFloat(val) < 1) {
                         event.preventDefault();
-                        alert('Unit price must be at least 1 ETB.\nLeave the field blank if you do not carry this part.');
-                        priceInputs[i].focus();
+                        priceInputs[i].setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable');
+                        priceInputs[i].reportValidity();
                         return;
                     }
                 }

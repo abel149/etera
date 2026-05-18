@@ -80,7 +80,7 @@
                     </div>
 
                     <div class="bs-stepper-content">
-                        <form action="{{ route('insurance.create-file') }}" method="POST" enctype="multipart/form-data">
+                        <form id="insuranceProformaForm" action="{{ route('insurance.create-file') }}" method="POST" enctype="multipart/form-data">
                             @csrf
                             
                             <!-- Step 1: Basic Information -->
@@ -290,7 +290,7 @@
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="inputName1" class="form-label">Qty</label>
-                                                    <input name="parts[0][quantity]" type="number" class="form-control required-field" id="inputName1" placeholder="" data-name="name" required min="1">
+                                                    <input name="parts[0][quantity]" type="number" class="form-control required-field" id="inputName1" placeholder="e.g. 1" data-name="name" required min="1" value="{{ old('parts.0.quantity', 1) }}" oninvalid="this.setCustomValidity('Quantity must be at least 1')" oninput="this.setCustomValidity('')">
                                                     @error('parts.0.quantity')
                                                         <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
@@ -587,11 +587,12 @@ document.querySelectorAll('.bs-stepper .btn-next').forEach(button => {
             const val = parseInt(quantityInputs[i].value);
             if (!quantityInputs[i].value || val < 1) {
                 quantityInputs[i].classList.add('is-invalid');
-                alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
-                quantityInputs[i].focus();
+                quantityInputs[i].setCustomValidity('Quantity must be at least 1');
+                quantityInputs[i].reportValidity();
                 return false;
             } else {
                 quantityInputs[i].classList.remove('is-invalid');
+                quantityInputs[i].setCustomValidity('');
             }
         }
 
@@ -796,14 +797,14 @@ console.log(1);
 });
 
 // Form submit validation — safety net for quantity
-document.querySelector('form').addEventListener('submit', function(e) {
+document.getElementById('insuranceProformaForm').addEventListener('submit', function(e) {
     const quantityInputs = document.querySelectorAll('input[name*="[quantity]"]');
     for (let i = 0; i < quantityInputs.length; i++) {
         const val = parseInt(quantityInputs[i].value);
         if (!quantityInputs[i].value || val < 1) {
             e.preventDefault();
-            alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
-            quantityInputs[i].focus();
+            quantityInputs[i].setCustomValidity('Quantity must be at least 1');
+            quantityInputs[i].reportValidity();
             return;
         }
     }

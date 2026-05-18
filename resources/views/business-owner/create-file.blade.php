@@ -602,7 +602,7 @@ p { color: #333 !important; }
                                                     </div>
                                                     <div class="col-12 col-lg-2">
                                                         <label for="quantity_0" class="form-label">Qty</label>
-                                                        <input name="parts[quantity][]" type="number" class="form-control" id="quantity_0" min="1" value="1">
+                                                        <input name="parts[quantity][]" type="number" class="form-control" id="quantity_0" min="1" value="1" required oninvalid="this.setCustomValidity('Quantity must be at least 1')" oninput="this.setCustomValidity('')">
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label for="component_0" class="form-label">Component</label>
@@ -891,7 +891,7 @@ p { color: #333 !important; }
                     </div>
                     <div class="col-12 col-lg-2">
                         <label class="form-label">Qty</label>
-                        <input name="parts[quantity][]" type="number" class="form-control" min="1" value="1">
+                        <input name="parts[quantity][]" type="number" class="form-control" min="1" value="1" required oninvalid="this.setCustomValidity('Quantity must be at least 1')" oninput="this.setCustomValidity('')">
                     </div>
                     <div class="col-12 col-lg-2">
                         <label class="form-label">Component</label>
@@ -1204,9 +1204,11 @@ p { color: #333 !important; }
 
             const quantity = document.querySelectorAll('input[name="parts[quantity][]"]')[i];
             if (!quantity.value || parseInt(quantity.value) < 1) {
-                alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
-                quantity.focus();
+                quantity.setCustomValidity('Quantity must be at least 1');
+                quantity.reportValidity();
                 return false;
+            } else {
+                quantity.setCustomValidity('');
             }
         }
         
@@ -1226,8 +1228,8 @@ p { color: #333 !important; }
             const val = parseInt(quantityInputs[i].value);
             if (!quantityInputs[i].value || val < 1) {
                 e.preventDefault();
-                alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
-                quantityInputs[i].focus();
+                quantityInputs[i].setCustomValidity('Quantity must be at least 1');
+                quantityInputs[i].reportValidity();
                 return false;
             }
         }

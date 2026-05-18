@@ -301,7 +301,7 @@ class="current"
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="inputName1" class="form-label">Qty</label>
-                                                    <input name="parts[quantity][]" value="{{old('parts[quantity][]')}}" type="number" class="form-control" id="inputName1" placeholder="" data-name="name" min="1">
+                                                    <input name="parts[quantity][]" value="{{ old('parts[quantity][]', 1) }}" type="number" class="form-control" id="inputName1" placeholder="e.g. 1" data-name="name" min="1" required oninvalid="this.setCustomValidity('Quantity must be at least 1')" oninput="this.setCustomValidity('')">
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="component" class="form-label">Component</label>
@@ -595,7 +595,7 @@ function initializeRepeater() {
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Qty</label>
-                    <input name="parts[quantity][]" type="number" class="form-control" min="1">
+                    <input name="parts[quantity][]" type="number" class="form-control" min="1" value="1" required oninvalid="this.setCustomValidity('Quantity must be at least 1')" oninput="this.setCustomValidity('')">
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Component</label>
@@ -913,8 +913,8 @@ function initializeVoiceRecording() {
                 const val = parseInt(quantityInputs[i].value);
                 if (!quantityInputs[i].value || val < 1) {
                     e.preventDefault();
-                    alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
-                    quantityInputs[i].focus();
+                    quantityInputs[i].setCustomValidity('Quantity must be at least 1');
+                    quantityInputs[i].reportValidity();
                     return false;
                 }
             }
@@ -1033,9 +1033,13 @@ function validateStep3() {
 
         const quantity = partRow ? partRow.querySelector('input[name="parts[quantity][]"]') : null;
         if (!quantity || !quantity.value || parseInt(quantity.value) < 1) {
-            alert(`Quantity must be at least 1 for spare part #${i + 1}.`);
-            if (quantity) quantity.focus();
+            if (quantity) {
+                quantity.setCustomValidity('Quantity must be at least 1');
+                quantity.reportValidity();
+            }
             return false;
+        } else if (quantity) {
+            quantity.setCustomValidity('');
         }
     }
     
