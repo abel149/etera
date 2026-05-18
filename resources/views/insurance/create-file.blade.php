@@ -253,7 +253,6 @@
                                         <div class="d-flex align-items-center justify-content-between">
                                             <div>
                                                 <h5 class="mb-1">Spare Parts</h5>
-                                                <p class="mb-4">Add the required spare parts</p>
                                             </div>
            <button type="button" id="add-repeater" class="btn btn-primary repeater-add-btn px-4">Add another part</button>
                                        </div>
@@ -332,6 +331,7 @@
                                 </div>
 
                                 <br>
+                                <p class="mb-2">Add the required spare parts</p>
                                 <div class="row g-3">
                                     <div class="col-12 col-lg-6">
                                         <label for="multiple-select-sparepart" class="form-label">Spare Part Shop Partners (Optional)</label>
