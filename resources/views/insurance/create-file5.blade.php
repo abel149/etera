@@ -242,7 +242,6 @@
                                         <div class="d-flex align-items-center justify-content-between">
                                             <div>
                                                 <h5 class="mb-1">Spare Parts</h5>
-                                                <p class="mb-4">Add the required spare parts</p>
                                             </div>
           
                                        </div>
@@ -253,7 +252,7 @@
                                                 
                                                 <div class="col-12 col-lg-4">
                                                     <label for="inputEmail1" class="form-label">Part Name And Part Number</label>
-                                                    <input type="text" name="parts[0][number]" class="form-control required-field" id="inputEmail1" required />
+                                                    <input type="text" name="parts[0][number]" class="form-control required-field" id="inputEmail1" required oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')" />
                                                     @error('parts.0.number')
                                                         <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
@@ -300,7 +299,7 @@
                                                 <!-- Component -->
                                                 <div class="col-12 col-lg-2">
                                                     <label for="component" class="form-label">Component</label>
-                                                    <select name="parts[0][component]" id="component" class="form-select required-field" required>
+                                                    <select name="parts[0][component]" id="component" class="form-select required-field" required oninvalid="this.setCustomValidity('Please select a component')" onchange="this.setCustomValidity('')">
                                                         <option value="">Select Component</option>
                                                         <option value="Body Parts">Body Parts</option>
                                                         <option value="Mechanical Parts">Mechanical Parts</option>
@@ -322,6 +321,7 @@
                                 </div>
 
                                 <br>
+                                <p class="mb-2">Add the required spare parts</p>
                                 <div class="row g-3">
                                     <div class="col-12 col-lg-6">
                                         <label for="multiple-select-sparepart" class="form-label">Spare Part Shop Partners (Optional)</label>

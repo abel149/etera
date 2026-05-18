@@ -18,6 +18,35 @@
                         if ($role === 'shop') { $shop_data[] = $name; }
                         else { $garage_data[] = $name; }
                     }
+
+                    // Also check if a partner has already applied (inbox deleted on apply)
+                    $appliedInsuranceShop = $proforma->applications()
+                        ->where('application_source', 'partner')
+                        ->where('from', 'shop')
+                        ->with('applicationBy')
+                        ->first();
+                    $appliedInsuranceGarage = $proforma->applications()
+                        ->where('application_source', 'partner')
+                        ->where('from', 'garage')
+                        ->with('applicationBy')
+                        ->first();
+
+                    if ($appliedInsuranceShop && !count($shop_data)) {
+                        $shop_data[] = ($appliedInsuranceShop->applicationBy?->name ?? 'Partner') . ' ✓ Applied';
+                    }
+                    if ($appliedInsuranceGarage && !count($garage_data)) {
+                        $garage_data[] = ($appliedInsuranceGarage->applicationBy?->name ?? 'Partner') . ' ✓ Applied';
+                    }
+
+                    // Count client-side applications (non-insurance-partner) to lock filled slots
+                    $clientShopApplied = $proforma->applications()
+                        ->where('from', 'shop')
+                        ->where('application_source', '!=', 'partner')
+                        ->count();
+                    $clientGarageApplied = $proforma->applications()
+                        ->where('from', 'garage')
+                        ->where('application_source', '!=', 'partner')
+                        ->count();
                 @endphp
                 @if(count($shop_data))
                     <div class="input-group">
@@ -58,7 +87,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
+                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 1 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
@@ -101,7 +130,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
+                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 2 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
@@ -182,7 +211,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
+                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 1 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
@@ -204,7 +233,7 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ in_array($proforma->status ?? '', ['closed','completed']) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
+                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 2 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>

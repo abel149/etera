@@ -585,7 +585,7 @@ p { color: #333 !important; }
                                                     </div>
                                                     <div class="col-12 col-lg-4">
                                                         <label for="number_0" class="form-label">Part Name and (Part Number)</label>
-                                                        <input name="parts[number][]" type="text" class="form-control" id="number_0" placeholder="e.g: Boost Sensor (008-900734)" required>
+                                                        <input name="parts[number][]" type="text" class="form-control" id="number_0" placeholder="e.g: Boost Sensor (008-900734)" required oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')">
                                                     </div>
                                                     <div class="col-12 col-lg-4">
                                                         <label for="grade_0" class="form-label">Parts Grade</label>
@@ -606,7 +606,7 @@ p { color: #333 !important; }
                                                     </div>
                                                     <div class="col-md-2">
                                                         <label for="component_0" class="form-label">Component</label>
-                                                        <select name="parts[component][]" class="form-select" id="component_0" required>
+                                                        <select name="parts[component][]" class="form-select" id="component_0" required oninvalid="this.setCustomValidity('Please select a component')" onchange="this.setCustomValidity('')">
                                                             <option value="">Select Component</option>
                                                             <option value="Body Parts">Body Parts</option>
                                                             <option value="Mechanical Parts">Mechanical Parts</option>
@@ -874,7 +874,7 @@ p { color: #333 !important; }
                     </div>
                     <div class="col-12 col-lg-4">
                         <label class="form-label">Part name and (Part Number)</label>
-                        <input name="parts[number][]" type="text" required class="form-control" placeholder="e.g: Boost Sensor (008-900734)">
+                        <input name="parts[number][]" type="text" required class="form-control" placeholder="e.g: Boost Sensor (008-900734)" oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')">
                     </div>
                     <div class="col-12 col-lg-4">
                         <label class="form-label">Grade</label>
@@ -895,7 +895,7 @@ p { color: #333 !important; }
                     </div>
                     <div class="col-12 col-lg-2">
                         <label class="form-label">Component</label>
-                        <select name="parts[component][]" class="form-select" required>
+                        <select name="parts[component][]" class="form-select" required oninvalid="this.setCustomValidity('Please select a component')" onchange="this.setCustomValidity('')">
                             <option value="">Select Component</option>
                             <option value="Body Parts">Body Parts</option>
                             <option value="Mechanical Parts">Mechanical Parts</option>

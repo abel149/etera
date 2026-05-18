@@ -284,7 +284,7 @@ class="current"
                                                 </div>
                                                 <div class="col-12 col-lg-4">
                                                     <label for="inputEmail1" class="form-label">Part name and (Part Number)</label>
-                                                    <input name="parts[number][]" value="{{old('parts[number][]')}}" type="text" required class="form-control" id="inputEmail1" placeholder="Axel: 0001" data-skip-name="true" data-name="email">
+                                                    <input name="parts[number][]" value="{{old('parts[number][]')}}" type="text" required class="form-control" id="inputEmail1" placeholder="Axel: 0001" data-skip-name="true" data-name="email" oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')">
                                                 </div>
                                                 <div class="col-12 col-lg-4">
                                                     <label for="inputName1" class="form-label">Parts Grade</label>
@@ -305,7 +305,7 @@ class="current"
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="component" class="form-label">Component</label>
-                                                    <select name="parts[component][]" id="component" class="form-select" required>
+                                                    <select name="parts[component][]" id="component" class="form-select" required oninvalid="this.setCustomValidity('Please select a component')" onchange="this.setCustomValidity('')">
                                                         <option value="">Select Component</option>
                                                         <option value="Body Parts">Body Parts</option>
                                                         <option value="Mechanical Parts">Mechanical Parts</option>
@@ -577,7 +577,7 @@ function initializeRepeater() {
                 </div>
                 <div class="col-12 col-lg-4">
                     <label class="form-label">Part name and (Part Number)</label>
-                    <input name="parts[number][]" type="text" required class="form-control" placeholder="Axel: 0001">
+                    <input name="parts[number][]" type="text" required class="form-control" placeholder="Axel: 0001" oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')">
                 </div>
                 <div class="col-12 col-lg-4">
                     <label class="form-label">Grade</label>
@@ -599,7 +599,7 @@ function initializeRepeater() {
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Component</label>
-                    <select name="parts[component][]" class="form-select" required>
+                    <select name="parts[component][]" class="form-select" required oninvalid="this.setCustomValidity('Please select a component')" onchange="this.setCustomValidity('')">
                         <option value="">Select Component</option>
                         <option value="Body Parts">Body Parts</option>
                         <option value="Mechanical Parts">Mechanical Parts</option>
