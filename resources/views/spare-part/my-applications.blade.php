@@ -86,7 +86,7 @@ class="current"
                                 $proformaParts = $application->proforma->parts ?? collect();
                                 $subtotal = 0;
                                 foreach ($proformaParts as $idx => $part) {
-                                    $price = $application->prices->values()->get($idx);
+                                    $price = $application->prices->firstWhere('car_part_id', $part->id);
                                     if ($price) {
                                         $subtotal += $price->unit_price * ($part->quantity ?? 1);
                                     }
@@ -164,7 +164,7 @@ class="current"
         $discountPct = (float)($application->discount ?? 0);
         $subtotalParts = 0;
         foreach ($parts as $idx => $part) {
-            $price = $prices->values()->get($idx);
+            $price = $prices->firstWhere('car_part_id', $part->id);
             if ($price) {
                 $subtotalParts += $price->unit_price * ($part->quantity ?? 1);
             }
@@ -231,12 +231,12 @@ class="current"
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($parts as $pIdx => $part)
+                                @foreach($parts->sortBy('id')->values() as $pIdx => $part)
                                     @php
-                                        $partPrice = $prices->values()->get($loop->index);
+                                        $partPrice = $prices->firstWhere('car_part_id', $part->id);
                                     @endphp
                                     <tr>
-                                        <td>{{ $pIdx + 1 }}</td>
+                                        <td>{{ $loop->iteration }}</td>
                                         <td>{{ $part->number }}</td>
                                         <td>{{ $part->condition ?? '-' }}</td>
                                         <td>{{ $part->grade ?? '-' }}</td>
