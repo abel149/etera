@@ -254,7 +254,6 @@
                                             <div>
                                                 <h5 class="mb-1">Spare Parts</h5>
                                             </div>
-           <button type="button" id="add-repeater" class="btn btn-primary repeater-add-btn px-4">Add another part</button>
                                        </div>
 
                                         <div class="repeater-item">
@@ -327,6 +326,7 @@
                                                 <hr/>
                                             </div>
                                         </div>
+                                        <button type="button" id="add-repeater" class="btn btn-primary repeater-add-btn px-4">Add another part</button>
                                     </div>
                                 </div>
 
