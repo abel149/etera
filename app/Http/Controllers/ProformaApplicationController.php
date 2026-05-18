@@ -120,7 +120,7 @@ class ProformaApplicationController extends Controller
                     $finalAmount = $initialPrice - $discountAmount;
                 } else { // 'shop' role
                     $totalAmount = 0;
-                    foreach ($proforma->parts as $index => $part) {
+                    foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
                         $unitPrice = floatval($request->total[$index] ?? 0);
                         if ($unitPrice > 0) {
                             $quantity = $part->quantity ?? 1;
@@ -230,7 +230,7 @@ class ProformaApplicationController extends Controller
                 // Step 7: Save individual part prices for shops.
                 if (auth()->user()->role === 'shop') {
                     $partsProcessed = 0;
-                    foreach ($proforma->parts as $index => $part) {
+                    foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
                         $unitPrice = floatval($request->total[$index] ?? 0);
                         $quantity = $part->quantity ?? 1;
                         $partTotal = $unitPrice * $quantity;

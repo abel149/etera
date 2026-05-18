@@ -522,7 +522,7 @@
                             </thead>
                             <tbody>
                                 @if(isset($proforma->parts) && count($proforma->parts) > 0)
-                                    @foreach ($proforma->parts as $part)
+                                    @foreach ($proforma->parts->sortBy('id')->values() as $part)
                                         <tr>
                                             <td data-label="Index">{{ $loop->index + 1 }}</td>
                                             {{-- START: PART IMAGES BUTTON (Displays the modal) --}}

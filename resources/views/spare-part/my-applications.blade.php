@@ -83,10 +83,10 @@ class="current"
 
                             // Calculate final amount
                             if ($application->from === 'shop' && $application->prices->count() > 0) {
-                                $proformaParts = $application->proforma->parts ?? collect();
+                                $proformaParts = ($application->proforma->parts ?? collect())->sortBy('id')->values();
                                 $subtotal = 0;
                                 foreach ($proformaParts as $idx => $part) {
-                                    $price = $application->prices->firstWhere('car_part_id', $part->id);
+                                    $price = $application->prices->values()->get($idx);
                                     if ($price) {
                                         $subtotal += $price->unit_price * ($part->quantity ?? 1);
                                     }
@@ -162,9 +162,10 @@ class="current"
         $parts = $proforma->parts ?? collect();
         $prices = $application->prices ?? collect();
         $discountPct = (float)($application->discount ?? 0);
+        $partsSorted = $parts->sortBy('id')->values();
         $subtotalParts = 0;
-        foreach ($parts as $idx => $part) {
-            $price = $prices->firstWhere('car_part_id', $part->id);
+        foreach ($partsSorted as $idx => $part) {
+            $price = $prices->values()->get($idx);
             if ($price) {
                 $subtotalParts += $price->unit_price * ($part->quantity ?? 1);
             }
@@ -231,9 +232,9 @@ class="current"
                                 </tr>
                             </thead>
                             <tbody>
-                                @foreach($parts->sortBy('id')->values() as $pIdx => $part)
+                                @foreach($partsSorted as $pIdx => $part)
                                     @php
-                                        $partPrice = $prices->firstWhere('car_part_id', $part->id);
+                                        $partPrice = $prices->values()->get($pIdx);
                                     @endphp
                                     <tr>
                                         <td>{{ $loop->iteration }}</td>
