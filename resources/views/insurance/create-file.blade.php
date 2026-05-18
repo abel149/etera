@@ -256,9 +256,13 @@
                                             </div>
                                        </div>
 
-                                        <div class="repeater-item">
-                                            <div class="item-content row g-3">
-                                                <span class="mb-0 font-16 mt-0"><b>Spare Part #1</b></span>
+                                        <div class="repeater-item mb-3">
+                                            <div class="part-card">
+                                            <div class="part-card-header d-flex align-items-center justify-content-between">
+                                                <span class="part-label"><b>Spare Part #1</b></span>
+                                                <button type="button" class="remove-repeater btn btn-sm btn-outline-danger"><i class="bx bx-trash"></i></button>
+                                            </div>
+                                            <div class="item-content row g-3 pt-2">
                                                 
                                                 <div class="col-12 col-lg-4">
                                                     <label for="inputEmail1" class="form-label">Part Name And Part Number</label>
@@ -318,12 +322,7 @@
                                                         <span class="text-danger">{{ $message }}</span>
                                                     @enderror
                                                 </div>
-                                                <div class="repeater-remove-btn remove-repeater col-12 col-lg-1">
-                                                    <label for="inputEmail1" class="form-label"> &nbsp</label>
-                                                    <label for="inputName1" class="form-label">&nbsp</label>
-                                                    <button type="button" class="remove-repeater btn btn-danger"><i class="bx bx-trash me-0"></i></button>
-                                                </div>
-                                                <hr/>
+                                            </div>
                                             </div>
                                         </div>
                                         <button type="button" id="add-repeater" class="btn btn-primary repeater-add-btn px-4">Add another part</button>
@@ -505,8 +504,27 @@
     pointer-events: none;
 }
 .repeater-add-btn{
-z-index: 10; 
-position: relative;}
+    z-index: 10;
+    position: relative;
+    margin-top: 8px;
+}
+.part-card {
+    border: 1px solid #dee2e6;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.part-card-header {
+    background-color: #f8f9fa;
+    padding: 10px 16px;
+    border-bottom: 1px solid #dee2e6;
+}
+.part-label {
+    font-size: 15px;
+    color: #344767;
+}
+.part-card .item-content {
+    padding: 16px;
+}
 #vin_input {
     padding-right: 70px;
     letter-spacing: 2px;
@@ -641,7 +659,7 @@ console.log(1);
                 }
             });
 
-            repeaterContainer.appendChild(clone);
+            repeaterContainer.insertBefore(clone, addButton);
         });
 
         // Initial remove buttons
