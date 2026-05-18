@@ -143,7 +143,7 @@ class GarageController extends Controller
     } elseif (auth()->user()->role === 'marketer') {
         return redirect()->to('/marketer/garages')->with('success', 'Garage updated successfully');
     } elseif (auth()->user()->role === 'garage') {
-        return redirect()->to('/garage/')->with('success', 'Profile updated successfully');
+        return redirect()->to('/garage/proformas')->with('success', 'Profile updated successfully');
     }
 
     return redirect()->to('/admin/garages')->with('success', 'Garage updated successfully');

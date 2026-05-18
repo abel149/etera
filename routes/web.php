@@ -371,7 +371,7 @@ Route::post('/login', function (Request $request) {
             case 'others':
                 return redirect()->intended('/business-owner');
             case 'garage':
-                return redirect()->intended('/garage/');
+                return redirect()->intended('/garage/proformas');
             case 'shop':
                 Session::forget('url.intended');
                 return redirect('/spare-part-shops/proformas');
@@ -749,7 +749,7 @@ Route::get('/', function () {
             'admin', 'superadmin' => '/admin',
             'insurance' => '/insurance',
             'others' => '/business-owner',
-            'garage' => '/garage/',
+            'garage' => '/garage/proformas',
             'shop' => '/spare-part-shops/proformas',
             'marketer' => '/marketer',
             'employee' => '/employee',
@@ -4200,7 +4200,7 @@ Route::get('/telegram-connect', function (Request $request) {
     $telegramService = app(\App\Services\TelegramService::class);
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = match($user->role) {
-        'garage' => '/garage/',
+        'garage' => '/garage/proformas',
         'shop' => '/spare-part-shops/proformas',
         'admin' => '/admin',
         'insurance' => '/insurance',
@@ -4764,7 +4764,7 @@ Route::prefix('role')
             $user = auth()->user();
             
             if ($user->role === 'garage') {
-                return redirect('/garage/');
+                return redirect('/garage/proformas');
             } elseif ($user->role === 'shop') {
                 return redirect('/spare-part-shops/proformas');
             } elseif ($user->role === 'insurance') {
