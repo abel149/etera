@@ -231,6 +231,7 @@
        pattern="[A-Za-z0-9]{17}"
        placeholder="Enter Chassis Number"
        value="{{ old('chassis_number') }}"
+       inputmode="numeric"
        required
        oninvalid="this.setCustomValidity('Please enter a valid 17-character chassis number')"
        oninput="this.setCustomValidity('')">
