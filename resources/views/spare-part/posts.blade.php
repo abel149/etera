@@ -276,7 +276,7 @@ class="current"
                                                 </div>
                                                 <div class="col-12 col-lg-4">
                                                     <label for="inputName1" class="form-label">Condition</label>
-                                                    <select class="form-select" name="parts[condition][]" aria-label="Default select example" required>
+                                                    <select class="form-select" name="parts[condition][]" aria-label="Default select example" required oninvalid="this.setCustomValidity('Please select a condition')" onchange="this.setCustomValidity('')">
                                                         <option value="">Select Condition</option>
                                                         <option value="New" selected>New</option>
                                                         <option value="Used" disabled>Used</option>
@@ -297,7 +297,7 @@ class="current"
                                                 </div>
                                                 <div class="col-12 col-lg-3">
                                                     <label for="inputName1" class="form-label">Country Part is Manufactured</label>
-                                                    <input name="parts[country][]" value="{{old('parts[country][]')}}" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required>
+                                                    <input name="parts[country][]" value="{{old('parts[country][]')}}" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
                                                 </div>
                                                 <div class="col-12 col-lg-2">
                                                     <label for="inputName1" class="form-label">Qty</label>
@@ -569,7 +569,7 @@ function initializeRepeater() {
                 </div>
                 <div class="col-12 col-lg-4">
                     <label class="form-label">Condition</label>
-                    <select class="form-select" name="parts[condition][]" required>
+                    <select class="form-select" name="parts[condition][]" required oninvalid="this.setCustomValidity('Please select a condition')" onchange="this.setCustomValidity('')">
                         <option value="">Select Condition</option>
                         <option value="New" selected>New</option>
                         <option value="Used" disabled>Used</option>
@@ -591,7 +591,7 @@ function initializeRepeater() {
                 </div>
                 <div class="col-12 col-lg-3">
                     <label class="form-label">Country Part is Manufactured</label>
-                    <input name="parts[country][]" type="text" class="form-control" required>
+                    <input name="parts[country][]" type="text" class="form-control" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
                 </div>
                 <div class="col-12 col-lg-2">
                     <label class="form-label">Qty</label>
@@ -1013,23 +1013,35 @@ function validateStep3() {
         const partNumber = partRow ? partRow.querySelector('input[name="parts[number][]"]') : null;
         const component = partRow ? partRow.querySelector('select[name="parts[component][]"]') : null;
         
+        const country = partRow ? partRow.querySelector('input[name="parts[country][]"]') : null;
+
         if (!conditionSelect.value || conditionSelect.value !== 'New') {
-            alert('Please select "New" condition for all spare parts.');
-            conditionSelect.focus();
+            conditionSelect.setCustomValidity('Please select "New" condition');
+            conditionSelect.reportValidity();
             return false;
-        }
-        
+        } else { conditionSelect.setCustomValidity(''); }
+
         if (!partNumber || !partNumber.value.trim()) {
-            alert('Please enter part number for all spare parts.');
-            if (partNumber) partNumber.focus();
+            if (partNumber) {
+                partNumber.setCustomValidity('Please enter the part name and number');
+                partNumber.reportValidity();
+            }
             return false;
-        }
-        
+        } else if (partNumber) { partNumber.setCustomValidity(''); }
+
+        if (country && !country.value.trim()) {
+            country.setCustomValidity('Please enter the country');
+            country.reportValidity();
+            return false;
+        } else if (country) { country.setCustomValidity(''); }
+
         if (!component || !component.value) {
-            alert('Please select component for all spare parts.');
-            if (component) component.focus();
+            if (component) {
+                component.setCustomValidity('Please select a component');
+                component.reportValidity();
+            }
             return false;
-        }
+        } else if (component) { component.setCustomValidity(''); }
 
         const quantity = partRow ? partRow.querySelector('input[name="parts[quantity][]"]') : null;
         if (!quantity || !quantity.value || parseInt(quantity.value) < 1) {

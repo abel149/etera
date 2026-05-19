@@ -91,7 +91,11 @@
                                 <div class="row g-3">
                                     <div class="col-12 col-lg-6">
                                         <label for="FisrtName" class="form-label">File Number</label>
-                                        <input type="text" name="file_number" value="{{old('file_number')}}" class="form-control required-field" id="FisrtName" placeholder="">
+                                        <input type="text" name="file_number" value="{{old('file_number')}}" class="form-control required-field" id="FisrtName" 
+                                        placeholder="" 
+                                        required
+                                        oninvalid="this.setCustomValidity('Please enter the file number')"
+                                        oninput="this.setCustomValidity('')">
                                         @error('file_number')
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
@@ -149,7 +153,11 @@
                                     </div>
                                     <div class="col-12 col-lg-6">
                                         <label for="PhoneNumber" class="form-label">Model</label>
-                                        <input type="text" name="model" required value="{{old('model')}}" class="form-control required-field" id="PhoneNumber" placeholder="example: yarris">
+                                        <input type="text" name="model"  value="{{old('model')}}" class="form-control required-field" id="PhoneNumber" placeholder="example: yarris"
+                                         required
+                                        oninvalid="this.setCustomValidity('Please enter the model')"
+                                        oninput="this.setCustomValidity('')"
+                                        >
                                         @error('model')
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
@@ -180,14 +188,22 @@
                                 <div class="row g-3">
                                     <div class="col-12 col-lg-6">
                                         <label for="InputUsername" class="form-label">Owner Name</label>
-                                        <input type="text" name="customer_name" value="{{old('customer_name')}}" class="form-control required-field" id="InputUsername" placeholder="Customer Name">
+                                        <input type="text" name="customer_name" value="{{old('customer_name')}}" class="form-control required-field" id="InputUsername" placeholder="Customer Name"
+                                        required
+                                        oninvalid="this.setCustomValidity('Please enter the Owner Name')"
+                                        oninput="this.setCustomValidity('')"
+                                        >
                                         @error('customer_name')
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
                                     </div>
                                     <div class="col-12 col-lg-6">
                                         <label for="InputEmail2" class="form-label">Phone Number</label>
-                                        <input type="text" name="customer_phone_number" value="{{old('customer_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder="">
+                                        <input type="text" name="customer_phone_number" value="{{old('customer_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder=""
+                                        required
+                                        oninvalid="this.setCustomValidity('Please enter the Phone number')"
+                                        oninput="this.setCustomValidity('')"
+                                        >
                                         @error('customer_phone_number')
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
@@ -203,17 +219,22 @@
                                     <div class="col-12 col-lg-6">
 <label class="form-label">
     Chassis Number
-    <small class="text-muted">(Optional)</small>
+    
 </label>
 
 <div class="vin-single-wrapper">
     <input type="text"
-           class="form-control text-uppercase"
-           id="vin_input"
-           name="chassis_number"
-           maxlength="17"
-           placeholder="Enter Chassis Number"
-           value="{{ old('chassis_number') }}">
+       class="form-control text-uppercase"
+       id="vin_input"
+       name="chassis_number"
+       maxlength="17"
+       pattern="[0-9]{1,17}"
+       placeholder="Enter Chassis Number"
+       value="{{ old('chassis_number') }}"
+       required
+       inputmode="numeric"
+       oninvalid="this.setCustomValidity('Only numbers are allowed (max 17 digits)')"
+       oninput="this.setCustomValidity('')">
 
     <span class="vin-counter" id="vin_counter"></span>
 </div>
@@ -231,7 +252,11 @@
                                                id="license_plate_input"
                                                class="form-control required-field text-uppercase"
                                                placeholder="Example: 2AA-12345"
-                                               value="{{ old('license_plate_number') }}">
+                                               value="{{ old('license_plate_number') }}"
+                                               required
+                                                oninvalid="this.setCustomValidity('Please enter the License Plate Number')"
+                                                oninput="this.setCustomValidity('')"
+                                               >
                                         @error('license_plate_number')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
@@ -266,7 +291,7 @@
                                                 
                                                 <div class="col-12 col-lg-4">
                                                     <label for="inputEmail1" class="form-label">Part Name And Part Number</label>
-                                                    <input type="text" name="parts[0][number]" class="form-control required-field" id="inputEmail1" required oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')" />
+                                                    <input type="text" name="parts[0][number]" class="form-control required-field" id="inputEmail1" required oninvalid="this.setCustomValidity('Please enter the part name and number')" oninput="this.setCustomValidity('')">
                                                     @error('parts.0.number')
                                                         <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
@@ -285,7 +310,7 @@
                                                 </div>
                                                 <div class="col-12 col-lg-3">
                                                     <label for="inputName1" class="form-label">Country Part is Manufactured</label>
-                                                    <input name="parts[0][country]" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required>
+                                                    <input name="parts[0][country]" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
                                                     @error('parts.0.country')
                                                         <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
@@ -594,9 +619,10 @@ document.querySelectorAll('.bs-stepper .btn-next').forEach(button => {
         });
 
         if (!allFilled) {
-            // STOP here, do NOT go to next step
-            e.stopImmediatePropagation(); // stop other listeners
-            return false; // prevents stepper.next() call
+            const firstInvalid = currentPane.querySelector('.required-field.is-invalid');
+            if (firstInvalid) firstInvalid.reportValidity();
+            e.stopImmediatePropagation();
+            return false;
         }
 
         // Validate quantity fields are >= 1

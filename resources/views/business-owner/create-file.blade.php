@@ -577,7 +577,7 @@ p { color: #333 !important; }
                                                     <span class="mb-0 font-16 mt-0"><b>Spare Part #1</b></span>
                                                     <div class="col-12 col-lg-4">
                                                         <label for="condition_0" class="form-label">Condition</label>
-                                                        <select class="form-select" name="parts[condition][]" id="condition_0" aria-label="Default select example" required>
+                                                        <select class="form-select" name="parts[condition][]" id="condition_0" aria-label="Default select example" required oninvalid="this.setCustomValidity('Please select a condition')" onchange="this.setCustomValidity('')">
                                                             <option value="">Select Condition</option>
                                                             <option value="New" selected>New</option>
                                                             <option value="Used" disabled>Used</option>
@@ -598,7 +598,7 @@ p { color: #333 !important; }
                                                     </div>
                                                     <div class="col-12 col-lg-3">
                                                         <label for="country_0" class="form-label">Country Part is Manufactured</label>
-                                                        <input name="parts[country][]" type="text" class="form-control" id="country_0" required>
+                                                        <input name="parts[country][]" type="text" class="form-control" id="country_0" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
                                                     </div>
                                                     <div class="col-12 col-lg-2">
                                                         <label for="quantity_0" class="form-label">Qty</label>
@@ -866,7 +866,7 @@ p { color: #333 !important; }
                     </div>
                     <div class="col-12 col-lg-4">
                         <label class="form-label">Condition</label>
-                        <select class="form-select" name="parts[condition][]" required>
+                        <select class="form-select" name="parts[condition][]" required oninvalid="this.setCustomValidity('Please select a condition')" onchange="this.setCustomValidity('')">
                             <option value="">Select Condition</option>
                             <option value="New" selected>New</option>
                             <option value="Used" disabled>Used</option>
@@ -887,7 +887,7 @@ p { color: #333 !important; }
                     </div>
                     <div class="col-12 col-lg-3">
                         <label class="form-label">Country Part is Manufactured</label>
-                        <input name="parts[country][]" type="text" class="form-control" required>
+                        <input name="parts[country][]" type="text" class="form-control" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
                     </div>
                     <div class="col-12 col-lg-2">
                         <label class="form-label">Qty</label>
@@ -1177,30 +1177,30 @@ p { color: #333 !important; }
             
             
             if (!condition.value) {
-                alert(`Please select condition for spare part #${i + 1}.`);
-                condition.focus();
+                condition.setCustomValidity('Please select a condition');
+                condition.reportValidity();
                 return false;
-            }
+            } else { condition.setCustomValidity(''); }
             if (!partNumber.value.trim()) {
-                alert(`Please enter part name and number for spare part #${i + 1}.`);
-                partNumber.focus();
+                partNumber.setCustomValidity('Please enter the part name and number');
+                partNumber.reportValidity();
                 return false;
-            }
+            } else { partNumber.setCustomValidity(''); }
             if (!grade.value) {
-                alert(`Please select grade for spare part #${i + 1}.`);
-                grade.focus();
+                grade.setCustomValidity('Please select a grade');
+                grade.reportValidity();
                 return false;
-            }
+            } else { grade.setCustomValidity(''); }
             if (!component.value) {
-                alert(`Please select component for spare part #${i + 1}.`);
-                component.focus();
+                component.setCustomValidity('Please select a component');
+                component.reportValidity();
                 return false;
-            }
+            } else { component.setCustomValidity(''); }
             if (!country.value) {
-                alert(`Please enter country for spare part #${i + 1}.`);
-                country.focus();
+                country.setCustomValidity('Please enter the country');
+                country.reportValidity();
                 return false;
-            }
+            } else { country.setCustomValidity(''); }
 
             const quantity = document.querySelectorAll('input[name="parts[quantity][]"]')[i];
             if (!quantity.value || parseInt(quantity.value) < 1) {
