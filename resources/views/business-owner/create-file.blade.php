@@ -544,6 +544,7 @@ p { color: #333 !important; }
                id="vin_input"
                name="chassis_number"
                maxlength="17"
+               required
                placeholder="Enter Chassis Number"
                value="{{ old('chassis_number') }}">
         <span class="vin-counter" id="vin_counter"></span>
