@@ -224,16 +224,15 @@
 
 <div class="vin-single-wrapper">
     <input type="text"
-       class="form-control text-uppercase"
+       class="form-control text-uppercase required-field"
        id="vin_input"
        name="chassis_number"
        maxlength="17"
-       pattern="[0-9]{1,17}"
+       pattern="[A-Za-z0-9]{17}"
        placeholder="Enter Chassis Number"
        value="{{ old('chassis_number') }}"
        required
-       inputmode="numeric"
-       oninvalid="this.setCustomValidity('Only numbers are allowed (max 17 digits)')"
+       oninvalid="this.setCustomValidity('Please enter a valid 17-character chassis number')"
        oninput="this.setCustomValidity('')">
 
     <span class="vin-counter" id="vin_counter"></span>
