@@ -228,7 +228,7 @@
        id="vin_input"
        name="chassis_number"
        maxlength="17"
-       pattern="[A-Za-z0-9]{17}"
+       pattern="[0-9]{1,17}"
        placeholder="Enter Chassis Number"
        value="{{ old('chassis_number') }}"
        inputmode="numeric"
