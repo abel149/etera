@@ -92,7 +92,10 @@
 @php
 $partners = auth()->user()->partners;
 $partnerIds = $partners ? $partners->pluck('partner_id') : collect();
-$availablePartners = \App\Models\User::whereIn('role', ['shop','garage'])->whereNotIn('id', $partnerIds)->get();
+$availablePartners = \App\Models\User::whereIn('role', ['shop','garage'])
+    ->whereNotIn('id', $partnerIds)
+    ->orderBy('name', 'asc')
+    ->get();
 @endphp
 <!-- Add Modal -->
 <div class="modal fade" id="add" tabindex="-1" aria-hidden="true">
@@ -107,7 +110,7 @@ $availablePartners = \App\Models\User::whereIn('role', ['shop','garage'])->where
         @method('POST')
 			<div class="modal-body">
 				<label for="multiple-select-garage" class="form-label">Select Your Partners</label>
-								<select class="form-select" name="partners[]" id="multiple1" data-placeholder="Choose anything" multiple>
+								<select class="form-select" name="partners[]" id="multiple1" data-placeholder="Choose partner" multiple>
                   @foreach($availablePartners as $partner)
                     <option value="{{$partner->id}}">{{$partner->store_id}} - {{$partner->name}}</option>
                     @endforeach
