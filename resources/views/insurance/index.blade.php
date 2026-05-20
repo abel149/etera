@@ -92,21 +92,22 @@
 
 <!-- ✅ Search Script -->
 <script>
-document.getElementById('searchInput').addEventListener('keyup', function() {
-	const query = this.value.toLowerCase();
+document.getElementById('searchInput').addEventListener('input', function() {
+	const query = this.value.toLowerCase().trim();
 	const rows = document.querySelectorAll('#proformaTable tbody tr');
 
 	rows.forEach(row => {
-		const fileNumber = row.cells[0].textContent.toLowerCase();
-		const customerName = row.cells[1].textContent.toLowerCase();
-		const plateNumber = row.cells[5].textContent.toLowerCase();
-		const phone = row.cells[6].textContent.toLowerCase();
+		const fileNumber    = row.cells[0].textContent.toLowerCase();
+		const customerName  = row.cells[1].textContent.toLowerCase();
+		const plateNumber   = row.cells[5].textContent.toLowerCase();
+		const phone         = row.cells[7].textContent.toLowerCase();
 
-		if (fileNumber.includes(query) || customerName.includes(query) || plateNumber.includes(query) || phone.includes(query)) {
-			row.style.display = '';
-		} else {
-			row.style.display = 'none';
-		}
+		row.style.display = (
+			fileNumber.includes(query) ||
+			customerName.includes(query) ||
+			plateNumber.includes(query) ||
+			phone.includes(query)
+		) ? '' : 'none';
 	});
 });
 </script>
