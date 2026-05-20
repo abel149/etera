@@ -33,21 +33,19 @@
             <div class="card-body">
 
                 {{-- Toolbar --}}
-                <div class="d-flex flex-wrap justify-content-between align-items-center gap-2 mb-4">
-                    <div class="position-relative flex-shrink-0" style="width:300px; max-width:100%;">
+                <div class="d-flex flex-wrap align-items-center gap-3 mb-4 me-4">
+                    <div class="position-relative flex-shrink-0" style="width:280px; max-width:100%;">
                         <input type="text" id="partnerSearch" class="form-control ps-5 radius-30" placeholder="Search partners...">
                         <span class="position-absolute top-50 translate-middle-y ps-3" style="left:0; pointer-events:none;">
                             <i class="bx bx-search text-secondary"></i>
                         </span>
                     </div>
-                    <div class="d-flex flex-shrink-0 gap-2">
-                        <button type="button" class="btn btn-primary radius-30" data-bs-toggle="modal" data-bs-target="#addShopModal">
-                            <i class="bx bx-store me-1"></i> Add Shop Partner
-                        </button>
-                        <button type="button" class="btn btn-primary radius-30" data-bs-toggle="modal" data-bs-target="#addGarageModal">
-                            <i class="bx bx-wrench me-1"></i> Add Garage Partner
-                        </button>
-                    </div>
+                    <button type="button" class="btn btn-primary radius-30 flex-shrink-0" data-bs-toggle="modal" data-bs-target="#addShopModal">
+                        <i class="bx bx-store me-1"></i> Add Shop Partner
+                    </button>
+                    <button type="button" class="btn btn-primary radius-30 flex-shrink-0" data-bs-toggle="modal" data-bs-target="#addGarageModal">
+                        <i class="bx bx-wrench me-1"></i> Add Garage Partner
+                    </button>
                 </div>
 
                 {{-- Partners Table --}}

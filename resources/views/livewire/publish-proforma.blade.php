@@ -257,7 +257,7 @@
             <div class="my-0">
 
  @if(($proforma?->status == 'pending' || $proforma?->status == 'opened') && (!$proforma?->selected() || $proforma->selectedBy()->employee_id == auth()->id()))
-                <button type="submit" class="btn btn-primary radius-30 px-4" onclick="notification('Proforma Posted')"> Float
+                <button type="submit" class="btn btn-primary radius-30 px-4" onclick="notification('Proforma Posted')"> Send to inbox
                 </button>
                 @endif
                 @if($proforma?->status == 'published')
