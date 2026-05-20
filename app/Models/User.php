@@ -160,7 +160,7 @@ class User extends Authenticatable
         if ($this->role !== self::ROLE_INSURANCE) return collect();
         return Partner::where('insurance_id', $this->id)
             ->whereHas('partner', fn($q) => $q->where('role', self::ROLE_SHOP))
-            ->get()->pluck('partner');
+            ->get()->pluck('partner')->sortBy('name')->values();
     }
 
     public function garagePartners()
@@ -168,7 +168,7 @@ class User extends Authenticatable
         if ($this->role !== self::ROLE_INSURANCE) return collect();
         return Partner::where('insurance_id', $this->id)
             ->whereHas('partner', fn($q) => $q->where('role', self::ROLE_GARAGE))
-            ->get()->pluck('partner');
+            ->get()->pluck('partner')->sortBy('name')->values();
     }
 
     // =====================

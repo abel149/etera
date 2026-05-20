@@ -44,7 +44,7 @@
                         <button type="button" class="btn btn-primary radius-30" data-bs-toggle="modal" data-bs-target="#addShopModal">
                             <i class="bx bx-store me-1"></i> Add Shop Partner
                         </button>
-                        <button type="button" class="btn btn-outline-primary radius-30" data-bs-toggle="modal" data-bs-target="#addGarageModal">
+                        <button type="button" class="btn btn-primary radius-30" data-bs-toggle="modal" data-bs-target="#addGarageModal">
                             <i class="bx bx-wrench me-1"></i> Add Garage Partner
                         </button>
                     </div>
@@ -75,11 +75,11 @@
                                 <td class="fw-semibold">{{ $partner->partner->store_id }}</td>
                                 <td>
                                     @if($partner->partner->role === 'shop')
-                                        <span class="badge bg-primary bg-opacity-10 text-primary px-2 py-1">Shop</span>
+                                        <span class="badge bg-primary text-white px-2 py-1">Shop</span>
                                     @elseif($partner->partner->role === 'garage')
-                                        <span class="badge bg-success bg-opacity-10 text-success px-2 py-1">Garage</span>
+                                        <span class="badge bg-success text-white px-2 py-1">Garage</span>
                                     @else
-                                        <span class="badge bg-secondary bg-opacity-10 text-secondary px-2 py-1">{{ ucfirst($partner->partner->role) }}</span>
+                                        <span class="badge bg-secondary text-white px-2 py-1">{{ ucfirst($partner->partner->role) }}</span>
                                     @endif
                                 </td>
                                 <td>{{ $partner->partner->tin_number ?? '—' }}</td>
