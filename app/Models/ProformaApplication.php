@@ -17,9 +17,10 @@ class ProformaApplication extends Model implements HasMedia
     protected $guarded = [];
 
     protected $casts = [
-        'initial_price' => 'decimal:2',
-        'amount' => 'decimal:2',
-        'discount' => 'decimal:2',
+        'initial_price'       => 'decimal:2',
+        'amount'              => 'decimal:2',
+        'discount'            => 'decimal:2',
+        'amount_is_encrypted' => 'boolean',
     ];
 
     public function proforma()

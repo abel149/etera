@@ -65,41 +65,49 @@ class ProformaApplicationController extends Controller
                 $hasInboxedUsers = $proforma->inboxes()->exists();
 
                 // Step 2: Validate the request data based on the user's role.
+                $isEncrypted = $request->boolean('prices_encrypted', false);
+
                 if (auth()->user()->role === 'garage') {
-                    $request->validate([
-                        'amount' => 'required|numeric|min:1',
-                        'discount' => 'nullable|numeric|min:0|max:100',
-                    ], [
-                        'amount.required' => 'Price is required.',
-                        'amount.numeric' => 'Price must be a valid number.',
-                        'amount.min' => 'Price must be at least 1.',
-                        'discount.numeric' => 'Discount must be a valid number.',
-                        'discount.min' => 'Discount cannot be negative.',
-                        'discount.max' => 'Discount cannot exceed 100%.',
-                    ]);
+                    if ($isEncrypted) {
+                        $request->validate(['encrypted_amount' => 'required|string']);
+                    } else {
+                        $request->validate([
+                            'amount' => 'required|numeric|min:1',
+                            'discount' => 'nullable|numeric|min:0|max:100',
+                        ], [
+                            'amount.required' => 'Price is required.',
+                            'amount.numeric' => 'Price must be a valid number.',
+                            'amount.min' => 'Price must be at least 1.',
+                            'discount.numeric' => 'Discount must be a valid number.',
+                            'discount.min' => 'Discount cannot be negative.',
+                            'discount.max' => 'Discount cannot exceed 100%.',
+                        ]);
+                    }
                 } else { // 'shop' role
-                    $request->validate([
-                        'total' => 'nullable|array',
-                        'total.*' => 'nullable|numeric|min:1',
-                        'discount' => 'nullable|numeric|min:0|max:100',
-                    ], [
-                        'total.*.numeric' => 'Unit price must be a valid number.',
-                        'total.*.min' => 'Unit price must be at least 1. Leave the field blank if you do not carry this part.',
-                        'discount.numeric' => 'Discount must be a valid number.',
-                        'discount.min' => 'Discount cannot be negative.',
-                        'discount.max' => 'Discount cannot exceed 100%.',
-                    ]);
+                    if ($isEncrypted) {
+                        $request->validate(['encrypted_total' => 'required|array']);
+                    } else {
+                        $request->validate([
+                            'total' => 'nullable|array',
+                            'total.*' => 'nullable|numeric|min:1',
+                            'discount' => 'nullable|numeric|min:0|max:100',
+                        ], [
+                            'total.*.numeric' => 'Unit price must be a valid number.',
+                            'total.*.min' => 'Unit price must be at least 1. Leave the field blank if you do not carry this part.',
+                            'discount.numeric' => 'Discount must be a valid number.',
+                            'discount.min' => 'Discount cannot be negative.',
+                            'discount.max' => 'Discount cannot exceed 100%.',
+                        ]);
 
-                    // Require at least one part price to be filled.
-                    // All-blank means the shop carries none of the parts — no useful quote.
-                    $hasAtLeastOnePrice = collect($request->input('total', []))
-                        ->filter(fn($v) => $v !== null && floatval($v) > 0)
-                        ->isNotEmpty();
+                        $hasAtLeastOnePrice = collect($request->input('total', []))
+                            ->filter(fn($v) => $v !== null && floatval($v) > 0)
+                            ->isNotEmpty();
 
-                    if (!$hasAtLeastOnePrice) {
-                        return redirect()->back()
-                            ->withErrors(['total' => 'Please enter a price for at least one part. Leave fields blank only for parts you do not carry.'])
-                            ->withInput();
+                        if (!$hasAtLeastOnePrice) {
+                            return redirect()->back()
+                                ->withErrors(['total' => 'Please enter a price for at least one part. Leave fields blank only for parts you do not carry.'])
+                                ->withInput();
+                        }
                     }
                 }
 
@@ -110,14 +118,26 @@ class ProformaApplicationController extends Controller
                     'shop_parts_count' => is_array($request->total ?? null) ? count($request->total) : null,
                 ]);
 
-                // Step 3: Calculate the final amount.
+                // Step 2b: Insurance proformas require encrypted submissions — always.
+                if (!$isEncrypted && optional($proforma->poster)->role === 'insurance') {
+                    $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
+                    return redirect($redirectUrl)
+                        ->withErrors(['general' => 'Encrypted price submission is required for this proforma. Please contact the insurance.'])
+                        ->withInput();
+                }
+
+                // Step 3: Calculate the final amount (0 placeholder when encrypted).
                 $finalAmount = 0;
                 $discount = $request->discount ?? 0;
 
-                if (auth()->user()->role === 'garage') {
+                if ($isEncrypted) {
+                    // Encrypted mode: amount is a ciphertext; store 0 as numeric placeholder
+                    $finalAmount = 0;
+                } elseif (auth()->user()->role === 'garage') {
                     $initialPrice = $request->amount;
                     $discountAmount = ($initialPrice * $discount) / 100;
                     $finalAmount = $initialPrice - $discountAmount;
+                    $finalAmount = max($finalAmount, 1);
                 } else { // 'shop' role
                     $totalAmount = 0;
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
@@ -130,8 +150,8 @@ class ProformaApplicationController extends Controller
                     }
                     $discountAmount = ($totalAmount * $discount) / 100;
                     $finalAmount = $totalAmount - $discountAmount;
+                    $finalAmount = max($finalAmount, 1);
                 }
-                $finalAmount = max($finalAmount, 1);
 
                 Log::info('Price quote submission: totals computed', [
                     'proforma_id' => $proforma->id,
@@ -150,13 +170,18 @@ class ProformaApplicationController extends Controller
                 $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
 
                 // Step 4b: Create a new application record.
-                $application = $proforma->applications()->create([
-                    'application_by' => auth()->id(),
-                    'from' => $role,
-                    'amount' => $finalAmount,
-                    'discount' => $discount,
-                    'application_source' => $applicationSource,
-                ]);
+                $appData = [
+                    'application_by'    => auth()->id(),
+                    'from'              => $role,
+                    'amount'            => $finalAmount,
+                    'discount'          => $isEncrypted ? 0 : $discount,
+                    'application_source'=> $applicationSource,
+                ];
+                if ($isEncrypted && $request->filled('encrypted_amount')) {
+                    $appData['encrypted_amount']   = $request->encrypted_amount;
+                    $appData['amount_is_encrypted'] = true;
+                }
+                $application = $proforma->applications()->create($appData);
 
                 // Remove own inbox record (insurance or admin)
                 \App\Models\Inbox::where('user_id', auth()->id())
@@ -231,24 +256,35 @@ class ProformaApplicationController extends Controller
                 if (auth()->user()->role === 'shop') {
                     $partsProcessed = 0;
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
-                        $unitPrice = floatval($request->total[$index] ?? 0);
                         $quantity = $part->quantity ?? 1;
-                        $partTotal = $unitPrice * $quantity;
                         $resolvedCarPartId = \App\Models\CarPart::firstOrCreate([
                             'name' => $part->component ?: ($part->number ?: ('Part-' . $part->id))
                         ], [
                             'component' => $part->component ?: 'Mechanical Parts'
                         ])->id;
 
-                        $application->prices()->create([
-                            'car_part_id' => $resolvedCarPartId,
-                            'quantity' => $quantity,
-                            'unit_price' => $unitPrice,
-                            'part_total' => $partTotal,
-                        ]);
-
-                        if ($unitPrice > 0) {
-                            $partsProcessed++;
+                        if ($isEncrypted) {
+                            $encryptedPrice = $request->encrypted_total[$index] ?? null;
+                            $application->prices()->create([
+                                'car_part_id'          => $resolvedCarPartId,
+                                'quantity'             => $quantity,
+                                'unit_price'           => 0,
+                                'part_total'           => 0,
+                                'encrypted_unit_price' => $encryptedPrice,
+                                'encrypted_part_total' => null,
+                                'price_is_encrypted'   => true,
+                            ]);
+                            if ($encryptedPrice) $partsProcessed++;
+                        } else {
+                            $unitPrice = floatval($request->total[$index] ?? 0);
+                            $partTotal = $unitPrice * $quantity;
+                            $application->prices()->create([
+                                'car_part_id' => $resolvedCarPartId,
+                                'quantity'    => $quantity,
+                                'unit_price'  => $unitPrice,
+                                'part_total'  => $partTotal,
+                            ]);
+                            if ($unitPrice > 0) $partsProcessed++;
                         }
                     }
                 }
