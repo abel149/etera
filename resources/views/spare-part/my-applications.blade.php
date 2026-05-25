@@ -82,7 +82,10 @@ class="current"
                             $statusClass = $statusColors[$status] ?? 'bg-secondary';
 
                             // Calculate final amount
-                            if ($application->from === 'shop' && $application->prices->count() > 0) {
+                            $pricesAreEncrypted = $application->amount_is_encrypted
+                                || $application->prices->contains(fn($p) => $p->price_is_encrypted);
+
+                            if (!$pricesAreEncrypted && $application->from === 'shop' && $application->prices->count() > 0) {
                                 $proformaParts = ($application->proforma->parts ?? collect())->sortBy('id')->values();
                                 $subtotal = 0;
                                 foreach ($proformaParts as $idx => $part) {
@@ -114,7 +117,12 @@ class="current"
                                 </span>
                             </td>
                             <td>
-                                <strong>{{ number_format($finalAmount, 2) }}</strong> Birr
+                                @if($pricesAreEncrypted)
+                                    <i class="bx bx-lock text-warning"></i>
+                                    <em class="text-warning">Encrypted</em>
+                                @else
+                                    <strong>{{ number_format($finalAmount, 2) }}</strong> Birr
+                                @endif
                             </td>
                             <td>
                                 @if($application->discount > 0)
@@ -158,22 +166,30 @@ class="current"
 @foreach($applications as $application)
     @if($application->proforma)
     @php
-        $proforma = $application->proforma;
-        $parts = $proforma->parts ?? collect();
-        $prices = $application->prices ?? collect();
+        $proforma  = $application->proforma;
+        $parts     = $proforma->parts ?? collect();
+        $prices    = $application->prices ?? collect();
         $discountPct = (float)($application->discount ?? 0);
         $partsSorted = $parts->sortBy('id')->values();
+
+        $pricesAreEncrypted = $application->amount_is_encrypted
+            || $prices->contains(fn($p) => $p->price_is_encrypted);
+
         $subtotalParts = 0;
-        foreach ($partsSorted as $idx => $part) {
-            $price = $prices->values()->get($idx);
-            if ($price) {
-                $subtotalParts += $price->unit_price * ($part->quantity ?? 1);
+        if (!$pricesAreEncrypted) {
+            foreach ($partsSorted as $idx => $part) {
+                $price = $prices->values()->get($idx);
+                if ($price) {
+                    $subtotalParts += $price->unit_price * ($part->quantity ?? 1);
+                }
             }
         }
-        $usingParts = $subtotalParts > 0;
-        $subtotal = $usingParts ? $subtotalParts : (float) $application->amount;
-        $discountAmt = $usingParts ? (($subtotal * $discountPct) / 100) : 0.0;
-        $netTotal = $usingParts ? ($subtotal - $discountAmt) : (float) $application->amount;
+
+        // For encrypted shop applications prices->count() > 0 so show the parts table
+        $usingParts  = ($prices->count() > 0 && $application->from === 'shop') || $subtotalParts > 0;
+        $subtotal    = $subtotalParts;
+        $discountAmt = $usingParts && !$pricesAreEncrypted ? ($subtotal * $discountPct / 100) : 0.0;
+        $netTotal    = $usingParts && !$pricesAreEncrypted ? ($subtotal - $discountAmt) : (float) $application->amount;
     @endphp
     <div class="modal fade" id="applicationModal{{ $application->id }}" tabindex="-1"
          aria-labelledby="applicationModalLabel{{ $application->id }}" aria-hidden="true">
@@ -243,7 +259,10 @@ class="current"
                                         <td>{{ $part->grade ?? '-' }}</td>
                                         <td>{{ $part->country ?? '-' }}</td>
                                         <td>{{ $part->quantity ?? 1 }}</td>
-                                        @if($partPrice && $partPrice->unit_price > 0)
+                                        @if($partPrice && !empty($partPrice->price_is_encrypted))
+                                            <td class="text-end"><i class="bx bx-lock text-warning"></i> <em class="text-warning small">Encrypted</em></td>
+                                            <td class="text-end text-muted">—</td>
+                                        @elseif($partPrice && $partPrice->unit_price > 0)
                                             <td class="text-end">{{ number_format($partPrice->unit_price, 2) }} ETB</td>
                                             <td class="text-end">{{ number_format($partPrice->unit_price * ($part->quantity ?? 1), 2) }} ETB</td>
                                         @else
@@ -254,6 +273,14 @@ class="current"
                                 @endforeach
                             </tbody>
                             <tfoot>
+                                @if($pricesAreEncrypted)
+                                <tr>
+                                    <td colspan="8" class="text-center py-2">
+                                        <i class="bx bx-lock text-warning me-1"></i>
+                                        <em class="text-warning">Prices submitted securely — only the insurance can view the total.</em>
+                                    </td>
+                                </tr>
+                                @else
                                 <tr>
                                     <td colspan="7" class="text-end"><strong>SUBTOTAL</strong></td>
                                     <td class="text-end"><strong>{{ number_format($subtotal, 2) }} ETB</strong></td>
@@ -268,14 +295,23 @@ class="current"
                                         <strong>{{ number_format($netTotal, 2) }} ETB</strong>
                                     </td>
                                 </tr>
+                                @endif
                             </tfoot>
                         </table>
                     </div>
                     @else
                     {{-- Garage / lump-sum application --}}
                     <div class="text-center py-3">
-                        <h6 class="text-muted mb-2">Total Amount</h6>
-                        <h3 style="color: var(--etera-teal-light);">{{ number_format($netTotal, 2) }} ETB</h3>
+                        @if($application->amount_is_encrypted)
+                            <i class="bx bx-lock fs-1 text-warning"></i>
+                            <p class="text-warning mt-2 mb-0">
+                                <strong>Price submitted securely (encrypted).</strong><br>
+                                <small class="text-muted">Only the insurance can decrypt and view the actual amount.</small>
+                            </p>
+                        @else
+                            <h6 class="text-muted mb-2">Total Amount</h6>
+                            <h3 style="color: var(--etera-teal-light);">{{ number_format($netTotal, 2) }} ETB</h3>
+                        @endif
                     </div>
                     @endif
                 </div>

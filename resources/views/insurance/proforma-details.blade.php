@@ -205,16 +205,15 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @php
-                                        $shopSubtotal = 0;
-                                        @endphp
+                                        @php $shopSubtotal = 0; @endphp
                                         @foreach($proforma->parts as $part)
                                         @php
-                                        $partPrice = $application->prices->values()->get($loop->index);
-                                        $hasPrice = $partPrice && $partPrice->unit_price > 0;
-                                        $unitPrice = $hasPrice ? $partPrice->unit_price : 0;
-                                        $totalPrice = $hasPrice ? ($unitPrice * $part->quantity) : 0;
-                                        $shopSubtotal += $totalPrice;
+                                            $partPrice     = $application->prices->values()->get($loop->index);
+                                            $isEncPart     = $partPrice && !empty($partPrice->price_is_encrypted);
+                                            $hasPrice      = $partPrice && !$isEncPart && $partPrice->unit_price > 0;
+                                            $unitPrice     = $hasPrice ? (float)$partPrice->unit_price : 0;
+                                            $totalPrice    = $hasPrice ? $unitPrice * $part->quantity : 0;
+                                            $shopSubtotal += $totalPrice;
                                         @endphp
                                         <tr>
                                             <td>{{ $loop->index + 1 }}</td>
@@ -223,7 +222,18 @@
                                             <td>{{ $part->grade }}</td>
                                             <td>{{ $part->country }}</td>
                                             <td>{{ $part->quantity }}</td>
-                                            @if($hasPrice)
+                                            @if($isEncPart)
+                                            <td class="enc-unit-cell" data-price-id="{{ $partPrice->id }}" data-qty="{{ $part->quantity }}">
+                                                <span class="enc-unit-price" data-price-id="{{ $partPrice->id }}">
+                                                    <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                                </span>
+                                            </td>
+                                            <td class="enc-total-cell" data-price-id="{{ $partPrice->id }}">
+                                                <span class="enc-part-total" data-price-id="{{ $partPrice->id }}">
+                                                    <em class="text-warning">—</em>
+                                                </span>
+                                            </td>
+                                            @elseif($hasPrice)
                                             <td>{{ number_format($unitPrice, 2) }} ETB</td>
                                             <td>{{ number_format($totalPrice, 2) }} ETB</td>
                                             @else
@@ -242,17 +252,17 @@
                                         <tr>
                                             <td colspan="7"></td>
                                             <td>SUBTOTAL</td>
-                                            <td>{{ number_format($shopSubtotal, 2) }} ETB</td>
+                                            <td class="shop-subtotal-val" data-app-id="{{ $application->id }}">{{ number_format($shopSubtotal, 2) }} ETB</td>
                                         </tr>
                                         <tr>
                                             <td colspan="7"></td>
                                             <td>DISCOUNT</td>
-                                            <td>{{ number_format($discountAmt, 2) }} ETB ({{ $discountPct }}%)</td>
+                                            <td class="shop-discount-val" data-app-id="{{ $application->id }}" data-discount-pct="{{ $discountPct }}">{{ number_format($discountAmt, 2) }} ETB ({{ $discountPct }}%)</td>
                                         </tr>
                                         <tr>
                                             <td colspan="7"></td>
                                             <td>NET TOTAL</td>
-                                            <td>{{ number_format($netTotal, 2) }} ETB</td>
+                                            <td class="shop-nettotal-val" data-app-id="{{ $application->id }}">{{ number_format($netTotal, 2) }} ETB</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -275,6 +285,27 @@
                 @endforeach
             </div>
             
+            {{-- ── E2E Decrypt Panel (shown only when encrypted prices exist) ── --}}
+            @php $hasEncryptedPrices = $applications->contains(fn($a) => $a->amount_is_encrypted || $a->prices->contains(fn($p) => $p->price_is_encrypted)); @endphp
+            @if($hasEncryptedPrices)
+            <div class="col-12 mb-4" id="decryptPanel">
+                <div class="card border-warning">
+                    <div class="card-body d-flex flex-wrap align-items-center gap-3">
+                        <i class="bx bx-lock fs-3 text-warning"></i>
+                        <div class="flex-grow-1">
+                            <h6 class="mb-0 fw-semibold">Some prices are encrypted</h6>
+                            <p class="mb-0 text-secondary small">Enter your Encryption PIN to reveal all prices in this browser session.</p>
+                        </div>
+                        <input type="password" id="decryptPin" class="form-control" style="max-width:200px;" placeholder="Encryption PIN">
+                        <button id="btnDecrypt" class="btn btn-warning radius-30 flex-shrink-0">
+                            <i class="bx bx-lock-open me-1"></i> Decrypt Prices
+                        </button>
+                        <div id="decryptError" class="text-danger small w-100 d-none"></div>
+                    </div>
+                </div>
+            </div>
+            @endif
+
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
                 @foreach($applications as $application)
@@ -289,7 +320,9 @@
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-discount="{{ $application->discount ?? 0 }}"
-                         data-amount="{{ $application->amount ?? 0 }}">
+                         data-amount="{{ $application->amount ?? 0 }}"
+                         data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
+                         data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}">
 
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
@@ -339,34 +372,61 @@
                                     </thead>
                                     <tbody>
                                         @php
-                                        $garageAmount = (float) ($application->amount ?? 0);
+                                        $garageAmount    = (float) ($application->amount ?? 0);
+                                        $isEncAmt        = !empty($application->amount_is_encrypted);
                                         $garageDiscountPct = (float)($application->discount ?? 0);
                                         $garageDiscountAmt = ($garageAmount * $garageDiscountPct) / 100;
-                                        $garageNetTotal = $garageAmount - $garageDiscountAmt;
+                                        $garageNetTotal    = $garageAmount - $garageDiscountAmt;
                                         @endphp
                                         <tr>
                                             <td style="padding: 4px;">1</td>
                                             <td style="padding: 4px;">Garage Repair Service</td>
                                             <td style="padding: 4px;">Complete repair service</td>
                                             <td style="padding: 4px;">Full Service</td>
-                                            <td style="padding: 4px;">{{ number_format($garageAmount, 2) }} ETB</td>
+                                            <td style="padding: 4px;" class="price-cell" data-app-id="{{ $application->id }}">
+                                                @if($isEncAmt)
+                                                    <span class="encrypted-price" data-app-id="{{ $application->id }}">
+                                                        <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                                    </span>
+                                                @else
+                                                    {{ number_format($garageAmount, 2) }} ETB
+                                                @endif
+                                            </td>
                                         </tr>
                                     </tbody>
                                     <tfoot>
                                         <tr>
                                             <td colspan="4" style="padding: 4px; font-weight: bold;">SUBTOTAL</td>
-                                            <td style="padding: 4px; font-weight: bold;">{{ number_format($garageAmount, 2) }} ETB</td>
+                                            <td style="padding: 4px; font-weight: bold;" class="price-cell" data-app-id="{{ $application->id }}">
+                                                @if($isEncAmt)
+                                                    <span class="encrypted-price" data-app-id="{{ $application->id }}">
+                                                        <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                                    </span>
+                                                @else
+                                                    {{ number_format($garageAmount, 2) }} ETB
+                                                @endif
+                                            </td>
                                         </tr>
                                         <tr>
                                             <td colspan="4" style="padding: 4px; font-weight: bold;">DISCOUNT</td>
                                             <td style="padding: 4px; font-weight: bold;">
-                                                {{ number_format($garageDiscountAmt, 2) }} ETB ({{ $garageDiscountPct }}%)
+                                                @if(!$isEncAmt)
+                                                    {{ number_format($garageDiscountAmt, 2) }} ETB ({{ $garageDiscountPct }}%)
+                                                @else
+                                                    <em class="text-warning">—</em>
+                                                @endif
                                             </td>
                                         </tr>
                                         <tr>
                                             <td colspan="4" style="padding: 4px; font-weight: bold;">NET TOTAL</td>
-                                            <td style="padding: 4px; font-weight: bold;">
-                                                {{ number_format($garageNetTotal, 2) }} ETB
+                                            <td style="padding: 4px; font-weight: bold;" class="price-cell" data-app-id="{{ $application->id }}">
+                                                @if($isEncAmt)
+                                                    <span class="encrypted-price" data-app-id="{{ $application->id }}">
+                                                        <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                                    </span>
+                                                @else
+                                                    {{ number_format($garageNetTotal, 2) }} ETB
+                                                @endif
                                             </td>
                                         </tr>
                                     </tfoot>
@@ -421,6 +481,7 @@
 
 @endsection
 
+<script>{!! file_get_contents(base_path('resources/js/e2e-encryption.js')) !!}</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle Spare Part Shop select buttons
@@ -952,7 +1013,113 @@ function openPrintingPage() {
     printWindow.document.close();
 }
 
-// Etera-Chereta dropdown functionality
+// ── E2E Decryption ───────────────────────────────────────────────────────────────────
+// Garage encrypted amounts: { application_id: encrypted_amount_ciphertext }
+const _encryptedApps = @json(
+    $applications->filter(fn($a) => $a->amount_is_encrypted)
+        ->mapWithKeys(fn($a) => [$a->id => $a->encrypted_amount])
+);
+
+// Shop encrypted part prices: { price_id: { cipher, qty, app_id } }
+const _encryptedPrices = @json(
+    $applications->where('from', 'shop')
+        ->flatMap(fn($a) => $a->prices
+            ->filter(fn($p) => $p->price_is_encrypted)
+            ->map(fn($p) => ['id' => $p->id, 'cipher' => $p->encrypted_unit_price, 'qty' => $p->quantity, 'app_id' => $a->id])
+            ->values()
+        )
+        ->mapWithKeys(fn($p) => [$p['id'] => $p])
+);
+
+document.addEventListener('DOMContentLoaded', function() {
+    const btnDecrypt  = document.getElementById('btnDecrypt');
+    const decryptPin  = document.getElementById('decryptPin');
+    const decryptErr  = document.getElementById('decryptError');
+
+    if (!btnDecrypt) return;
+
+    btnDecrypt.addEventListener('click', async function() {
+        const pin = decryptPin ? decryptPin.value.trim() : '';
+        if (!pin) {
+            decryptErr.textContent = 'Please enter your Encryption PIN.';
+            decryptErr.classList.remove('d-none');
+            return;
+        }
+        decryptErr.classList.add('d-none');
+        btnDecrypt.disabled = true;
+        btnDecrypt.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Decrypting…';
+
+        try {
+            // Fetch the wrapped private key from the server
+            const resp = await fetch('{{ route("insurance.encryption.private-key") }}');
+            if (!resp.ok) throw new Error('Could not load private key from server.');
+            const keyBlob = await resp.json();
+
+            // Unwrap the RSA private key using the PIN
+            const privateKey = await E2EEncryption.decryptPrivateKey(
+                keyBlob.encrypted_private_key,
+                keyBlob.key_iv,
+                keyBlob.key_salt,
+                pin
+            );
+
+            const fmt = n => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
+
+            // Decrypt garage amounts
+            for (const [appId, cipher] of Object.entries(_encryptedApps)) {
+                if (!cipher) continue;
+                const amount = parseFloat(await E2EEncryption.decryptValue(cipher, privateKey));
+                document.querySelectorAll(`.encrypted-price[data-app-id="${appId}"]`).forEach(el => {
+                    el.outerHTML = `<span>${fmt(amount)}</span>`;
+                });
+            }
+
+            // Decrypt shop part prices and recalculate per-app subtotals
+            const appSubtotals = {}; // { app_id: subtotal }
+            for (const [priceId, data] of Object.entries(_encryptedPrices)) {
+                if (!data.cipher) continue;
+                const unitPrice = parseFloat(await E2EEncryption.decryptValue(data.cipher, privateKey));
+                const partTotal = unitPrice * (data.qty || 1);
+
+                document.querySelectorAll(`.enc-unit-price[data-price-id="${priceId}"]`).forEach(el => {
+                    el.outerHTML = `<span>${fmt(unitPrice)}</span>`;
+                });
+                document.querySelectorAll(`.enc-part-total[data-price-id="${priceId}"]`).forEach(el => {
+                    el.outerHTML = `<span>${fmt(partTotal)}</span>`;
+                });
+
+                // Accumulate subtotal per application
+                const appId = data.app_id;
+                if (appId) appSubtotals[appId] = (appSubtotals[appId] || 0) + partTotal;
+            }
+
+            // Update tfoot subtotal / discount / net total cells for each shop application
+            for (const [appId, subtotal] of Object.entries(appSubtotals)) {
+                const discountCell = document.querySelector(`.shop-discount-val[data-app-id="${appId}"]`);
+                const discountPct  = discountCell ? parseFloat(discountCell.dataset.discountPct) || 0 : 0;
+                const discountAmt  = (subtotal * discountPct) / 100;
+                const netTotal     = subtotal - discountAmt;
+
+                const subtotalCell = document.querySelector(`.shop-subtotal-val[data-app-id="${appId}"]`);
+                const netTotalCell = document.querySelector(`.shop-nettotal-val[data-app-id="${appId}"]`);
+                if (subtotalCell) subtotalCell.textContent = fmt(subtotal);
+                if (discountCell) discountCell.textContent = `${fmt(discountAmt)} (${discountPct}%)`;
+                if (netTotalCell) netTotalCell.textContent = fmt(netTotal);
+            }
+
+            document.getElementById('decryptPanel').innerHTML =
+                '<div class="alert alert-success mb-0"><i class="bx bx-check-circle me-2"></i>Prices decrypted successfully.</div>';
+
+        } catch (err) {
+            decryptErr.textContent = 'Decryption failed — check your PIN and try again. (' + err.message + ')';
+            decryptErr.classList.remove('d-none');
+            btnDecrypt.disabled = false;
+            btnDecrypt.innerHTML = '<i class="bx bx-lock-open me-1"></i> Decrypt Prices';
+        }
+    });
+});
+
+// ── Etera-Chereta dropdown functionality
 document.addEventListener('DOMContentLoaded', function() {
     const proformaTypeSelect = document.getElementById('insuranceProformaType');
     const eteraCheretaDropdown = document.getElementById('insuranceEteraCheretaDropdown');

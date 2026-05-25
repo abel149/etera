@@ -704,6 +704,7 @@
         </div>
     </div>
 
+    <script>{!! file_get_contents(base_path('resources/js/e2e-encryption.js')) !!}</script>
     <script>
         // START: JAVASCRIPT LOGIC
 
@@ -918,11 +919,118 @@
                 }
             }, 100);
 
-            // Setup form submission listener for loading state
+            // Setup form submission listener (E2E encryption + loading state)
             const form = document.getElementById('proforma-quote-form');
             if (form) {
-                form.addEventListener('submit', function(e) {
-                    submitQuote(e);
+                form.addEventListener('submit', async function(e) {
+                    e.preventDefault();
+
+                    const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+
+                    // ── Frontend validation ──────────────────────────────────
+                    if (isShopRole) {
+                        const priceInputs = form.querySelectorAll('.unit-price-input');
+                        const hasAtLeastOne = Array.from(priceInputs).some(
+                            inp => inp.value.trim() !== '' && parseFloat(inp.value) > 0
+                        );
+                        if (!hasAtLeastOne) {
+                            alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
+                            return;
+                        }
+                        for (const inp of priceInputs) {
+                            const val = inp.value.trim();
+                            if (val !== '' && parseFloat(val) < 1) {
+                                inp.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable');
+                                inp.reportValidity();
+                                return;
+                            }
+                            inp.setCustomValidity('');
+                        }
+                    }
+
+                    // ── Show loading state ───────────────────────────────────
+                    const submitBtn = document.getElementById('submitBtn');
+                    const btnText   = submitBtn ? submitBtn.querySelector('.btn-text')    : null;
+                    const btnLoad   = submitBtn ? submitBtn.querySelector('.btn-loading') : null;
+                    if (submitBtn) submitBtn.disabled = true;
+                    if (btnText)   btnText.style.display = 'none';
+                    if (btnLoad) { btnLoad.style.display = 'inline-flex'; btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Checking encryption…'; }
+
+                    // ── E2E Encryption (insurance proformas only) ────────────
+                    const isInsuranceProforma = {{ $proforma->poster?->role === 'insurance' ? 'true' : 'false' }};
+
+                    if (isInsuranceProforma) {
+                        // Encryption is MANDATORY for insurance proformas.
+                        let keyData;
+                        try {
+                            if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Checking encryption…';
+                            const resp = await fetch('{{ route("insurance.public-key", $proforma->id) }}');
+                            keyData = await resp.json();
+                        } catch (err) {
+                            // Network / fetch error — do NOT fall through to plaintext
+                            if (submitBtn) submitBtn.disabled = false;
+                            if (btnText)   btnText.style.display = '';
+                            if (btnLoad)   btnLoad.style.display = 'none';
+                            alert('Could not verify encryption status. Please check your connection and try again.');
+                            return;
+                        }
+
+                        if (!keyData.has_encryption || !keyData.public_key) {
+                            // Insurance has not set up their encryption keys yet
+                            if (submitBtn) submitBtn.disabled = false;
+                            if (btnText)   btnText.style.display = '';
+                            if (btnLoad)   btnLoad.style.display = 'none';
+                            alert('This proforma requires encrypted price submission.\nThe insurance company has not set up their encryption keys yet.\nPlease contact the insurance or try again later.');
+                            return;
+                        }
+
+                        // Encrypt prices before POST
+                        if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-lock-alt bx-spin"></i> Encrypting prices…';
+
+                        let flagInput = form.querySelector('input[name="prices_encrypted"]');
+                        if (!flagInput) {
+                            flagInput = document.createElement('input');
+                            flagInput.type = 'hidden';
+                            flagInput.name = 'prices_encrypted';
+                            form.appendChild(flagInput);
+                        }
+                        flagInput.value = '1';
+
+                        if (isShopRole) {
+                            const priceInputs = form.querySelectorAll('.unit-price-input');
+                            for (let i = 0; i < priceInputs.length; i++) {
+                                const raw = priceInputs[i].value.trim();
+                                if (raw) {
+                                    const cipher = await E2EEncryption.encryptValue(raw, keyData.public_key);
+                                    const hidden = document.createElement('input');
+                                    hidden.type  = 'hidden';
+                                    hidden.name  = `encrypted_total[${i}]`;
+                                    hidden.value = cipher;
+                                    form.appendChild(hidden);
+                                }
+                                priceInputs[i].name = ''; // strip plaintext from POST
+                            }
+                            const amtInput = form.querySelector('#total-amount');
+                            if (amtInput) amtInput.name = '';
+                        } else {
+                            // Garage
+                            const amtInput = document.getElementById('total-amount');
+                            const raw = amtInput ? amtInput.value.trim() : '';
+                            if (raw) {
+                                const cipher = await E2EEncryption.encryptValue(raw, keyData.public_key);
+                                const hidden = document.createElement('input');
+                                hidden.type  = 'hidden';
+                                hidden.name  = 'encrypted_amount';
+                                hidden.value = cipher;
+                                form.appendChild(hidden);
+                            }
+                            if (amtInput) amtInput.name = '';
+                        }
+                    }
+                    // Non-insurance proformas: no encryption, submit plaintext as normal
+
+                    if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…';
+                    form.submit();
                 });
             }
         });

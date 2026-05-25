@@ -140,6 +140,17 @@
 						<div class="menu-title">Partners</div>
 					</a>
 				</li>
+				<li>
+					<a href="{{ route('insurance.encryption.setup') }}">
+						<div class="parent-icon"><i class='bx bx-lock-alt'></i></div>
+						<div class="menu-title">
+							Encryption Setup
+							@if(!auth()->user()->has_encryption)
+							<span class="badge bg-warning text-dark ms-1" style="font-size:10px;">Off</span>
+							@endif
+						</div>
+					</a>
+				</li>
 
 
 
