@@ -105,6 +105,45 @@ const E2EEncryption = (() => {
         return importPrivateKey(dec.decode(plaintext));
     }
 
+    /**
+     * Like decryptPrivateKey but returns the raw base64 private key string
+     * instead of a CryptoKey. Use this to cache the key in sessionStorage.
+     */
+    async function decryptPrivateKeyRaw(encryptedB64, ivB64, saltB64, pin) {
+        const aesKey = await deriveAESKey(pin, unb64(saltB64));
+        const plaintext = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: unb64(ivB64) },
+            aesKey,
+            unb64(encryptedB64)
+        );
+        return dec.decode(plaintext); // raw base64 pkcs8 string
+    }
+
+    /**
+     * Re-wraps the RSA private key with a new PIN — works entirely at the
+     * raw-bytes level so extractable:false is never an issue.
+     * Returns { encrypted, iv, salt } — same shape as encryptPrivateKey().
+     */
+    async function rewrapPrivateKey(encryptedB64, ivB64, saltB64, oldPin, newPin) {
+        // 1. AES-decrypt with old PIN → raw ArrayBuffer of private key bytes
+        const aesOld    = await deriveAESKey(oldPin, unb64(saltB64));
+        const rawBytes  = await crypto.subtle.decrypt(
+            { name: 'AES-GCM', iv: unb64(ivB64) },
+            aesOld,
+            unb64(encryptedB64)
+        );
+        // 2. AES-encrypt the same raw bytes with new PIN
+        const newSalt = crypto.getRandomValues(new Uint8Array(16));
+        const newIv   = crypto.getRandomValues(new Uint8Array(12));
+        const aesNew  = await deriveAESKey(newPin, newSalt);
+        const cipher  = await crypto.subtle.encrypt(
+            { name: 'AES-GCM', iv: newIv },
+            aesNew,
+            rawBytes
+        );
+        return { encrypted: b64(cipher), iv: b64(newIv), salt: b64(newSalt) };
+    }
+
     // ── Encrypt / Decrypt Price Values ───────────────────────────────────────
 
     /**
@@ -138,8 +177,11 @@ const E2EEncryption = (() => {
     return {
         generateKeyPair,
         exportPublicKey,
+        importPrivateKey,
         encryptPrivateKey,
         decryptPrivateKey,
+        decryptPrivateKeyRaw,
+        rewrapPrivateKey,
         encryptValue,
         decryptValue,
     };

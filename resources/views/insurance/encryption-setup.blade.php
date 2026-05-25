@@ -284,15 +284,13 @@ if (btnChangePin) {
             if (!keyResp.ok) throw new Error('Could not fetch private key.');
             const keyBlob = await keyResp.json();
 
-            // 2. Decrypt with old PIN
-            cpText.textContent = 'Decrypting with current PIN…';
-            const privateKey = await E2EEncryption.decryptPrivateKey(
-                keyBlob.encrypted_private_key, keyBlob.key_iv, keyBlob.key_salt, oldPin
+            // 2. Re-wrap: decrypt with old PIN then re-encrypt with new PIN
+            //    (works at raw bytes level — no extractable:false issue)
+            cpText.textContent = 'Re-wrapping key with new PIN…';
+            const { encrypted, iv, salt } = await E2EEncryption.rewrapPrivateKey(
+                keyBlob.encrypted_private_key, keyBlob.key_iv, keyBlob.key_salt,
+                oldPin, newPin
             );
-
-            // 3. Re-encrypt with new PIN
-            cpText.textContent = 'Re-wrapping with new PIN…';
-            const { encrypted, iv, salt } = await E2EEncryption.encryptPrivateKey(privateKey, newPin);
 
             // 4. Save — only the wrapped key changes, public key stays the same
             cpText.textContent = 'Saving to server…';

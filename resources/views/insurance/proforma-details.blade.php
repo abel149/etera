@@ -1013,31 +1013,107 @@ function openPrintingPage() {
     printWindow.document.close();
 }
 
+@php
+    // Build encrypted data maps in PHP to avoid complex expressions inside @json()
+    $encryptedAppsMap = [];
+    foreach ($applications as $_app) {
+        if (!empty($_app->amount_is_encrypted) && $_app->encrypted_amount) {
+            $encryptedAppsMap[$_app->id] = $_app->encrypted_amount;
+        }
+    }
+    $encryptedPricesMap = [];
+    foreach ($applications->where('from', 'shop') as $_app) {
+        foreach ($_app->prices as $_price) {
+            if (!empty($_price->price_is_encrypted) && $_price->encrypted_unit_price) {
+                $encryptedPricesMap[$_price->id] = [
+                    'id'     => $_price->id,
+                    'cipher' => $_price->encrypted_unit_price,
+                    'qty'    => $_price->quantity,
+                    'app_id' => $_app->id,
+                ];
+            }
+        }
+    }
+@endphp
 // ── E2E Decryption ───────────────────────────────────────────────────────────────────
 // Garage encrypted amounts: { application_id: encrypted_amount_ciphertext }
-const _encryptedApps = @json(
-    $applications->filter(fn($a) => $a->amount_is_encrypted)
-        ->mapWithKeys(fn($a) => [$a->id => $a->encrypted_amount])
-);
+const _encryptedApps = @json($encryptedAppsMap);
 
-// Shop encrypted part prices: { price_id: { cipher, qty, app_id } }
-const _encryptedPrices = @json(
-    $applications->where('from', 'shop')
-        ->flatMap(fn($a) => $a->prices
-            ->filter(fn($p) => $p->price_is_encrypted)
-            ->map(fn($p) => ['id' => $p->id, 'cipher' => $p->encrypted_unit_price, 'qty' => $p->quantity, 'app_id' => $a->id])
-            ->values()
-        )
-        ->mapWithKeys(fn($p) => [$p['id'] => $p])
-);
+// Shop encrypted part prices: { price_id: { id, cipher, qty, app_id } }
+const _encryptedPrices = @json($encryptedPricesMap);
 
-document.addEventListener('DOMContentLoaded', function() {
+const _SESSION_KEY = 'e2e_priv_key_{{ auth()->id() }}';
+const _hasEncrypted = Object.keys(_encryptedApps).length + Object.keys(_encryptedPrices).length > 0;
+
+// ── Shared: apply all DOM decryption updates given a CryptoKey ───────────────
+async function applyDecryption(privateKey) {
+    const fmt = n => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
+
+    for (const [appId, cipher] of Object.entries(_encryptedApps)) {
+        if (!cipher) continue;
+        const amount = parseFloat(await E2EEncryption.decryptValue(cipher, privateKey));
+        document.querySelectorAll(`.encrypted-price[data-app-id="${appId}"]`).forEach(el => {
+            el.outerHTML = `<span>${fmt(amount)}</span>`;
+        });
+    }
+
+    const appSubtotals = {};
+    for (const [priceId, data] of Object.entries(_encryptedPrices)) {
+        if (!data.cipher) continue;
+        const unitPrice = parseFloat(await E2EEncryption.decryptValue(data.cipher, privateKey));
+        const partTotal = unitPrice * (data.qty || 1);
+
+        document.querySelectorAll(`.enc-unit-price[data-price-id="${priceId}"]`).forEach(el => {
+            el.outerHTML = `<span>${fmt(unitPrice)}</span>`;
+        });
+        document.querySelectorAll(`.enc-part-total[data-price-id="${priceId}"]`).forEach(el => {
+            el.outerHTML = `<span>${fmt(partTotal)}</span>`;
+        });
+
+        const appId = data.app_id;
+        if (appId) appSubtotals[appId] = (appSubtotals[appId] || 0) + partTotal;
+    }
+
+    for (const [appId, subtotal] of Object.entries(appSubtotals)) {
+        const discountCell = document.querySelector(`.shop-discount-val[data-app-id="${appId}"]`);
+        const discountPct  = discountCell ? parseFloat(discountCell.dataset.discountPct) || 0 : 0;
+        const discountAmt  = (subtotal * discountPct) / 100;
+        const netTotal     = subtotal - discountAmt;
+
+        const subtotalCell = document.querySelector(`.shop-subtotal-val[data-app-id="${appId}"]`);
+        const netTotalCell = document.querySelector(`.shop-nettotal-val[data-app-id="${appId}"]`);
+        if (subtotalCell) subtotalCell.textContent = fmt(subtotal);
+        if (discountCell) discountCell.textContent = `${fmt(discountAmt)} (${discountPct}%)`;
+        if (netTotalCell) netTotalCell.textContent = fmt(netTotal);
+    }
+
+    const panel = document.getElementById('decryptPanel');
+    if (panel) panel.innerHTML =
+        '<div class="alert alert-success mb-0"><i class="bx bx-check-circle me-2"></i>Prices decrypted successfully.</div>';
+}
+
+document.addEventListener('DOMContentLoaded', async function() {
     const btnDecrypt  = document.getElementById('btnDecrypt');
     const decryptPin  = document.getElementById('decryptPin');
     const decryptErr  = document.getElementById('decryptError');
 
+    // ── Auto-decrypt from sessionStorage (user already unlocked this session) ─
+    if (_hasEncrypted) {
+        const cached = sessionStorage.getItem(_SESSION_KEY);
+        if (cached) {
+            try {
+                const privateKey = await E2EEncryption.importPrivateKey(cached);
+                await applyDecryption(privateKey);
+                return; // panel replaced with success, no PIN prompt needed
+            } catch (_) {
+                sessionStorage.removeItem(_SESSION_KEY); // stale — fall through to PIN prompt
+            }
+        }
+    }
+
     if (!btnDecrypt) return;
 
+    // ── Manual decrypt via PIN ────────────────────────────────────────────────
     btnDecrypt.addEventListener('click', async function() {
         const pin = decryptPin ? decryptPin.value.trim() : '';
         if (!pin) {
@@ -1050,65 +1126,26 @@ document.addEventListener('DOMContentLoaded', function() {
         btnDecrypt.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Decrypting…';
 
         try {
-            // Fetch the wrapped private key from the server
             const resp = await fetch('{{ route("insurance.encryption.private-key") }}');
             if (!resp.ok) throw new Error('Could not load private key from server.');
             const keyBlob = await resp.json();
 
-            // Unwrap the RSA private key using the PIN
-            const privateKey = await E2EEncryption.decryptPrivateKey(
+            // Decrypt to raw bytes so we can cache in sessionStorage
+            const rawKeyB64 = await E2EEncryption.decryptPrivateKeyRaw(
                 keyBlob.encrypted_private_key,
                 keyBlob.key_iv,
                 keyBlob.key_salt,
                 pin
             );
 
-            const fmt = n => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
+            // Import as CryptoKey for decryption
+            const privateKey = await E2EEncryption.importPrivateKey(rawKeyB64);
 
-            // Decrypt garage amounts
-            for (const [appId, cipher] of Object.entries(_encryptedApps)) {
-                if (!cipher) continue;
-                const amount = parseFloat(await E2EEncryption.decryptValue(cipher, privateKey));
-                document.querySelectorAll(`.encrypted-price[data-app-id="${appId}"]`).forEach(el => {
-                    el.outerHTML = `<span>${fmt(amount)}</span>`;
-                });
-            }
+            // Apply DOM updates
+            await applyDecryption(privateKey);
 
-            // Decrypt shop part prices and recalculate per-app subtotals
-            const appSubtotals = {}; // { app_id: subtotal }
-            for (const [priceId, data] of Object.entries(_encryptedPrices)) {
-                if (!data.cipher) continue;
-                const unitPrice = parseFloat(await E2EEncryption.decryptValue(data.cipher, privateKey));
-                const partTotal = unitPrice * (data.qty || 1);
-
-                document.querySelectorAll(`.enc-unit-price[data-price-id="${priceId}"]`).forEach(el => {
-                    el.outerHTML = `<span>${fmt(unitPrice)}</span>`;
-                });
-                document.querySelectorAll(`.enc-part-total[data-price-id="${priceId}"]`).forEach(el => {
-                    el.outerHTML = `<span>${fmt(partTotal)}</span>`;
-                });
-
-                // Accumulate subtotal per application
-                const appId = data.app_id;
-                if (appId) appSubtotals[appId] = (appSubtotals[appId] || 0) + partTotal;
-            }
-
-            // Update tfoot subtotal / discount / net total cells for each shop application
-            for (const [appId, subtotal] of Object.entries(appSubtotals)) {
-                const discountCell = document.querySelector(`.shop-discount-val[data-app-id="${appId}"]`);
-                const discountPct  = discountCell ? parseFloat(discountCell.dataset.discountPct) || 0 : 0;
-                const discountAmt  = (subtotal * discountPct) / 100;
-                const netTotal     = subtotal - discountAmt;
-
-                const subtotalCell = document.querySelector(`.shop-subtotal-val[data-app-id="${appId}"]`);
-                const netTotalCell = document.querySelector(`.shop-nettotal-val[data-app-id="${appId}"]`);
-                if (subtotalCell) subtotalCell.textContent = fmt(subtotal);
-                if (discountCell) discountCell.textContent = `${fmt(discountAmt)} (${discountPct}%)`;
-                if (netTotalCell) netTotalCell.textContent = fmt(netTotal);
-            }
-
-            document.getElementById('decryptPanel').innerHTML =
-                '<div class="alert alert-success mb-0"><i class="bx bx-check-circle me-2"></i>Prices decrypted successfully.</div>';
+            // Cache raw key in sessionStorage — auto-decrypt on next page load this session
+            sessionStorage.setItem(_SESSION_KEY, rawKeyB64);
 
         } catch (err) {
             decryptErr.textContent = 'Decryption failed — check your PIN and try again. (' + err.message + ')';
