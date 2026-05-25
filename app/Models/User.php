@@ -89,6 +89,11 @@ class User extends Authenticatable
         'commission_per_file',
         'employee_type',
         'telegram_chat_id',
+        'public_key',
+        'encrypted_private_key',
+        'key_iv',
+        'key_salt',
+        'has_encryption',
     ];
 
     protected $hidden = [
@@ -105,6 +110,7 @@ class User extends Authenticatable
         'password'            => 'hashed', // Requires Laravel 10+. Use 'string' for older versions.
         'is_new'              => 'boolean',
         'approved'            => 'boolean', // ✅ CRITICAL: Ensures 0/1 becomes false/true
+        'has_encryption'      => 'boolean', // ✅ CRITICAL: prevents PDO "0" string being truthy
         'file_quota'          => 'integer',
         'commission_per_file' => 'decimal:2',
     ];
