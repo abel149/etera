@@ -3086,6 +3086,16 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
         ])->name('partners.destroy');
         Route::post('partners/add', [PartnerController::class, 'store'])->name('partners.add');
 
+        // ── E2E Encryption ────────────────────────────────────────────────
+        Route::get('encryption/setup', [\App\Http\Controllers\InsuranceEncryptionController::class, 'setupPage'])
+            ->name('insurance.encryption.setup');
+        Route::post('encryption/setup', [\App\Http\Controllers\InsuranceEncryptionController::class, 'saveKeys'])
+            ->name('insurance.encryption.setup.save');
+        Route::get('encryption/private-key', [\App\Http\Controllers\InsuranceEncryptionController::class, 'getEncryptedPrivateKey'])
+            ->name('insurance.encryption.private-key');
+        Route::post('encryption/change-pin', [\App\Http\Controllers\InsuranceEncryptionController::class, 'changePin'])
+            ->name('insurance.encryption.change-pin');
+
         Route::get('/profile', function () {
             return view('insurance.profile');
         });
@@ -3463,18 +3473,32 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             Request $request,
             Proforma $proforma
         ) {
-            $request->validate([
-                'amount' => 'required|numeric|min:1',
-                'discount' => 'nullable|numeric|min:0|max:100',
-            ]);
+            $isEncrypted = $request->boolean('prices_encrypted', false);
 
-            // Calculate final amount
-            $initialPrice = $request->amount;
-            $discount = $request->discount ?? 0;
-            $finalAmount = $request->input('final-amount', $initialPrice);
-            
-            // Ensure minimum amount
-            $finalAmount = max($finalAmount, 1);
+            if ($isEncrypted) {
+                $request->validate(['encrypted_amount' => 'required|string']);
+            } else {
+                $request->validate([
+                    'amount'   => 'required|numeric|min:1',
+                    'discount' => 'nullable|numeric|min:0|max:100',
+                ]);
+            }
+
+            // Insurance proformas require encrypted submissions — always.
+            if (!$isEncrypted && optional($proforma->poster)->role === 'insurance') {
+                return redirect()->back()
+                    ->withErrors(['general' => 'Encrypted price submission is required for this proforma. Please contact the insurance.'])
+                    ->withInput();
+            }
+
+            $discount     = $request->discount ?? 0;
+            $finalAmount  = 0;
+
+            if (!$isEncrypted) {
+                $initialPrice = $request->amount;
+                $finalAmount  = $initialPrice - ($initialPrice * $discount / 100);
+                $finalAmount  = max($finalAmount, 1);
+            }
 
             // Detect inbox source BEFORE deleting inbox
             $isInsuranceInboxed = $proforma->inboxes()
@@ -3484,13 +3508,18 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
 
             $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
 
-            $application = $proforma->applications()->create([
-                'application_by' => auth()->id(),
-                'from' => 'garage',
-                'amount' => $finalAmount,
-                'discount' => $discount,
-                'application_source' => $applicationSource,
-            ]);
+            $appData = [
+                'application_by'    => auth()->id(),
+                'from'              => 'garage',
+                'amount'            => $finalAmount,
+                'discount'          => $isEncrypted ? 0 : $discount,
+                'application_source'=> $applicationSource,
+            ];
+            if ($isEncrypted && $request->filled('encrypted_amount')) {
+                $appData['encrypted_amount']   = $request->encrypted_amount;
+                $appData['amount_is_encrypted'] = true;
+            }
+            $application = $proforma->applications()->create($appData);
 
             // ── Inbox cleanup (always runs before notification) ──────────────
             // Remove own inbox record
@@ -3825,6 +3854,11 @@ foreach ($partsData['condition'] as $index => $condition) {
     });
 
 Route::post('apply/{proforma}', [ProformaApplicationController::class, 'store'])->name('proforma.apply');
+
+// Public key endpoint — used by shop/garage to encrypt prices before submitting
+Route::get('insurance/public-key/{proforma}', [\App\Http\Controllers\InsuranceEncryptionController::class, 'getPublicKey'])
+    ->middleware('auth')
+    ->name('insurance.public-key');
 
 Route::prefix('spare-part-shops')
     ->middleware([ShopMiddleware::class])
