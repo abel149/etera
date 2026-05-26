@@ -135,6 +135,24 @@
 }
 
 </style>
+
+@if(auth()->user()->has_encryption)
+<div id="decryptPanel" class="alert alert-warning d-flex align-items-start gap-3 mb-3 p-3" role="alert">
+    <i class="bx bx-lock fs-2 flex-shrink-0 mt-1"></i>
+    <div class="flex-grow-1">
+        <div class="fw-semibold mb-1">Prices are encrypted &mdash; enter your Encryption PIN to view them.</div>
+        <div class="d-flex flex-wrap gap-2 align-items-center">
+            <input type="password" id="decryptPin" class="form-control form-control-sm"
+                   placeholder="Encryption PIN" style="max-width:220px;">
+            <button id="btnDecrypt" class="btn btn-warning btn-sm px-4 radius-30">
+                <i class="bx bx-lock-open me-1"></i> Decrypt Prices
+            </button>
+        </div>
+        <div id="decryptError" class="text-danger small mt-2 d-none"></div>
+    </div>
+</div>
+@endif
+
 <div class="card">
     <div class="card-body">
     

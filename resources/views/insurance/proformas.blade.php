@@ -96,7 +96,7 @@
 								<td class="plate">{{$proforma->license_plate_number}}</td>
 								<td class="phone">{{$proforma->customer_phone_number}}</td>
 								<td>
-									<a class="btn" data-id="{{$proforma->id}}" data-bs-toggle="modal" data-bs-target="#pass">
+									<a class="btn" href="/insurance/proforma-details?proforma_id={{$proforma->id}}">
 										<i class="bx bx-show me-0"></i>
 									</a>
 								</td>
@@ -113,40 +113,7 @@
 	</div>
 </div>
 
-<!-- Password Modal -->
-<div class="modal fade" id="pass" tabindex="-1">
-   	<form action="/check-password" method="POST">
-	@csrf
-    <div class="modal-dialog modal-dialog-centered">
-		<div class="modal-content">
-			<div class="modal-header">
-				<h5 class="modal-title">Password Required</h5>
-				<button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-			</div>
-
-			<div class="modal-body">
-				<label class="form-label">Enter your password to access this file</label>
-                <input type="password" name="password" class="form-control" placeholder="********">
-            </div>
-
-            <input type="hidden" name="proforma" id="proformaId">
-
-			<div class="modal-footer">
-				<button type="button" class="btn btn-outline-secondary radius-30" data-bs-dismiss="modal">Cancel</button>
-				<button type="submit" class="btn btn-primary radius-30">Enter</button>
-			</div>
-		</div>
-	</div>
-    </form>
-</div>
-
 <script>
-	// Assign proforma ID in modal
-	document.getElementById('pass').addEventListener('show.bs.modal', function (event) {
-		let proformaId = event.relatedTarget.getAttribute('data-id');
-		document.getElementById('proformaId').value = proformaId;
-	});
-
 	// ============================
 	//  🔎 JS SEARCH FUNCTIONALITY
 	// ============================
