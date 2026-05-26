@@ -303,27 +303,6 @@
                 @endforeach
             </div>
             
-            {{-- ── E2E Decrypt Panel (shown only when encrypted prices exist) ── --}}
-            @php $hasEncryptedPrices = $applications->contains(fn($a) => $a->amount_is_encrypted || $a->prices->contains(fn($p) => $p->price_is_encrypted)); @endphp
-            @if($hasEncryptedPrices)
-            <div class="col-12 mb-4" id="decryptPanel">
-                <div class="card border-warning">
-                    <div class="card-body d-flex flex-wrap align-items-center gap-3">
-                        <i class="bx bx-lock fs-3 text-warning"></i>
-                        <div class="flex-grow-1">
-                            <h6 class="mb-0 fw-semibold">Some prices are encrypted</h6>
-                            <p class="mb-0 text-secondary small">Enter your Encryption PIN to reveal all prices in this browser session.</p>
-                        </div>
-                        <input type="password" id="decryptPin" class="form-control" style="max-width:200px;" placeholder="Encryption PIN">
-                        <button id="btnDecrypt" class="btn btn-warning radius-30 flex-shrink-0">
-                            <i class="bx bx-lock-open me-1"></i> Decrypt Prices
-                        </button>
-                        <div id="decryptError" class="text-danger small w-100 d-none"></div>
-                    </div>
-                </div>
-            </div>
-            @endif
-
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
                 @foreach($applications as $application)
@@ -1060,9 +1039,6 @@ const _encryptedApps = @json($encryptedAppsMap);
 // Shop encrypted part prices: { price_id: { id, cipher, qty, app_id } }
 const _encryptedPrices = @json($encryptedPricesMap);
 
-const _SESSION_KEY = 'e2e_priv_key_{{ auth()->id() }}';
-const _hasEncrypted = Object.keys(_encryptedApps).length + Object.keys(_encryptedPrices).length > 0;
-
 // ── Shared: apply all DOM decryption updates given a CryptoKey ───────────────
 async function applyDecryption(privateKey) {
     const fmt = n => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
@@ -1110,28 +1086,13 @@ async function applyDecryption(privateKey) {
         '<div class="alert alert-success mb-0"><i class="bx bx-check-circle me-2"></i>Prices decrypted successfully.</div>';
 }
 
-document.addEventListener('DOMContentLoaded', async function() {
-    const btnDecrypt  = document.getElementById('btnDecrypt');
-    const decryptPin  = document.getElementById('decryptPin');
-    const decryptErr  = document.getElementById('decryptError');
-
-    // ── Auto-decrypt from sessionStorage (user already unlocked this session) ─
-    if (_hasEncrypted) {
-        const cached = sessionStorage.getItem(_SESSION_KEY);
-        if (cached) {
-            try {
-                const privateKey = await E2EEncryption.importPrivateKey(cached);
-                await applyDecryption(privateKey);
-                return; // panel replaced with success, no PIN prompt needed
-            } catch (_) {
-                sessionStorage.removeItem(_SESSION_KEY); // stale — fall through to PIN prompt
-            }
-        }
-    }
+document.addEventListener('DOMContentLoaded', function() {
+    const btnDecrypt = document.getElementById('btnDecrypt');
+    const decryptPin = document.getElementById('decryptPin');
+    const decryptErr = document.getElementById('decryptError');
 
     if (!btnDecrypt) return;
 
-    // ── Manual decrypt via PIN ────────────────────────────────────────────────
     btnDecrypt.addEventListener('click', async function() {
         const pin = decryptPin ? decryptPin.value.trim() : '';
         if (!pin) {
@@ -1148,22 +1109,14 @@ document.addEventListener('DOMContentLoaded', async function() {
             if (!resp.ok) throw new Error('Could not load private key from server.');
             const keyBlob = await resp.json();
 
-            // Decrypt to raw bytes so we can cache in sessionStorage
-            const rawKeyB64 = await E2EEncryption.decryptPrivateKeyRaw(
+            const privateKey = await E2EEncryption.decryptPrivateKey(
                 keyBlob.encrypted_private_key,
                 keyBlob.key_iv,
                 keyBlob.key_salt,
                 pin
             );
 
-            // Import as CryptoKey for decryption
-            const privateKey = await E2EEncryption.importPrivateKey(rawKeyB64);
-
-            // Apply DOM updates
             await applyDecryption(privateKey);
-
-            // Cache raw key in sessionStorage — auto-decrypt on next page load this session
-            sessionStorage.setItem(_SESSION_KEY, rawKeyB64);
 
         } catch (err) {
             decryptErr.textContent = 'Decryption failed — check your PIN and try again. (' + err.message + ')';
