@@ -3551,10 +3551,15 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $proforma->inboxes()->delete();
             }
 
-            // ── Notify poster (best-effort — must not crash the apply flow) ──
+            // ── Notify poster via Telegram (best-effort — must not crash the apply flow) ──
             try {
-                if ($proforma->poster && $proforma->poster->id !== auth()->id()) {
-                    $proforma->poster->notify(new ProformaApplicationReceived($proforma, $application, auth()->user()));
+                if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                    $telegram = new \App\Services\TelegramService();
+                    $telegram->sendApplicationReceivedNotification(
+                        $proforma->poster->telegram_chat_id,
+                        $proforma,
+                        auth()->user()->role
+                    );
                 }
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Garage application notification failed', [
