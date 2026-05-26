@@ -494,7 +494,7 @@
             <div class="col-xl-8 col-lg-8">
                 <form
                     action="{{ auth()->check() && auth()->user()->role === 'garage' ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
-                    method="POST" id="proforma-quote-form">
+                    method="POST" id="proforma-quote-form" novalidate>
                     @csrf
                     <div class="table-container">
                         <table class="basic-table">
@@ -946,6 +946,15 @@
                             }
                             inp.setCustomValidity('');
                         }
+                    } else {
+                        // Garage: validate the repair estimate amount
+                        const amtInput = form.querySelector('#total-amount');
+                        const amt = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+                        if (amt < 1) {
+                            alert('Please enter a valid repair estimate price (minimum 1 ETB).');
+                            if (amtInput) { amtInput.focus(); amtInput.select(); }
+                            return;
+                        }
                     }
 
                     // ── Show loading state ───────────────────────────────────
@@ -1030,6 +1039,8 @@
                     // Non-insurance proformas: no encryption, submit plaintext as normal
 
                     if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…';
+                    // Yield one macrotask so the browser paints the loading state before navigation
+                    await new Promise(r => setTimeout(r, 0));
                     form.submit();
                 });
             }
