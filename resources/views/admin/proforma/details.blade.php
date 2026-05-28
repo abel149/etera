@@ -411,13 +411,16 @@
 
     {{-- Admin Inbox Management — Floating Button + Modal --}}
     @php
-        $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
-        $isEteraChereta  = $requiredShops === 0 && $requiredGarages === 0;
-        $hasAdminSlots   = ($adminShopSlotCap > 0 || $adminGarageSlotCap > 0);
-        $proformaActive  = !in_array($proforma->status, ['closed', 'completed']);
+        $requiredShops      = (int) ($proforma->required_number_of_shops ?? 0);
+        $isEteraChereta     = $requiredShops === 0 && $requiredGarages === 0;
+        $shopQuota          = $proforma->shopPartnerQuota();
+        $garageQuota        = $proforma->garagePartnerQuota();
+        $hasInsuranceSlots  = ($shopQuota > 0 || $garageQuota > 0);
+        $hasAdminSlots      = ($adminShopSlotCap > 0 || $adminGarageSlotCap > 0);
+        $proformaActive     = !in_array($proforma->status, ['closed', 'completed']);
     @endphp
 
-    @if(!$isEteraChereta && $hasAdminSlots && $proformaActive)
+    @if(!$isEteraChereta && ($hasAdminSlots || $hasInsuranceSlots) && $proformaActive)
     {{-- Floating Action Button — always visible when admin has slots to manage --}}
     <button type="button" class="btn btn-primary rounded-circle shadow-lg" id="inboxFab"
         data-bs-toggle="modal" data-bs-target="#inboxModal"
@@ -467,9 +470,46 @@
                         </script>
 
                         {{-- ── Shop Slots ────────────────────────────────────── --}}
-                        @if($adminShopSlotCap > 0)
+                        @if($adminShopSlotCap > 0 || $shopQuota > 0)
                         <h6 class="fw-bold mb-2 text-primary"><i class="bx bx-store me-1"></i>Shop Slots</h6>
-                        @if(count($activeApplicationShopIds) > 0)
+
+                        {{-- Insurance-reserved locked slots --}}
+                        @if($shopQuota > 0)
+                            @if(count($insuranceShopInboxes) > 0)
+                                @foreach($insuranceShopInboxes as $insInbox)
+                                @php
+                                    $insApplied = in_array((int)$insInbox->user_id, $activeApplicationShopIds);
+                                    $insLabel   = trim(($insInbox->user->store_id ?? '') . ' - ' . ($insInbox->user->name ?? 'Unknown'));
+                                @endphp
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bx bx-lock-alt text-warning me-1"></i>Insurance Slot
+                                        @if($insApplied)
+                                            <span class="badge bg-success ms-1">Applied ✓</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark ms-1">Awaiting partner</span>
+                                        @endif
+                                    </label>
+                                    <input type="text" class="form-control bg-light text-muted" value="{{ $insLabel }}" disabled>
+                                </div>
+                                @endforeach
+                            @else
+                                {{-- Chereta fired — inboxes cleared, quota slots are filled --}}
+                                @for($q = 0; $q < $shopQuota; $q++)
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bx bx-lock-alt text-warning me-1"></i>Insurance Slot
+                                        <span class="badge bg-success ms-1">Filled by insurance ✓</span>
+                                    </label>
+                                    <input type="text" class="form-control bg-light text-muted" value="Insurance partner applied" disabled>
+                                </div>
+                                @endfor
+                            @endif
+                        @endif
+
+                        @if($adminShopSlotCap > 0 && $shopQuota > 0)<hr class="my-2">@endif
+
+                        @if(count($activeApplicationShopIds) > 0 && $adminShopSlotCap > 0)
                         <div class="alert alert-warning py-2 mb-3">
                             <small><strong>Applied (slot locked):</strong></small>
                             <div class="d-flex flex-wrap gap-1 mt-1">
@@ -527,10 +567,47 @@
                         @endif
 
                         {{-- ── Garage Slots ──────────────────────────────────── --}}
-                        @if($adminGarageSlotCap > 0)
+                        @if($adminGarageSlotCap > 0 || $garageQuota > 0)
                         <hr class="my-3">
                         <h6 class="fw-bold mb-2 text-success"><i class="bx bx-wrench me-1"></i>Garage Slots</h6>
-                        @if(count($activeApplicationGarageIds) > 0)
+
+                        {{-- Insurance-reserved locked slots --}}
+                        @if($garageQuota > 0)
+                            @if(count($insuranceGarageInboxes) > 0)
+                                @foreach($insuranceGarageInboxes as $insInbox)
+                                @php
+                                    $insApplied = in_array((int)$insInbox->user_id, $activeApplicationGarageIds);
+                                    $insLabel   = $insInbox->user->name ?? 'Unknown';
+                                @endphp
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bx bx-lock-alt text-warning me-1"></i>Insurance Slot
+                                        @if($insApplied)
+                                            <span class="badge bg-success ms-1">Applied ✓</span>
+                                        @else
+                                            <span class="badge bg-warning text-dark ms-1">Awaiting partner</span>
+                                        @endif
+                                    </label>
+                                    <input type="text" class="form-control bg-light text-muted" value="{{ $insLabel }}" disabled>
+                                </div>
+                                @endforeach
+                            @else
+                                {{-- Chereta fired — inboxes cleared, quota slots are filled --}}
+                                @for($q = 0; $q < $garageQuota; $q++)
+                                <div class="mb-3">
+                                    <label class="form-label fw-semibold">
+                                        <i class="bx bx-lock-alt text-warning me-1"></i>Insurance Slot
+                                        <span class="badge bg-success ms-1">Filled by insurance ✓</span>
+                                    </label>
+                                    <input type="text" class="form-control bg-light text-muted" value="Insurance partner applied" disabled>
+                                </div>
+                                @endfor
+                            @endif
+                        @endif
+
+                        @if($adminGarageSlotCap > 0 && $garageQuota > 0)<hr class="my-2">@endif
+
+                        @if(count($activeApplicationGarageIds) > 0 && $adminGarageSlotCap > 0)
                         <div class="alert alert-warning py-2 mb-3">
                             <small><strong>Applied (slot locked):</strong></small>
                             <div class="d-flex flex-wrap gap-1 mt-1">

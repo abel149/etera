@@ -192,6 +192,14 @@ class AdminController extends Controller
             ->filter(fn($i) => ($i->source ?? '') === 'admin' && ($i->user?->role === 'garage'))
             ->sortBy('created_at')->values();
 
+        // Insurance-inboxed entries — shown as locked slots in the modal
+        $insuranceShopInboxes = $proforma->inboxes
+            ->filter(fn($i) => ($i->source ?? '') === 'insurance' && ($i->user?->role === 'shop'))
+            ->sortBy('created_at')->values();
+        $insuranceGarageInboxes = $proforma->inboxes
+            ->filter(fn($i) => ($i->source ?? '') === 'insurance' && ($i->user?->role === 'garage'))
+            ->sortBy('created_at')->values();
+
         // IDs already inboxed (any source) — excluded from dropdown options
         $alreadyInboxedShopIds   = $proforma->inboxes
             ->filter(fn($i) => $i->user?->role === 'shop')->pluck('user_id')
@@ -208,6 +216,7 @@ class AdminController extends Controller
             'activeApplicationShopIds', 'activeApplicationGarageIds',
             'adminShopSlotCap', 'adminGarageSlotCap',
             'adminShopInboxes', 'adminGarageInboxes',
+            'insuranceShopInboxes', 'insuranceGarageInboxes',
             'alreadyInboxedShopIds', 'alreadyInboxedGarageIds',
             'availableInboxSlots', 'requiredGarages'
         ));
