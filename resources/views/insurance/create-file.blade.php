@@ -358,7 +358,7 @@
                                 {{-- ── Shop Partners ──────────────────────────────────────── --}}
                                 <div class="row g-3 mt-1">
                                     <div class="col-12 col-lg-8">
-                                        <label for="multiple-select-sparepart" class="form-label">Spare Part Shop Partners <span class="text-secondary small">(optional — hold Ctrl/Cmd for multiple)</span></label>
+                                        <label for="multiple-select-sparepart" class="form-label">Spare Part Shop Partners <span class="text-secondary small">(optional)</span></label>
                                         <select class="form-select" name="spare_part_partners[]" id="multiple-select-sparepart" multiple size="4">
                                             @foreach($spare_part_partners as $partner)
                                                 <option value="{{$partner->id}}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{$partner->name}}</option>
@@ -368,18 +368,18 @@
                                     <div class="col-12 col-lg-4">
                                         <label for="insurance_shop_quota" class="form-label">Required from above <span class="text-secondary small">(how many must apply)</span></label>
                                         <select class="form-select" name="insurance_shop_quota" id="insurance_shop_quota">
-                                            <option value="1" {{ old('insurance_shop_quota', 1) == 1 ? 'selected' : '' }}>1 — first to apply wins (chereta)</option>
+                                            <option value="1" {{ old('insurance_shop_quota', 1) == 1 ? 'selected' : '' }}>1 — need 1 to apply </option>
                                             <option value="2" {{ old('insurance_shop_quota') == 2 ? 'selected' : '' }}>2 — need 2 to apply</option>
                                             <option value="3" {{ old('insurance_shop_quota') == 3 ? 'selected' : '' }}>3 — need all 3</option>
                                         </select>
-                                        <div class="form-text">Once this many partners apply, the remaining inboxes are cancelled. Admin can fill any leftover required slots.</div>
+                                        
                                     </div>
                                 </div>
 
                                 {{-- ── Garage Partners ─────────────────────────────────────── --}}
                                 <div class="row g-3 mt-2">
                                     <div class="col-12 col-lg-8">
-                                        <label for="multiple-select-garage" class="form-label">Garage Partners <span class="text-secondary small">(optional — hold Ctrl/Cmd for multiple)</span></label>
+                                        <label for="multiple-select-garage" class="form-label">Garage Partners <span class="text-secondary small">(optional )</span></label>
                                         <select class="form-select" name="garage_partners[]" id="multiple-select-garage" multiple size="4">
                                             @foreach($garage_partners as $partner)
                                                 <option value="{{$partner->id}}" {{ in_array($partner->id, old('garage_partners', [])) ? 'selected' : '' }}>{{$partner->name}}</option>
@@ -389,11 +389,11 @@
                                     <div class="col-12 col-lg-4">
                                         <label for="insurance_garage_quota" class="form-label">Required from above <span class="text-secondary small">(how many must apply)</span></label>
                                         <select class="form-select" name="insurance_garage_quota" id="insurance_garage_quota">
-                                            <option value="1" {{ old('insurance_garage_quota', 1) == 1 ? 'selected' : '' }}>1 — first to apply wins (chereta)</option>
+                                            <option value="1" {{ old('insurance_garage_quota', 1) == 1 ? 'selected' : '' }}>1 — need 1 to apply</option>
                                             <option value="2" {{ old('insurance_garage_quota') == 2 ? 'selected' : '' }}>2 — need 2 to apply</option>
                                             <option value="3" {{ old('insurance_garage_quota') == 3 ? 'selected' : '' }}>3 — need all 3</option>
                                         </select>
-                                        <div class="form-text">Once this many partners apply, the remaining inboxes are cancelled. Admin can fill any leftover required slots.</div>
+                                        
                                     </div>
                                 </div>
 
@@ -862,23 +862,20 @@ console.log(1);
 
 });
 
-// Cap the "required" quota selects to the number of options actually selected
+// When partners are deselected, silently snap the quota value down so it never
+// exceeds the actual number of selected partners. Options are never disabled so
+// the user can freely choose 1/2/3 — the backend enforces the hard cap anyway.
 document.addEventListener('DOMContentLoaded', function() {
     function syncQuotaMax(multiSelectId, quotaSelectId) {
         var multi = document.getElementById(multiSelectId);
         var quota = document.getElementById(quotaSelectId);
         if (!multi || !quota) return;
-        function update() {
+        multi.addEventListener('change', function() {
             var selected = Array.from(multi.selectedOptions).length;
-            Array.from(quota.options).forEach(function(opt) {
-                opt.disabled = parseInt(opt.value) > Math.max(selected, 1);
-            });
-            if (parseInt(quota.value) > Math.max(selected, 1)) {
-                quota.value = Math.max(selected, 1);
+            if (selected > 0 && parseInt(quota.value) > selected) {
+                quota.value = selected;
             }
-        }
-        multi.addEventListener('change', update);
-        update();
+        });
     }
     syncQuotaMax('multiple-select-sparepart', 'insurance_shop_quota');
     syncQuotaMax('multiple-select-garage', 'insurance_garage_quota');
