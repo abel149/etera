@@ -47,6 +47,24 @@
                         ->where('from', 'garage')
                         ->where('application_source', '!=', 'partner')
                         ->count();
+
+                    // Effective insurance quota — use stored column, fall back to inbox count
+                    // so proformas created before the quota column was added still lock correctly.
+                    $effShopQuota   = $proforma->shopPartnerQuota() > 0
+                        ? $proforma->shopPartnerQuota()
+                        : count($shop_data);
+                    $effGarageQuota = $proforma->garagePartnerQuota() > 0
+                        ? $proforma->garagePartnerQuota()
+                        : count($garage_data);
+
+                    $reqShops   = (int) ($proforma->required_number_of_shops   ?? 0);
+                    $reqGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+                    // How many admin-editable client slots remain after insurance quota
+                    $adminShopCap   = $reqShops   > 0 ? max(0, $reqShops   - $effShopQuota)   : 2;
+                    $adminGarageCap = $reqGarages > 0 ? max(0, $reqGarages - $effGarageQuota) : 2;
+
+                    $statusLocked = in_array($proforma->status ?? '', ['closed', 'completed']);
                 @endphp
                 @if(count($shop_data))
                     <div class="input-group">
@@ -87,14 +105,14 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 1 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
+                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 1 || $statusLocked || $adminShopCap < 1) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientShop1)
+                                @if($selectedClientShop1 || $adminShopCap < 1)
                                     <i class="bx bx-lock text-danger"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
@@ -130,14 +148,14 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 2 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
+                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 2 || $statusLocked || $adminShopCap < 2) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientShop2)
+                                @if($selectedClientShop2 || $adminShopCap < 2)
                                     <i class="bx bx-lock text-danger"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
@@ -211,14 +229,14 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 1 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
+                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 1 || $statusLocked || $adminGarageCap < 1) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientGarage1)
+                                @if($selectedClientGarage1 || $adminGarageCap < 1)
                                     <i class="bx bx-lock text-danger"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
@@ -233,14 +251,14 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 2 || in_array($proforma->status ?? '', ['closed','completed'])) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
+                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 2 || $statusLocked || $adminGarageCap < 2) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientGarage2)
+                                @if($selectedClientGarage2 || $adminGarageCap < 2)
                                     <i class="bx bx-lock text-danger"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
