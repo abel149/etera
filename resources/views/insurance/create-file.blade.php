@@ -862,40 +862,40 @@ console.log(1);
 
 });
 
-// Keep quota capped to the number of selected partners.
-// If no partners are selected yet, all options stay enabled (no restriction on load).
-// Once partners are selected, options above the count are disabled.
-// Listening on BOTH the multi-select and the quota select ensures the snap fires
-// regardless of which control the user interacts with first.
+// Quota cap: quota can never exceed the number of selected partners.
+// When no partners are selected at all, quota is irrelevant — all options stay enabled.
 document.addEventListener('DOMContentLoaded', function() {
     function syncQuotaMax(multiSelectId, quotaSelectId) {
         var multi = document.getElementById(multiSelectId);
         var quota = document.getElementById(quotaSelectId);
         if (!multi || !quota) return;
 
-        function updateFromMulti() {
+        function applyConstraints() {
             var selected = Array.from(multi.selectedOptions).length;
+            if (selected === 0) {
+                // No partners selected — quota is irrelevant, enable all options
+                Array.from(quota.options).forEach(function(opt) { opt.disabled = false; });
+                return;
+            }
+            // Disable options above the selected count and snap value down if needed
             Array.from(quota.options).forEach(function(opt) {
-                opt.disabled = selected > 0 && parseInt(opt.value) > selected;
+                opt.disabled = parseInt(opt.value) > selected;
             });
-            if (selected > 0 && parseInt(quota.value) > selected) {
-                quota.value = selected;
+            if (parseInt(quota.value) > selected) {
+                quota.value = String(selected);
             }
         }
 
-        function updateFromQuota() {
-            var selected = Array.from(multi.selectedOptions).length;
-            if (selected > 0 && parseInt(quota.value) > selected) {
-                quota.value = selected;
-            }
-        }
-
-        multi.addEventListener('change', updateFromMulti);
-        quota.addEventListener('change', updateFromQuota);
-        // No call on load — with 0 partners selected all options stay enabled
+        // Fire on multi-select change AND click (belt-and-suspenders for browser quirks)
+        multi.addEventListener('change', applyConstraints);
+        multi.addEventListener('click',  applyConstraints);
+        // Snap when user changes quota directly
+        quota.addEventListener('change', applyConstraints);
+        // Disable options BEFORE the native dropdown opens so user never sees a bad option
+        quota.addEventListener('mousedown', applyConstraints);
     }
     syncQuotaMax('multiple-select-sparepart', 'insurance_shop_quota');
-    syncQuotaMax('multiple-select-garage', 'insurance_garage_quota');
+    syncQuotaMax('multiple-select-garage',     'insurance_garage_quota');
 });
 
 // Form submit validation — safety net for quantity
