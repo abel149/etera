@@ -3272,8 +3272,18 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 $requiredShops = 0; // Float mode - no limit on shops
                 $requiredGarages = 0; // Float mode - no limit on garages
             } else {
-                $requiredShops = (int) $request->input('number_of_proformas', 3);
-                $requiredGarages = 3;
+                // For insurance proformas the quota IS the total required for each role.
+                // If insurance selects partners with quota N, exactly N slots are needed.
+                // If no partners are selected the field is absent — fall back to 3.
+                $hasShopPartners   = !empty(array_filter($request->input('spare_part_partners', [])));
+                $hasGaragePartners = !empty(array_filter($request->input('garage_partners', [])));
+
+                $requiredShops   = $hasShopPartners
+                    ? max(1, (int) $request->input('insurance_shop_quota', 3))
+                    : (int) $request->input('number_of_proformas', 3);
+                $requiredGarages = $hasGaragePartners
+                    ? max(1, (int) $request->input('insurance_garage_quota', 3))
+                    : 3;
             }
 
             $proforma = \App\Models\Proforma::create([
@@ -3308,24 +3318,31 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             }
             
-            if ($request->spare_part_partners) {
-                foreach ($request->spare_part_partners as $inbox) {
+            $shopPartners   = array_unique(array_filter($request->input('spare_part_partners', [])));
+            $garagePartners = array_unique(array_filter($request->input('garage_partners', [])));
+
+            if (!empty($shopPartners)) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_shop_quota')) {
+                    $proforma->update(['insurance_shop_quota' => min(count($shopPartners), max(1, (int) $request->input('insurance_shop_quota', 1)))]);
+                }
+                foreach ($shopPartners as $userId) {
                     Inbox::create([
                         'proforma_id' => $proforma->id,
-                        'user_id' => $inbox,
-                        'source' => 'insurance',
+                        'user_id'     => $userId,
+                        'source'      => 'insurance',
                     ]);
                 }
             }
 
-            // add garage partner
-        
-            if ($request->garage_partners) {
-                foreach ($request->garage_partners as $inbox) {
+            if (!empty($garagePartners)) {
+                if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_garage_quota')) {
+                    $proforma->update(['insurance_garage_quota' => min(count($garagePartners), max(1, (int) $request->input('insurance_garage_quota', 1)))]);
+                }
+                foreach ($garagePartners as $userId) {
                     Inbox::create([
                         'proforma_id' => $proforma->id,
-                        'user_id' => $inbox,
-                        'source' => 'insurance',
+                        'user_id'     => $userId,
+                        'source'      => 'insurance',
                     ]);
                 }
             }
@@ -3521,19 +3538,25 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             }
             $application = $proforma->applications()->create($appData);
 
-            // ── Inbox cleanup (always runs before notification) ──────────────
+            // ── Inbox cleanup ─────────────────────────────────────────────────
             // Remove own inbox record
             \App\Models\Inbox::where('user_id', auth()->id())
                 ->where('proforma_id', $proforma->id)
                 ->delete();
 
-            // If insurance partner applied, delete all other insurance garage inboxes
-            // Admin inboxes are NOT affected — they each have their own dedicated slot
+            // Chereta: once insurance garage quota is filled, cancel remaining inboxes
             if ($isInsuranceInboxed) {
-                $proforma->inboxes()
-                    ->where('source', 'insurance')
-                    ->whereHas('user', fn($q) => $q->where('role', 'garage'))
-                    ->delete();
+                $garagePartnerApplied = $proforma->applications()
+                    ->where('from', 'garage')
+                    ->where('application_source', 'partner')
+                    ->count();
+                $garageQuota = (int) ($proforma->insurance_garage_quota ?? 1);
+                if ($garagePartnerApplied >= $garageQuota) {
+                    $proforma->inboxes()
+                        ->where('source', 'insurance')
+                        ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+                        ->delete();
+                }
             }
 
             // ── Proforma closure check ────────────────────────────────────────
@@ -3961,93 +3984,67 @@ Route::post('/proformas', function (Request $request) {
     $telegram = new \App\Services\TelegramService();
 
     if ($request->has('spare_part_partners')) {
-        $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
-        $isEteraChereta  = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
+        $requiredShops  = (int) ($proforma->required_number_of_shops ?? 0);
+        $isEteraChereta = $requiredShops === 0 && (int)($proforma->required_number_of_garages ?? 0) === 0;
 
-        
+        // IDs with active (non-rejected) applications — these slots are locked and cannot be changed
         $lockedShopIdsQuery = $proforma->applications()->where('from', 'shop');
         if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'status')) {
             $lockedShopIdsQuery->where(function ($q) {
                 $q->whereNull('status')->orWhere('status', '!=', 'rejected');
             });
         }
-
         $lockedShopIds = $lockedShopIdsQuery
-            ->pluck('application_by')
-            ->map(fn($id) => (string) $id)
-            ->unique()
-            ->toArray();
+            ->pluck('application_by')->map(fn($id) => (string) $id)->unique()->toArray();
 
-        // Admin quota = required - partnerSlot (1 if any insurance inbox exists, else 0)
-        // This prevents admin from over-provisioning beyond their allowed slots
+        // How many admin-inboxable slots exist for this proforma
         $adminShopSlotCap = !$isEteraChereta && $requiredShops > 0
             ? max(0, $requiredShops - $proforma->shopPartnerQuota())
             : PHP_INT_MAX;
 
-        // Deduct admin slots already consumed by applied admin-inboxed shops
+        // Editable capacity = cap minus those already consumed by admin applications
         $lockedAdminShopCount = 0;
         if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
             $lockedAdminShopCount = $proforma->applications()
-                ->where('from', 'shop')
-                ->where('application_source', 'admin')
-                ->count();
+                ->where('from', 'shop')->where('application_source', 'admin')->count();
         }
-
-        $editableSlots = $adminShopSlotCap === PHP_INT_MAX
+        $editableShopSlots = $adminShopSlotCap === PHP_INT_MAX
             ? PHP_INT_MAX
             : max(0, $adminShopSlotCap - $lockedAdminShopCount);
 
-        // If editableSlots === 0, array_slice produces [] and the loop below runs 0 times.
-        // We do NOT early-return here so the garage section still gets processed.
-        $slotInputs = is_array($request->spare_part_partners) ? $request->spare_part_partners : [];
-        $slotInputs = array_slice($slotInputs, 0, $editableSlots);
+        // ── Set-diff approach ──────────────────────────────────────────────────
+        // Build the desired set from the submitted form values.
+        // Skip locked IDs (applied users) and enforce the editable capacity cap.
+        $desiredShopIds = collect(is_array($request->spare_part_partners) ? $request->spare_part_partners : [])
+            ->map(fn($v) => !empty($v) ? (string) $v : null)
+            ->filter()
+            ->reject(fn($id) => in_array($id, $lockedShopIds, true))
+            ->unique()
+            ->when($editableShopSlots !== PHP_INT_MAX, fn($c) => $c->take($editableShopSlots))
+            ->values()
+            ->toArray();
 
-        $seen = [];
-        $desiredSlots = [];
-        foreach ($slotInputs as $raw) {
-            $id = !empty($raw) ? (string) $raw : '';
-            if ($id !== '' && (in_array($id, $lockedShopIds, true) || in_array($id, $seen, true))) {
-                $id = '';
-            }
-            if ($id !== '') {
-                $seen[] = $id;
-            }
-            $desiredSlots[] = $id;
-        }
-
-        $currentEditableInbox = \App\Models\Inbox::where('proforma_id', $proforma->id)
+        // Current editable admin inboxes (not locked by an application)
+        $currentShopIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
             ->where('source', 'admin')
             ->whereHas('user', fn($q) => $q->where('role', 'shop'))
             ->whereNotIn('user_id', $lockedShopIds)
-            ->orderBy('created_at', 'asc')
-            ->get(['id', 'user_id']);
+            ->pluck('user_id')->map(fn($v) => (string) $v)->toArray();
 
-        for ($i = 0; $i < $editableSlots; $i++) {
-            $desiredUserId = $desiredSlots[$i] ?? '';
-            $existingRow = $currentEditableInbox[$i] ?? null;
-            $existingUserId = $existingRow ? (string) $existingRow->user_id : '';
+        // Remove entries that are no longer in the desired set
+        $shopToRemove = array_diff($currentShopIds, $desiredShopIds);
+        if (!empty($shopToRemove)) {
+            \App\Models\Inbox::where('proforma_id', $proforma->id)
+                ->where('source', 'admin')
+                ->whereIn('user_id', $shopToRemove)
+                ->delete();
+        }
 
-            if ($desiredUserId === '') {
-                // Admin cleared this slot — remove the existing inbox entry so the slot opens up
-                if ($existingRow) {
-                    $existingRow->delete();
-                }
-                continue;
-            }
-
-            if ($existingUserId !== '' && $existingUserId === $desiredUserId) {
-                continue;
-            }
-
-            if ($existingRow) {
-                $existingRow->delete();
-            }
-
+        // Add new entries
+        foreach (array_diff($desiredShopIds, $currentShopIds) as $desiredUserId) {
             $inboxRecord = Inbox::firstOrCreate(
                 ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
             );
-
-            // Send Telegram notification to inboxed user
             if ($inboxRecord->wasRecentlyCreated) {
                 try {
                     $user = \App\Models\User::find($desiredUserId);
@@ -4063,13 +4060,13 @@ Route::post('/proformas', function (Request $request) {
                 }
             }
         }
-
     }
 
     if ($request->has('garage_partners')) {
         $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
         $isEteraCheretaG = (int)($proforma->required_number_of_shops ?? 0) === 0 && $requiredGarages === 0;
 
+        // IDs with active (non-rejected) applications — locked slots
         $lockedGarageIdsQuery = $proforma->applications()->where('from', 'garage');
         if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'status')) {
             $lockedGarageIdsQuery->where(function ($q) {
@@ -4077,10 +4074,7 @@ Route::post('/proformas', function (Request $request) {
             });
         }
         $lockedGarageIds = $lockedGarageIdsQuery
-            ->pluck('application_by')
-            ->map(fn($id) => (string) $id)
-            ->unique()
-            ->toArray();
+            ->pluck('application_by')->map(fn($id) => (string) $id)->unique()->toArray();
 
         $adminGarageSlotCap = !$isEteraCheretaG && $requiredGarages > 0
             ? max(0, $requiredGarages - $proforma->garagePartnerQuota())
@@ -4089,66 +4083,43 @@ Route::post('/proformas', function (Request $request) {
         $lockedAdminGarageCount = 0;
         if (\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
             $lockedAdminGarageCount = $proforma->applications()
-                ->where('from', 'garage')
-                ->where('application_source', 'admin')
-                ->count();
+                ->where('from', 'garage')->where('application_source', 'admin')->count();
         }
-
         $editableGarageSlots = $adminGarageSlotCap === PHP_INT_MAX
             ? PHP_INT_MAX
             : max(0, $adminGarageSlotCap - $lockedAdminGarageCount);
 
-        $garageSlotInputs = is_array($request->garage_partners) ? $request->garage_partners : [];
-        if ($editableGarageSlots !== PHP_INT_MAX) {
-            $garageSlotInputs = array_slice($garageSlotInputs, 0, $editableGarageSlots);
-        }
+        // ── Set-diff approach ──────────────────────────────────────────────────
+        $desiredGarageIds = collect(is_array($request->garage_partners) ? $request->garage_partners : [])
+            ->map(fn($v) => !empty($v) ? (string) $v : null)
+            ->filter()
+            ->reject(fn($id) => in_array($id, $lockedGarageIds, true))
+            ->unique()
+            ->when($editableGarageSlots !== PHP_INT_MAX, fn($c) => $c->take($editableGarageSlots))
+            ->values()
+            ->toArray();
 
-        $seenG = [];
-        $desiredGarageSlots = [];
-        foreach ($garageSlotInputs as $raw) {
-            $id = !empty($raw) ? (string) $raw : '';
-            if ($id !== '' && (in_array($id, $lockedGarageIds, true) || in_array($id, $seenG, true))) {
-                $id = '';
-            }
-            if ($id !== '') {
-                $seenG[] = $id;
-            }
-            $desiredGarageSlots[] = $id;
-        }
-
-        $currentEditableGarageInbox = \App\Models\Inbox::where('proforma_id', $proforma->id)
+        // Current editable admin inboxes (not locked by an application)
+        $currentGarageIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
             ->where('source', 'admin')
             ->whereHas('user', fn($q) => $q->where('role', 'garage'))
             ->whereNotIn('user_id', $lockedGarageIds)
-            ->orderBy('created_at', 'asc')
-            ->get(['id', 'user_id']);
+            ->pluck('user_id')->map(fn($v) => (string) $v)->toArray();
 
-        $garageSlotCount = count($garageSlotInputs);
-        for ($i = 0; $i < $garageSlotCount; $i++) {
-            $desiredUserId  = $desiredGarageSlots[$i] ?? '';
-            $existingRow    = $currentEditableGarageInbox[$i] ?? null;
-            $existingUserId = $existingRow ? (string) $existingRow->user_id : '';
+        // Remove entries no longer in the desired set
+        $garageToRemove = array_diff($currentGarageIds, $desiredGarageIds);
+        if (!empty($garageToRemove)) {
+            \App\Models\Inbox::where('proforma_id', $proforma->id)
+                ->where('source', 'admin')
+                ->whereIn('user_id', $garageToRemove)
+                ->delete();
+        }
 
-            if ($desiredUserId === '') {
-                // Admin cleared this slot — remove existing entry so slot opens for float
-                if ($existingRow) {
-                    $existingRow->delete();
-                }
-                continue;
-            }
-
-            if ($existingUserId !== '' && $existingUserId === $desiredUserId) {
-                continue; // No change
-            }
-
-            if ($existingRow) {
-                $existingRow->delete(); // Remove previous person from this slot
-            }
-
+        // Add new entries
+        foreach (array_diff($desiredGarageIds, $currentGarageIds) as $desiredUserId) {
             $inboxRecord = Inbox::firstOrCreate(
                 ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
             );
-
             if ($inboxRecord->wasRecentlyCreated) {
                 try {
                     $user = \App\Models\User::find($desiredUserId);

@@ -188,13 +188,21 @@ class ProformaApplicationController extends Controller
                     ->where('proforma_id', $proforma->id)
                     ->delete();
 
-                // If insurance partner applied, delete all other insurance inboxes for this role
-                // Admin inboxes are NOT affected — they each have their own dedicated slot
+                // Chereta: once the insurance quota for this role is filled, cancel remaining inboxes
                 if ($isInsuranceInboxed) {
-                    $proforma->inboxes()
-                        ->where('source', 'insurance')
-                        ->whereHas('user', fn($q) => $q->where('role', $role))
-                        ->delete();
+                    $partnerApplied = $proforma->applications()
+                        ->where('from', $role)
+                        ->where('application_source', 'partner')
+                        ->count();
+                    $quota = $role === 'shop'
+                        ? (int) ($proforma->insurance_shop_quota ?? 1)
+                        : (int) ($proforma->insurance_garage_quota ?? 1);
+                    if ($partnerApplied >= $quota) {
+                        $proforma->inboxes()
+                            ->where('source', 'insurance')
+                            ->whereHas('user', fn($q) => $q->where('role', $role))
+                            ->delete();
+                    }
                 }
 
                 Log::info('Price quote submission: application created', [

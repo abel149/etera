@@ -136,24 +136,19 @@ class Proforma extends Model implements HasMedia
         return max(0, $this->required_number_of_garages - $this->applicationsFromGarages()->count());
     }
 
-    // ── Insurance partner quota (exactly 1 slot if any insurance inbox exists) ──
+    // ── Insurance partner quota ─────────────────────────────────────────────────
+    // Returns the number of required-slots insurance has reserved via partner inboxes.
+    // Admin float slots = required_total - insurance_quota - admin_inboxed.
+    // Null (proformas created before this feature) = 0 (no insurance reservation).
 
     public function shopPartnerQuota(): int
     {
-        $hasInsuranceInbox = $this->inboxes()
-            ->where('source', 'insurance')
-            ->whereHas('user', fn($q) => $q->where('role', 'shop'))
-            ->exists();
-        return ($hasInsuranceInbox || $this->hasPartnerShopApplied()) ? 1 : 0;
+        return (int) ($this->insurance_shop_quota ?? 0);
     }
 
     public function garagePartnerQuota(): int
     {
-        $hasInsuranceInbox = $this->inboxes()
-            ->where('source', 'insurance')
-            ->whereHas('user', fn($q) => $q->where('role', 'garage'))
-            ->exists();
-        return ($hasInsuranceInbox || $this->hasPartnerGarageApplied()) ? 1 : 0;
+        return (int) ($this->insurance_garage_quota ?? 0);
     }
 
     public function hasPartnerShopApplied(): bool
@@ -327,8 +322,14 @@ class Proforma extends Model implements HasMedia
                 ->where('user_id', $applicant->id)->where('source', 'admin')->exists();
 
             if ($isInsuranceInboxed) {
-                // Insurance partner slot: first-come-first-served among inboxed
-                return !$this->hasPartnerShopApplied();
+                // Allow up to insurance_shop_quota partners to apply before slot closes
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
+                    return !$this->hasPartnerShopApplied();
+                }
+                $appliedCount = $this->applications()
+                    ->where('from', 'shop')->where('application_source', 'partner')->count();
+                $quota = (int) ($this->insurance_shop_quota ?? 1);
+                return $appliedCount < $quota;
             } elseif ($isAdminInboxed) {
                 // Admin-designated slot: dedicated to this specific user
                 return true;
@@ -347,7 +348,14 @@ class Proforma extends Model implements HasMedia
                 ->where('user_id', $applicant->id)->where('source', 'admin')->exists();
 
             if ($isInsuranceInboxed) {
-                return !$this->hasPartnerGarageApplied();
+                // Allow up to insurance_garage_quota partners to apply before slot closes
+                if (!\Illuminate\Support\Facades\Schema::hasColumn('proforma_applications', 'application_source')) {
+                    return !$this->hasPartnerGarageApplied();
+                }
+                $appliedCount = $this->applications()
+                    ->where('from', 'garage')->where('application_source', 'partner')->count();
+                $quota = (int) ($this->insurance_garage_quota ?? 1);
+                return $appliedCount < $quota;
             } elseif ($isAdminInboxed) {
                 return true;
             } else {
