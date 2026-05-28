@@ -3272,18 +3272,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 $requiredShops = 0; // Float mode - no limit on shops
                 $requiredGarages = 0; // Float mode - no limit on garages
             } else {
-                // For insurance proformas the quota IS the total required for each role.
-                // If insurance selects partners with quota N, exactly N slots are needed.
-                // If no partners are selected the field is absent — fall back to 3.
-                $hasShopPartners   = !empty(array_filter($request->input('spare_part_partners', [])));
-                $hasGaragePartners = !empty(array_filter($request->input('garage_partners', [])));
-
-                $requiredShops   = $hasShopPartners
-                    ? max(1, (int) $request->input('insurance_shop_quota', 3))
-                    : (int) $request->input('number_of_proformas', 3);
-                $requiredGarages = $hasGaragePartners
-                    ? max(1, (int) $request->input('insurance_garage_quota', 3))
-                    : 3;
+                // Total required slots are always 3/3.
+                // insurance_shop/garage_quota only controls how many of those 3 are locked
+                // for insurance-selected partners; admin/float fills the remainder.
+                $requiredShops   = 3;
+                $requiredGarages = 3;
             }
 
             $proforma = \App\Models\Proforma::create([
