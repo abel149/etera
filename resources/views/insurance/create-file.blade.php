@@ -862,20 +862,25 @@ console.log(1);
 
 });
 
-// When partners are deselected, silently snap the quota value down so it never
-// exceeds the actual number of selected partners. Options are never disabled so
-// the user can freely choose 1/2/3 — the backend enforces the hard cap anyway.
+// Keep quota capped to the number of selected partners.
+// If no partners are selected yet, all options stay enabled (no restriction on load).
+// Once partners are selected, options above the count are disabled and the value snaps down.
 document.addEventListener('DOMContentLoaded', function() {
     function syncQuotaMax(multiSelectId, quotaSelectId) {
         var multi = document.getElementById(multiSelectId);
         var quota = document.getElementById(quotaSelectId);
         if (!multi || !quota) return;
-        multi.addEventListener('change', function() {
+        function update() {
             var selected = Array.from(multi.selectedOptions).length;
+            Array.from(quota.options).forEach(function(opt) {
+                opt.disabled = selected > 0 && parseInt(opt.value) > selected;
+            });
             if (selected > 0 && parseInt(quota.value) > selected) {
                 quota.value = selected;
             }
-        });
+        }
+        multi.addEventListener('change', update);
+        // No update() call on load — with 0 selected, all options stay enabled
     }
     syncQuotaMax('multiple-select-sparepart', 'insurance_shop_quota');
     syncQuotaMax('multiple-select-garage', 'insurance_garage_quota');
