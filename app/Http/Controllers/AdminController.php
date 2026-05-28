@@ -178,12 +178,6 @@ class AdminController extends Controller
             ->where('from', 'garage')->pluck('application_by')
             ->map(fn($id) => (int)$id)->unique()->values()->toArray();
 
-        // Admin-manageable slot caps (total required minus insurance partner slot).
-        // Only call quota methods when required > 0 — mirrors float route short-circuit and avoids
-        // QueryException on environments where the application_source column may not exist yet.
-        $adminShopSlotCap   = $requiredShops   > 0 ? max(0, $requiredShops   - $proforma->shopPartnerQuota())   : 0;
-        $adminGarageSlotCap = $requiredGarages > 0 ? max(0, $requiredGarages - $proforma->garagePartnerQuota()) : 0;
-
         // Existing admin inboxes (pre-populate the modal)
         $adminShopInboxes = $proforma->inboxes
             ->filter(fn($i) => ($i->source ?? '') === 'admin' && ($i->user?->role === 'shop'))
@@ -199,6 +193,20 @@ class AdminController extends Controller
         $insuranceGarageInboxes = $proforma->inboxes
             ->filter(fn($i) => ($i->source ?? '') === 'insurance' && ($i->user?->role === 'garage'))
             ->sortBy('created_at')->values();
+
+        // Effective quota: use the stored column value when available, otherwise fall back
+        // to the count of actual insurance inboxes (handles proformas created before the
+        // insurance_shop/garage_quota column was added by migration).
+        $effectiveShopQuota   = $proforma->shopPartnerQuota()   > 0
+            ? $proforma->shopPartnerQuota()
+            : $insuranceShopInboxes->count();
+        $effectiveGarageQuota = $proforma->garagePartnerQuota() > 0
+            ? $proforma->garagePartnerQuota()
+            : $insuranceGarageInboxes->count();
+
+        // Admin-manageable slot caps (total required minus effective insurance quota).
+        $adminShopSlotCap   = $requiredShops   > 0 ? max(0, $requiredShops   - $effectiveShopQuota)   : 0;
+        $adminGarageSlotCap = $requiredGarages > 0 ? max(0, $requiredGarages - $effectiveGarageQuota) : 0;
 
         // IDs already inboxed (any source) — excluded from dropdown options
         $alreadyInboxedShopIds   = $proforma->inboxes
@@ -217,6 +225,7 @@ class AdminController extends Controller
             'adminShopSlotCap', 'adminGarageSlotCap',
             'adminShopInboxes', 'adminGarageInboxes',
             'insuranceShopInboxes', 'insuranceGarageInboxes',
+            'effectiveShopQuota', 'effectiveGarageQuota',
             'alreadyInboxedShopIds', 'alreadyInboxedGarageIds',
             'availableInboxSlots', 'requiredGarages'
         ));

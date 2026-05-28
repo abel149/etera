@@ -413,8 +413,9 @@
     @php
         $requiredShops      = (int) ($proforma->required_number_of_shops ?? 0);
         $isEteraChereta     = $requiredShops === 0 && $requiredGarages === 0;
-        $shopQuota          = $proforma->shopPartnerQuota();
-        $garageQuota        = $proforma->garagePartnerQuota();
+        // Use controller-computed effective quotas (fallback to insurance inbox count when column is null)
+        $shopQuota          = $effectiveShopQuota;
+        $garageQuota        = $effectiveGarageQuota;
         $hasInsuranceSlots  = ($shopQuota > 0 || $garageQuota > 0);
         $hasAdminSlots      = ($adminShopSlotCap > 0 || $adminGarageSlotCap > 0);
         $proformaActive     = !in_array($proforma->status, ['closed', 'completed']);

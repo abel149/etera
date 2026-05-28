@@ -3990,9 +3990,16 @@ Route::post('/proformas', function (Request $request) {
         $lockedShopIds = $lockedShopIdsQuery
             ->pluck('application_by')->map(fn($id) => (string) $id)->unique()->toArray();
 
-        // How many admin-inboxable slots exist for this proforma
+        // How many admin-inboxable slots exist for this proforma.
+        // Fall back to insurance inbox count when insurance_shop_quota column is null.
+        $effectiveShopQuota = $proforma->shopPartnerQuota() > 0
+            ? $proforma->shopPartnerQuota()
+            : \App\Models\Inbox::where('proforma_id', $proforma->id)
+                ->where('source', 'insurance')
+                ->whereHas('user', fn($q) => $q->where('role', 'shop'))
+                ->count();
         $adminShopSlotCap = !$isEteraChereta && $requiredShops > 0
-            ? max(0, $requiredShops - $proforma->shopPartnerQuota())
+            ? max(0, $requiredShops - $effectiveShopQuota)
             : PHP_INT_MAX;
 
         // Editable capacity = cap minus those already consumed by admin applications
@@ -4069,8 +4076,15 @@ Route::post('/proformas', function (Request $request) {
         $lockedGarageIds = $lockedGarageIdsQuery
             ->pluck('application_by')->map(fn($id) => (string) $id)->unique()->toArray();
 
+        // Fall back to insurance inbox count when insurance_garage_quota column is null.
+        $effectiveGarageQuota = $proforma->garagePartnerQuota() > 0
+            ? $proforma->garagePartnerQuota()
+            : \App\Models\Inbox::where('proforma_id', $proforma->id)
+                ->where('source', 'insurance')
+                ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+                ->count();
         $adminGarageSlotCap = !$isEteraCheretaG && $requiredGarages > 0
-            ? max(0, $requiredGarages - $proforma->garagePartnerQuota())
+            ? max(0, $requiredGarages - $effectiveGarageQuota)
             : PHP_INT_MAX;
 
         $lockedAdminGarageCount = 0;
