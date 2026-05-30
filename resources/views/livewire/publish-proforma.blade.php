@@ -274,7 +274,8 @@
 
             <div class="my-0">
 
- @if(($proforma?->status == 'pending' || $proforma?->status == 'opened') && (!$proforma?->selected() || $proforma->selectedBy()->employee_id == auth()->id()))
+@php $allInsuranceFull = $adminShopCap === 0 && $adminGarageCap === 0; @endphp
+ @if(($proforma?->status == 'pending' || $proforma?->status == 'opened') && (!$proforma?->selected() || $proforma->selectedBy()->employee_id == auth()->id()) && !$allInsuranceFull)
                 <button type="submit" class="btn btn-primary radius-30 px-4" onclick="notification('Proforma Posted')"> Send to inbox
                 </button>
                 @endif

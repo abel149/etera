@@ -160,12 +160,12 @@ class ProformaApplicationController extends Controller
                     'role' => auth()->user()->role ?? null,
                 ]);
 
-                // Step 4: Detect inbox source BEFORE deleting inbox
-                $role = auth()->user()->role;
-                $isInsuranceInboxed = $proforma->inboxes()
-                    ->where('user_id', auth()->id())->where('source', 'insurance')->exists();
-                $isAdminInboxed = !$isInsuranceInboxed && $proforma->inboxes()
-                    ->where('user_id', auth()->id())->where('source', 'admin')->exists();
+                // Step 4: Detect inbox source AND group BEFORE deleting inbox
+                $role     = auth()->user()->role;
+                $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                $isInsuranceInboxed = $ownInbox && $ownInbox->source === 'insurance';
+                $isAdminInboxed     = $ownInbox && $ownInbox->source === 'admin';
+                $inboxGroup         = $ownInbox?->inbox_group; // 1, 2, 3, or null (legacy)
 
                 $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
 
@@ -188,20 +188,32 @@ class ProformaApplicationController extends Controller
                     ->where('proforma_id', $proforma->id)
                     ->delete();
 
-                // Chereta: once the insurance quota for this role is filled, cancel remaining inboxes
+                // Chereta: when an insurance partner applies, delete others in the same inbox group
                 if ($isInsuranceInboxed) {
-                    $partnerApplied = $proforma->applications()
-                        ->where('from', $role)
-                        ->where('application_source', 'partner')
-                        ->count();
-                    $quota = $role === 'shop'
-                        ? (int) ($proforma->insurance_shop_quota ?? 1)
-                        : (int) ($proforma->insurance_garage_quota ?? 1);
-                    if ($partnerApplied >= $quota) {
+                    if ($inboxGroup !== null) {
+                        // Per-group chereta: only wipe others in the same group for this role
                         $proforma->inboxes()
                             ->where('source', 'insurance')
+                            ->where('inbox_group', $inboxGroup)
                             ->whereHas('user', fn($q) => $q->where('role', $role))
                             ->delete();
+                    } else {
+                        // Legacy (proformas created before inbox_group migration):
+                        // quota-based chereta across all null-group insurance inboxes
+                        $partnerApplied = $proforma->applications()
+                            ->where('from', $role)
+                            ->where('application_source', 'partner')
+                            ->count();
+                        $quota = $role === 'shop'
+                            ? (int) ($proforma->insurance_shop_quota ?? 1)
+                            : (int) ($proforma->insurance_garage_quota ?? 1);
+                        if ($partnerApplied >= $quota) {
+                            $proforma->inboxes()
+                                ->where('source', 'insurance')
+                                ->whereNull('inbox_group')
+                                ->whereHas('user', fn($q) => $q->where('role', $role))
+                                ->delete();
+                        }
                     }
                 }
 

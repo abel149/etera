@@ -353,48 +353,72 @@
                                 </div>
 
                                 <br>
-                                <p class="mb-2">Send to insurance partners (optional)</p>
+                                <p class="mb-2">Send to inbox <span class="text-secondary small">(optional — each row is a separate group; when one applies the others in that row are removed)</span></p>
 
-                                {{-- ── Shop Partners ──────────────────────────────────────── --}}
-                                <div class="row g-3 mt-1">
-                                    <div class="col-12 col-lg-8">
-                                        <label for="multiple-select-sparepart" class="form-label">Spare Part Shop Partners <span class="text-secondary small">(optional)</span></label>
-                                        <select class="form-select" name="spare_part_partners[]" id="multiple-select-sparepart" multiple size="4">
-                                            @foreach($spare_part_partners as $partner)
-                                                <option value="{{$partner->id}}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{$partner->name}}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-12 col-lg-4">
-                                        <label for="insurance_shop_quota" class="form-label">Required from above <span class="text-secondary small">(how many must apply)</span></label>
-                                        <select class="form-select" name="insurance_shop_quota" id="insurance_shop_quota">
-                                            <option value="1" {{ old('insurance_shop_quota', 1) == 1 ? 'selected' : '' }}>1 — need 1 to apply </option>
-                                            <option value="2" {{ old('insurance_shop_quota') == 2 ? 'selected' : '' }}>2 — need 2 to apply</option>
-                                            <option value="3" {{ old('insurance_shop_quota') == 3 ? 'selected' : '' }}>3 — need all 3</option>
-                                        </select>
-                                        
-                                    </div>
+                                {{-- ── SHOPS ─────────────────────────────────────────────── --}}
+                                <h6 class="mt-3 mb-2 text-muted fw-semibold">Shops</h6>
+
+                                {{-- Input #1: Registered shop partners --}}
+                                <div class="mb-3">
+                                    <label for="shopPartners" class="form-label">Shop Partners <span class="text-secondary small">(your registered partners only)</span></label>
+                                    <select class="form-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
+                                        @foreach($spare_part_partners as $partner)
+                                            <option value="{{ $partner->id }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
 
-                                {{-- ── Garage Partners ─────────────────────────────────────── --}}
-                                <div class="row g-3 mt-2">
-                                    <div class="col-12 col-lg-8">
-                                        <label for="multiple-select-garage" class="form-label">Garage Partners <span class="text-secondary small">(optional )</span></label>
-                                        <select class="form-select" name="garage_partners[]" id="multiple-select-garage" multiple size="4">
-                                            @foreach($garage_partners as $partner)
-                                                <option value="{{$partner->id}}" {{ in_array($partner->id, old('garage_partners', [])) ? 'selected' : '' }}>{{$partner->name}}</option>
-                                            @endforeach
-                                        </select>
-                                    </div>
-                                    <div class="col-12 col-lg-4">
-                                        <label for="insurance_garage_quota" class="form-label">Required from above <span class="text-secondary small">(how many must apply)</span></label>
-                                        <select class="form-select" name="insurance_garage_quota" id="insurance_garage_quota">
-                                            <option value="1" {{ old('insurance_garage_quota', 1) == 1 ? 'selected' : '' }}>1 — need 1 to apply</option>
-                                            <option value="2" {{ old('insurance_garage_quota') == 2 ? 'selected' : '' }}>2 — need 2 to apply</option>
-                                            <option value="3" {{ old('insurance_garage_quota') == 3 ? 'selected' : '' }}>3 — need all 3</option>
-                                        </select>
-                                        
-                                    </div>
+                                {{-- Input #2: All shops (cross-excluded with #3) --}}
+                                <div class="mb-3">
+                                    <label for="shopExtra1" class="form-label">Additional Shops — Group 1 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
+                                        @foreach($all_shops as $shop)
+                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Input #3: All shops (cross-excluded with #2) --}}
+                                <div class="mb-3">
+                                    <label for="shopExtra2" class="form-label">Additional Shops — Group 2 <span class="text-secondary small">(all shops; cannot duplicate Group 1)</span></label>
+                                    <select class="form-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
+                                        @foreach($all_shops as $shop)
+                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- ── GARAGES ──────────────────────────────────────────── --}}
+                                <h6 class="mt-3 mb-2 text-muted fw-semibold">Garages</h6>
+
+                                {{-- Input #4: Registered garage partners --}}
+                                <div class="mb-3">
+                                    <label for="garagePartners" class="form-label">Garage Partners <span class="text-secondary small">(your registered partners only)</span></label>
+                                    <select class="form-select" name="garage_partners[]" id="garagePartners" multiple size="4">
+                                        @foreach($garage_partners as $partner)
+                                            <option value="{{ $partner->id }}" {{ in_array($partner->id, old('garage_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Input #5: All garages (cross-excluded with #6) --}}
+                                <div class="mb-3">
+                                    <label for="garageExtra1" class="form-label">Additional Garages — Group 1 <span class="text-secondary small">(all garages)</span></label>
+                                    <select class="form-select" name="insurance_garage_extra1[]" id="garageExtra1" multiple size="4">
+                                        @foreach($all_garages as $garage)
+                                            <option value="{{ $garage->id }}" {{ in_array($garage->id, old('insurance_garage_extra1', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Input #6: All garages (cross-excluded with #5) --}}
+                                <div class="mb-3">
+                                    <label for="garageExtra2" class="form-label">Additional Garages — Group 2 <span class="text-secondary small">(all garages; cannot duplicate Group 1)</span></label>
+                                    <select class="form-select" name="insurance_garage_extra2[]" id="garageExtra2" multiple size="4">
+                                        @foreach($all_garages as $garage)
+                                            <option value="{{ $garage->id }}" {{ in_array($garage->id, old('insurance_garage_extra2', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                        @endforeach
+                                    </select>
                                 </div>
 
                                 <div class="col-12 pt-4">
@@ -862,40 +886,38 @@ console.log(1);
 
 });
 
-// Quota cap: quota can never exceed the number of selected partners.
-// When no partners are selected at all, quota is irrelevant — all options stay enabled.
-document.addEventListener('DOMContentLoaded', function() {
-    function syncQuotaMax(multiSelectId, quotaSelectId) {
-        var multi = document.getElementById(multiSelectId);
-        var quota = document.getElementById(quotaSelectId);
-        if (!multi || !quota) return;
+// Cross-group exclusion: selecting in Group 1 disables those options in Group 2 (and vice-versa).
+document.addEventListener('DOMContentLoaded', function () {
+    function syncExclusion(aId, bId) {
+        var a = document.getElementById(aId);
+        var b = document.getElementById(bId);
+        if (!a || !b) return;
 
-        function applyConstraints() {
-            var selected = Array.from(multi.selectedOptions).length;
-            if (selected === 0) {
-                // No partners selected — quota is irrelevant, enable all options
-                Array.from(quota.options).forEach(function(opt) { opt.disabled = false; });
-                return;
-            }
-            // Disable options above the selected count and snap value down if needed
-            Array.from(quota.options).forEach(function(opt) {
-                opt.disabled = parseInt(opt.value) > selected;
+        function applyAtoB() {
+            var selected = Array.from(a.selectedOptions).map(function(o) { return o.value; });
+            Array.from(b.options).forEach(function(opt) {
+                if (!opt.value) return;
+                opt.disabled = selected.includes(opt.value);
+                if (opt.disabled && opt.selected) opt.selected = false;
             });
-            if (parseInt(quota.value) > selected) {
-                quota.value = String(selected);
-            }
+        }
+        function applyBtoA() {
+            var selected = Array.from(b.selectedOptions).map(function(o) { return o.value; });
+            Array.from(a.options).forEach(function(opt) {
+                if (!opt.value) return;
+                opt.disabled = selected.includes(opt.value);
+                if (opt.disabled && opt.selected) opt.selected = false;
+            });
         }
 
-        // Fire on multi-select change AND click (belt-and-suspenders for browser quirks)
-        multi.addEventListener('change', applyConstraints);
-        multi.addEventListener('click',  applyConstraints);
-        // Snap when user changes quota directly
-        quota.addEventListener('change', applyConstraints);
-        // Disable options BEFORE the native dropdown opens so user never sees a bad option
-        quota.addEventListener('mousedown', applyConstraints);
+        a.addEventListener('change', function() { applyAtoB(); });
+        b.addEventListener('change', function() { applyBtoA(); });
+        applyAtoB();
+        applyBtoA();
     }
-    syncQuotaMax('multiple-select-sparepart', 'insurance_shop_quota');
-    syncQuotaMax('multiple-select-garage',     'insurance_garage_quota');
+
+    syncExclusion('shopExtra1',   'shopExtra2');
+    syncExclusion('garageExtra1', 'garageExtra2');
 });
 
 // Form submit validation — safety net for quantity

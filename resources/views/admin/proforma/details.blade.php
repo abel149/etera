@@ -242,7 +242,14 @@
 
                         @endif
                         
-                        @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected())
+                        @php
+                            $noFloatNeeded = !$proforma->isEteraCheretaMode()
+                                && $proforma->floatShopQuota()   <= 0
+                                && $proforma->floatGarageQuota() <= 0
+                                && ((int)($proforma->required_number_of_shops ?? 0) > 0
+                                    || (int)($proforma->required_number_of_garages ?? 0) > 0);
+                        @endphp
+                        @if(($proforma->status == 'pending' || $proforma->status == 'opened') && !$proforma?->selected() && !$noFloatNeeded)
                                                         <a href="/float?proforma_id={{ $proforma->id }}" class="btn btn-primary">Float</a>
                                                     @endif
                                                     @if(($proforma->status == 'completed' || $proforma->status == 'closed') && !$proforma->verified && !$proforma->selected() && $proforma->processed_by == auth()->id())

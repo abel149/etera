@@ -3311,33 +3311,54 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             }
             
-            $shopPartners   = array_unique(array_filter($request->input('spare_part_partners', [])));
-            $garagePartners = array_unique(array_filter($request->input('garage_partners', [])));
+            // ── Insurance inbox groups (3 per side, each group = 1 required slot) ────
+            $shopGroup1  = array_unique(array_filter($request->input('spare_part_partners', [])));
+            $shopGroup2  = array_unique(array_filter($request->input('insurance_shop_extra1', [])));
+            $shopGroup3  = array_unique(array_filter($request->input('insurance_shop_extra2', [])));
 
-            if (!empty($shopPartners)) {
-                if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_shop_quota')) {
-                    $proforma->update(['insurance_shop_quota' => min(count($shopPartners), max(1, (int) $request->input('insurance_shop_quota', 1)))]);
-                }
-                foreach ($shopPartners as $userId) {
-                    Inbox::create([
-                        'proforma_id' => $proforma->id,
-                        'user_id'     => $userId,
-                        'source'      => 'insurance',
-                    ]);
+            $garageGroup1 = array_unique(array_filter($request->input('garage_partners', [])));
+            $garageGroup2 = array_unique(array_filter($request->input('insurance_garage_extra1', [])));
+            $garageGroup3 = array_unique(array_filter($request->input('insurance_garage_extra2', [])));
+
+            // Backend safety: remove cross-group duplicates in inputs #2↔#3
+            $shopGroup3   = array_values(array_diff($shopGroup3,   $shopGroup2));
+            $garageGroup3 = array_values(array_diff($garageGroup3, $garageGroup2));
+
+            $shopGroupsUsed = 0;
+            foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3] as $grp => $ids) {
+                if (!empty($ids)) {
+                    $shopGroupsUsed++;
+                    foreach ($ids as $userId) {
+                        Inbox::create([
+                            'proforma_id' => $proforma->id,
+                            'user_id'     => $userId,
+                            'source'      => 'insurance',
+                            'inbox_group' => $grp,
+                        ]);
+                    }
                 }
             }
 
-            if (!empty($garagePartners)) {
-                if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_garage_quota')) {
-                    $proforma->update(['insurance_garage_quota' => min(count($garagePartners), max(1, (int) $request->input('insurance_garage_quota', 1)))]);
+            $garageGroupsUsed = 0;
+            foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3] as $grp => $ids) {
+                if (!empty($ids)) {
+                    $garageGroupsUsed++;
+                    foreach ($ids as $userId) {
+                        Inbox::create([
+                            'proforma_id' => $proforma->id,
+                            'user_id'     => $userId,
+                            'source'      => 'insurance',
+                            'inbox_group' => $grp,
+                        ]);
+                    }
                 }
-                foreach ($garagePartners as $userId) {
-                    Inbox::create([
-                        'proforma_id' => $proforma->id,
-                        'user_id'     => $userId,
-                        'source'      => 'insurance',
-                    ]);
-                }
+            }
+
+            if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_shop_quota')) {
+                $proforma->update(['insurance_shop_quota' => $shopGroupsUsed]);
+            }
+            if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_garage_quota')) {
+                $proforma->update(['insurance_garage_quota' => $garageGroupsUsed]);
             }
 
             // Handle voice note if present
@@ -3393,10 +3414,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
     Route::get('/insurance/create-file', function () {
         $brands = Brand::all();
-        $spare_part_partners = User::where('role', 'shop')->get();
-        $garage_partners = User::where('role', 'garage')->get();
-        
-        return view('insurance.create-file', compact('brands', 'spare_part_partners', 'garage_partners'));
+        $spare_part_partners = auth()->user()->sparePartPartners();
+        $garage_partners     = auth()->user()->garagePartners();
+        $all_shops   = User::where('role', 'shop')->orderBy('name')->get();
+        $all_garages = User::where('role', 'garage')->orderBy('name')->get();
+        return view('insurance.create-file', compact('brands', 'spare_part_partners', 'garage_partners', 'all_shops', 'all_garages'));
     })->name('insurance.create-file.show');
 
 
