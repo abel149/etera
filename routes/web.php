@@ -3113,13 +3113,18 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $spare_part_partners = auth()->user()->sparePartPartners();
             $garage_partners = auth()->user()->garagePartners();
 
+            $all_shops   = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+            $all_garages = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
+
             return view(
                 'insurance.create-file',
                 compact(
                     'brands',
                     'parts',
                     'spare_part_partners',
-                    'garage_partners'
+                    'garage_partners',
+                    'all_shops',
+                    'all_garages'
                 )
             );
         });
@@ -3412,14 +3417,6 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             return redirect()->back()->with('success', 'Proforma created successfully');
         })->name('insurance.create-file');
 
-    Route::get('/insurance/create-file', function () {
-        $brands = Brand::all();
-        $spare_part_partners = auth()->user()->sparePartPartners();
-        $garage_partners     = auth()->user()->garagePartners();
-        $all_shops   = User::where('role', 'shop')->orderBy('name')->get();
-        $all_garages = User::where('role', 'garage')->orderBy('name')->get();
-        return view('insurance.create-file', compact('brands', 'spare_part_partners', 'garage_partners', 'all_shops', 'all_garages'));
-    })->name('insurance.create-file.show');
 
 
         
