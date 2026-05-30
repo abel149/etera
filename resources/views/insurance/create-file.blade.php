@@ -619,9 +619,10 @@
 </style>
 
 <script>
+var stepper3;
 document.addEventListener('DOMContentLoaded', () => {
 
-const stepper3 = new Stepper(document.getElementById('stepper3'), {
+stepper3 = new Stepper(document.getElementById('stepper3'), {
         linear: false, // We'll handle linearity manually
         animation: true
     });
@@ -886,19 +887,6 @@ console.log(1);
 
 });
 
-// Form submit validation — safety net for quantity
-document.getElementById('insuranceProformaForm').addEventListener('submit', function(e) {
-    const quantityInputs = document.querySelectorAll('input[name*="[quantity]"]');
-    for (let i = 0; i < quantityInputs.length; i++) {
-        const val = parseInt(quantityInputs[i].value);
-        if (!quantityInputs[i].value || val < 1) {
-            e.preventDefault();
-            quantityInputs[i].setCustomValidity('Quantity must be at least 1');
-            quantityInputs[i].reportValidity();
-            return;
-        }
-    }
-});
 </script>
 @endsection
 
