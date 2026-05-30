@@ -886,32 +886,49 @@ console.log(1);
 
 });
 
-// Cross-group exclusion: selecting in Group 1 disables those options in Group 2 (and vice-versa).
-document.addEventListener('DOMContentLoaded', function () {
+// ── Inbox partner inputs: Select2 searchable multi-select + cross-group exclusion ──
+$(document).ready(function () {
+
+    // Initialise all 6 inputs as searchable Select2 multi-selects
+    ['shopPartners', 'shopExtra1', 'shopExtra2',
+     'garagePartners', 'garageExtra1', 'garageExtra2'].forEach(function (id) {
+        $('#' + id).select2({
+            theme:       'bootstrap-5',
+            placeholder: 'Type to search and select...',
+            allowClear:  true,
+            width:       '100%',
+        });
+    });
+
+    // Cross-group exclusion: Extra1 ↔ Extra2 (shops), Extra1 ↔ Extra2 (garages)
     function syncExclusion(aId, bId) {
-        var a = document.getElementById(aId);
-        var b = document.getElementById(bId);
-        if (!a || !b) return;
+        var $a = $('#' + aId);
+        var $b = $('#' + bId);
+        var syncing = false;
 
         function applyAtoB() {
-            var selected = Array.from(a.selectedOptions).map(function(o) { return o.value; });
-            Array.from(b.options).forEach(function(opt) {
-                if (!opt.value) return;
-                opt.disabled = selected.includes(opt.value);
-                if (opt.disabled && opt.selected) opt.selected = false;
+            var selected = $a.val() || [];
+            $b.find('option').each(function () {
+                $(this).prop('disabled', selected.indexOf($(this).val()) !== -1);
             });
+            var bVal = ($b.val() || []).filter(function (v) { return selected.indexOf(v) === -1; });
+            syncing = true;
+            $b.val(bVal).trigger('change');
+            syncing = false;
         }
         function applyBtoA() {
-            var selected = Array.from(b.selectedOptions).map(function(o) { return o.value; });
-            Array.from(a.options).forEach(function(opt) {
-                if (!opt.value) return;
-                opt.disabled = selected.includes(opt.value);
-                if (opt.disabled && opt.selected) opt.selected = false;
+            var selected = $b.val() || [];
+            $a.find('option').each(function () {
+                $(this).prop('disabled', selected.indexOf($(this).val()) !== -1);
             });
+            var aVal = ($a.val() || []).filter(function (v) { return selected.indexOf(v) === -1; });
+            syncing = true;
+            $a.val(aVal).trigger('change');
+            syncing = false;
         }
 
-        a.addEventListener('change', function() { applyAtoB(); });
-        b.addEventListener('change', function() { applyBtoA(); });
+        $a.on('change', function () { if (!syncing) applyAtoB(); });
+        $b.on('change', function () { if (!syncing) applyBtoA(); });
         applyAtoB();
         applyBtoA();
     }

@@ -3116,17 +3116,20 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $all_shops   = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
             $all_garages = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
 
-            return view(
-                'insurance.create-file',
-                compact(
-                    'brands',
-                    'parts',
-                    'spare_part_partners',
-                    'garage_partners',
-                    'all_shops',
-                    'all_garages'
+            return response()
+                ->view(
+                    'insurance.create-file',
+                    compact(
+                        'brands',
+                        'parts',
+                        'spare_part_partners',
+                        'garage_partners',
+                        'all_shops',
+                        'all_garages'
+                    )
                 )
-            );
+                ->header('Cache-Control', 'no-cache, no-store, must-revalidate')
+                ->header('Pragma', 'no-cache');
         });
         // Route::post('create-file', function (Request $request) {
         //     $request->validate(

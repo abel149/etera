@@ -190,12 +190,14 @@ class ProformaApplicationController extends Controller
 
                 // Chereta: when an insurance partner applies, delete others in the same inbox group
                 if ($isInsuranceInboxed) {
+                    $roleUserIds = \App\Models\User::where('role', $role)->pluck('id');
+
                     if ($inboxGroup !== null) {
-                        // Per-group chereta: only wipe others in the same group for this role
+                        // Per-group chereta: wipe all others in the same inbox_group for this role
                         $proforma->inboxes()
                             ->where('source', 'insurance')
                             ->where('inbox_group', $inboxGroup)
-                            ->whereHas('user', fn($q) => $q->where('role', $role))
+                            ->whereIn('user_id', $roleUserIds)
                             ->delete();
                     } else {
                         // Legacy (proformas created before inbox_group migration):
@@ -211,7 +213,7 @@ class ProformaApplicationController extends Controller
                             $proforma->inboxes()
                                 ->where('source', 'insurance')
                                 ->whereNull('inbox_group')
-                                ->whereHas('user', fn($q) => $q->where('role', $role))
+                                ->whereIn('user_id', $roleUserIds)
                                 ->delete();
                         }
                     }
