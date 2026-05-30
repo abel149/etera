@@ -886,6 +886,24 @@ console.log(1);
 
 });
 
+// Form submit validation — safety net for quantity
+document.getElementById('insuranceProformaForm').addEventListener('submit', function(e) {
+    const quantityInputs = document.querySelectorAll('input[name*="[quantity]"]');
+    for (let i = 0; i < quantityInputs.length; i++) {
+        const val = parseInt(quantityInputs[i].value);
+        if (!quantityInputs[i].value || val < 1) {
+            e.preventDefault();
+            quantityInputs[i].setCustomValidity('Quantity must be at least 1');
+            quantityInputs[i].reportValidity();
+            return;
+        }
+    }
+});
+</script>
+@endsection
+
+@push('scripts')
+<script>
 // ── Inbox partner inputs: Select2 searchable multi-select + cross-group exclusion ──
 $(document).ready(function () {
 
@@ -936,19 +954,5 @@ $(document).ready(function () {
     syncExclusion('shopExtra1',   'shopExtra2');
     syncExclusion('garageExtra1', 'garageExtra2');
 });
-
-// Form submit validation — safety net for quantity
-document.getElementById('insuranceProformaForm').addEventListener('submit', function(e) {
-    const quantityInputs = document.querySelectorAll('input[name*="[quantity]"]');
-    for (let i = 0; i < quantityInputs.length; i++) {
-        const val = parseInt(quantityInputs[i].value);
-        if (!quantityInputs[i].value || val < 1) {
-            e.preventDefault();
-            quantityInputs[i].setCustomValidity('Quantity must be at least 1');
-            quantityInputs[i].reportValidity();
-            return;
-        }
-    }
-});
 </script>
-@endsection
+@endpush
