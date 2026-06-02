@@ -3552,6 +3552,63 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
     Route::post('/upload/image', [App\Http\Controllers\FileUploadController::class, 'uploadPartsImage'])->name('upload.image');
     Route::delete('/delete', [App\Http\Controllers\FileUploadController::class, 'deleteUpload'])->name('upload.delete');
 
+        // ── Encryption integrity verification (insurance only) ────────────────
+        Route::get('version', function () {
+            $commitLong  = trim(shell_exec('git -C ' . escapeshellarg(base_path()) . ' rev-parse HEAD 2>/dev/null') ?? '');
+            $commitShort = trim(shell_exec('git -C ' . escapeshellarg(base_path()) . ' rev-parse --short HEAD 2>/dev/null') ?? '');
+
+            if (empty($commitLong)) {
+                $headFile = base_path('.git/HEAD');
+                if (file_exists($headFile)) {
+                    $head = trim(file_get_contents($headFile));
+                    if (str_starts_with($head, 'ref: ')) {
+                        $refFile = base_path('.git/' . substr($head, 5));
+                        $commitLong = file_exists($refFile) ? trim(file_get_contents($refFile)) : $head;
+                    } else {
+                        $commitLong = $head;
+                    }
+                }
+                $commitShort = $commitLong ? substr($commitLong, 0, 7) : 'unknown';
+            }
+
+            $encFile     = base_path('resources/js/e2e-encryption.js');
+            $fileHash    = file_exists($encFile) ? 'sha384-' . base64_encode(hash_file('sha384', $encFile, true)) : 'file-not-found';
+            $fileSize    = file_exists($encFile) ? filesize($encFile) : 0;
+            $fileLines   = file_exists($encFile) ? count(file($encFile)) : 0;
+
+            $repoUrl     = 'https://github.com/abel149/etera';
+            $rawBase     = 'https://raw.githubusercontent.com/abel149/etera';
+            $encFilePath = 'resources/js/e2e-encryption.js';
+
+            $githubFileUrl   = $commitLong ? "{$repoUrl}/blob/{$commitLong}/{$encFilePath}"  : null;
+            $githubCommitUrl = $commitLong ? "{$repoUrl}/commit/{$commitLong}"               : null;
+            $rawDownloadUrl  = $commitLong ? "{$rawBase}/{$commitLong}/{$encFilePath}"        : null;
+
+            return response()->json([
+                'commit'       => $commitLong  ?: 'unknown',
+                'commit_short' => $commitShort ?: 'unknown',
+                'github' => [
+                    'repo'             => $repoUrl,
+                    'commit_url'       => $githubCommitUrl,
+                    'encryption_file'  => $githubFileUrl,
+                    'raw_download_url' => $rawDownloadUrl,
+                ],
+                'encryption_file' => [
+                    'path'       => $encFilePath,
+                    'sha384'     => $fileHash,
+                    'size_bytes' => $fileSize,
+                    'line_count' => $fileLines,
+                ],
+                'how_to_verify' => [
+                    'important_note' => 'Use curl.exe (not curl) on Windows to avoid CRLF line-ending conversion that changes the hash.',
+                    'step_1' => 'Run: curl.exe -o enc.js "' . ($rawDownloadUrl ?? '{raw_download_url}') . '"',
+                    'step_2' => 'Run: openssl dgst -sha384 -binary enc.js | openssl base64',
+                    'step_3' => 'Add "sha384-" before the result and compare with encryption_file.sha384 above.',
+                    'step_4' => 'Match = live code is byte-for-byte identical to GitHub. Mismatch = server code was changed without pushing.',
+                ],
+            ], 200, ['Cache-Control' => 'no-store, no-cache']);
+        })->name('insurance.version');
+
     });
 
 Route::get('proforma-details', function (Request $request) {
@@ -5025,73 +5082,6 @@ Route::prefix('role')
             })
         ]);
     })->name('debug.voice-notes');
-
-// ── Public /version endpoint — lets insurance users verify encryption code integrity ──────────
-// Insurance users can compare:
-//   1. The git commit hash shown here against the public GitHub repo commit history.
-//   2. The SHA-384 hash of e2e-encryption.js shown here against the file on GitHub.
-// If both match, the live code is identical to what is publicly visible on GitHub.
-Route::get('/version', function () {
-    // ── Git commit hash ──────────────────────────────────────────────────────
-    $commitLong  = trim(shell_exec('git -C ' . escapeshellarg(base_path()) . ' rev-parse HEAD 2>/dev/null') ?? '');
-    $commitShort = trim(shell_exec('git -C ' . escapeshellarg(base_path()) . ' rev-parse --short HEAD 2>/dev/null') ?? '');
-
-    // Fallback: read HEAD file directly (works even if git binary is absent)
-    if (empty($commitLong)) {
-        $headFile = base_path('.git/HEAD');
-        if (file_exists($headFile)) {
-            $head = trim(file_get_contents($headFile));
-            if (str_starts_with($head, 'ref: ')) {
-                $refFile = base_path('.git/' . substr($head, 5));
-                $commitLong = file_exists($refFile) ? trim(file_get_contents($refFile)) : $head;
-            } else {
-                $commitLong = $head;
-            }
-        }
-        $commitShort = $commitLong ? substr($commitLong, 0, 7) : 'unknown';
-    }
-
-    // ── Encryption file hash (SHA-384, base64) ───────────────────────────────
-    $encFile  = base_path('resources/js/e2e-encryption.js');
-    $fileHash = file_exists($encFile)
-        ? 'sha384-' . base64_encode(hash_file('sha384', $encFile, true))
-        : 'file-not-found';
-    $fileSize  = file_exists($encFile) ? filesize($encFile) : 0;
-    $fileLines = file_exists($encFile) ? count(file($encFile)) : 0;
-
-    // ── Public GitHub repo URL (update this when the repo URL changes) ─────
-    $repoUrl     = 'https://github.com/abel149/etera';
-    $rawBase     = 'https://raw.githubusercontent.com/abel149/etera';
-    $encFilePath = 'resources/js/e2e-encryption.js';
-
-    $githubFileUrl   = $commitLong ? "{$repoUrl}/blob/{$commitLong}/{$encFilePath}"   : null;
-    $githubCommitUrl = $commitLong ? "{$repoUrl}/commit/{$commitLong}"               : null;
-    $rawDownloadUrl  = $commitLong ? "{$rawBase}/{$commitLong}/{$encFilePath}"        : null;
-
-    return response()->json([
-        'commit'       => $commitLong  ?: 'unknown',
-        'commit_short' => $commitShort ?: 'unknown',
-        'github' => [
-            'repo'              => $repoUrl,
-            'commit_url'        => $githubCommitUrl,
-            'encryption_file'   => $githubFileUrl,
-            'raw_download_url'  => $rawDownloadUrl,
-        ],
-        'encryption_file' => [
-            'path'       => $encFilePath,
-            'sha384'     => $fileHash,
-            'size_bytes' => $fileSize,
-            'line_count' => $fileLines,
-        ],
-        'how_to_verify' => [
-            'important_note' => 'ALWAYS download the file using the curl command below. Downloading via browser or git clone on Windows converts line endings (LF→CRLF) which changes the hash.',
-            'step_1' => 'Run: curl -o enc.js "' . ($rawDownloadUrl ?? '{raw_download_url}') . '"',
-            'step_2' => 'Run: openssl dgst -sha384 -binary enc.js | openssl base64',
-            'step_3' => 'Add "sha384-" before the result and compare with encryption_file.sha384 above.',
-            'step_4' => 'Match = live code is byte-for-byte identical to GitHub. Mismatch = code was changed on the server without pushing.',
-        ],
-    ], 200, ['Cache-Control' => 'no-store, no-cache']);
-})->name('version');
 
 // Include Manager & Operator Routes
 require __DIR__.'/manager_operator_routes.php';
