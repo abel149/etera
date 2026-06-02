@@ -3049,6 +3049,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
         Route::post('proforma/{proforma}/manage-inboxes', function (Request $request, Proforma $proforma) {
             abort_if($proforma->poster_id !== auth()->id(), 403);
 
+            // Guard: only pending proformas can be edited
+            if ($proforma->status !== 'pending') {
+                return redirect()->back()->with('error', 'This proforma is no longer editable (status: ' . $proforma->status . ').');
+            }
+
             $appliedUserIds = $proforma->applications()->pluck('application_by')->map(fn($id) => (int)$id)->toArray();
             $shopUserIds    = \App\Models\User::where('role', 'shop')->pluck('id')->toArray();
             $garageUserIds  = \App\Models\User::where('role', 'garage')->pluck('id')->toArray();
@@ -3056,42 +3061,58 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $garageGroupsUsed = 0;
 
             foreach ([1, 2, 3] as $grp) {
-                $desiredIds = collect(array_unique(array_filter($request->input("shop_group_{$grp}", []))))
-                    ->map(fn($v) => (int)$v)
-                    ->reject(fn($id) => in_array($id, $appliedUserIds) || !in_array($id, $shopUserIds))
-                    ->unique()->values()->toArray();
-
+                // ── Lock check: groups with no current insurance inbox entries are locked ──
+                // (chereta cleared them after an application, or insurance never used them)
                 $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
                     ->where('source', 'insurance')->where('inbox_group', $grp)
                     ->whereIn('user_id', $shopUserIds)
                     ->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
 
+                if (empty($currentIds)) {
+                    // Group is locked — skip entirely, do not touch
+                    continue;
+                }
+
+                // Group is unlocked (has current entries) — apply desired set
+                $desiredIds = collect(array_unique(array_filter($request->input("shop_group_{$grp}", []))))
+                    ->map(fn($v) => (int)$v)
+                    ->reject(fn($id) => in_array($id, $appliedUserIds) || !in_array($id, $shopUserIds))
+                    ->unique()->values()->toArray();
+
+                // Remove entries no longer desired (including clearing the whole group = free slot for admin)
                 $toRemove = array_diff($currentIds, $desiredIds);
                 if (!empty($toRemove)) {
                     \App\Models\Inbox::where('proforma_id', $proforma->id)
                         ->where('source', 'insurance')->where('inbox_group', $grp)
                         ->whereIn('user_id', $toRemove)->delete();
                 }
+                // Add newly desired entries (skip if already inboxed elsewhere on this proforma)
                 foreach (array_diff($desiredIds, $currentIds) as $userId) {
                     if (!\App\Models\Inbox::where('proforma_id', $proforma->id)->where('user_id', $userId)->exists()) {
                         \App\Models\Inbox::create(['proforma_id' => $proforma->id, 'user_id' => $userId, 'source' => 'insurance', 'inbox_group' => $grp]);
                     }
                 }
+                // Recalculate whether this group still has entries after changes
                 if (\App\Models\Inbox::where('proforma_id', $proforma->id)->where('source', 'insurance')->where('inbox_group', $grp)->whereIn('user_id', $shopUserIds)->exists()) {
                     $shopGroupsUsed++;
                 }
             }
 
             foreach ([1, 2, 3] as $grp) {
-                $desiredIds = collect(array_unique(array_filter($request->input("garage_group_{$grp}", []))))
-                    ->map(fn($v) => (int)$v)
-                    ->reject(fn($id) => in_array($id, $appliedUserIds) || !in_array($id, $garageUserIds))
-                    ->unique()->values()->toArray();
-
+                // ── Lock check: groups with no current insurance inbox entries are locked ──
                 $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
                     ->where('source', 'insurance')->where('inbox_group', $grp)
                     ->whereIn('user_id', $garageUserIds)
                     ->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
+
+                if (empty($currentIds)) {
+                    continue;
+                }
+
+                $desiredIds = collect(array_unique(array_filter($request->input("garage_group_{$grp}", []))))
+                    ->map(fn($v) => (int)$v)
+                    ->reject(fn($id) => in_array($id, $appliedUserIds) || !in_array($id, $garageUserIds))
+                    ->unique()->values()->toArray();
 
                 $toRemove = array_diff($currentIds, $desiredIds);
                 if (!empty($toRemove)) {
@@ -3109,6 +3130,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 }
             }
 
+            // Update quotas so the admin side sees the correct insurance slot count
             $proforma->update(['insurance_shop_quota' => $shopGroupsUsed, 'insurance_garage_quota' => $garageGroupsUsed]);
 
             return redirect()->back()->with('success', 'Inbox updated successfully.');
@@ -5003,6 +5025,73 @@ Route::prefix('role')
             })
         ]);
     })->name('debug.voice-notes');
+
+// ── Public /version endpoint — lets insurance users verify encryption code integrity ──────────
+// Insurance users can compare:
+//   1. The git commit hash shown here against the public GitHub repo commit history.
+//   2. The SHA-384 hash of e2e-encryption.js shown here against the file on GitHub.
+// If both match, the live code is identical to what is publicly visible on GitHub.
+Route::get('/version', function () {
+    // ── Git commit hash ──────────────────────────────────────────────────────
+    $commitLong  = trim(shell_exec('git -C ' . escapeshellarg(base_path()) . ' rev-parse HEAD 2>/dev/null') ?? '');
+    $commitShort = trim(shell_exec('git -C ' . escapeshellarg(base_path()) . ' rev-parse --short HEAD 2>/dev/null') ?? '');
+
+    // Fallback: read HEAD file directly (works even if git binary is absent)
+    if (empty($commitLong)) {
+        $headFile = base_path('.git/HEAD');
+        if (file_exists($headFile)) {
+            $head = trim(file_get_contents($headFile));
+            if (str_starts_with($head, 'ref: ')) {
+                $refFile = base_path('.git/' . substr($head, 5));
+                $commitLong = file_exists($refFile) ? trim(file_get_contents($refFile)) : $head;
+            } else {
+                $commitLong = $head;
+            }
+        }
+        $commitShort = $commitLong ? substr($commitLong, 0, 7) : 'unknown';
+    }
+
+    // ── Encryption file hash (SHA-384, base64) ───────────────────────────────
+    $encFile  = base_path('resources/js/e2e-encryption.js');
+    $fileHash = file_exists($encFile)
+        ? 'sha384-' . base64_encode(hash_file('sha384', $encFile, true))
+        : 'file-not-found';
+    $fileSize  = file_exists($encFile) ? filesize($encFile) : 0;
+    $fileLines = file_exists($encFile) ? count(file($encFile)) : 0;
+
+    // ── Public GitHub repo URL (update this when the repo URL changes) ─────
+    $repoUrl    = 'https://github.com/abel149/etera';
+    $encFilePath = 'resources/js/e2e-encryption.js';
+    $githubFileUrl = $repoUrl && $commitLong
+        ? "{$repoUrl}/blob/{$commitLong}/{$encFilePath}"
+        : null;
+    $githubCommitUrl = $repoUrl && $commitLong
+        ? "{$repoUrl}/commit/{$commitLong}"
+        : null;
+
+    return response()->json([
+        'commit'       => $commitLong  ?: 'unknown',
+        'commit_short' => $commitShort ?: 'unknown',
+        'github' => [
+            'repo'            => $repoUrl ?: 'not configured',
+            'commit_url'      => $githubCommitUrl,
+            'encryption_file' => $githubFileUrl,
+        ],
+        'encryption_file' => [
+            'path'       => $encFilePath,
+            'sha384'     => $fileHash,
+            'size_bytes' => $fileSize,
+            'line_count' => $fileLines,
+        ],
+        'how_to_verify' => [
+            'step_1' => 'Open github.commit_url in your browser to see the exact deployed commit.',
+            'step_2' => 'Open github.encryption_file to view the encryption source at that commit.',
+            'step_3' => 'Download that file and compute: openssl dgst -sha384 -binary e2e-encryption.js | openssl base64',
+            'step_4' => 'Prepend "sha384-" and compare with encryption_file.sha384 above.',
+            'step_5' => 'If they match, the live encryption code is byte-for-byte identical to what is on GitHub.',
+        ],
+    ], 200, ['Cache-Control' => 'no-store, no-cache']);
+})->name('version');
 
 // Include Manager & Operator Routes
 require __DIR__.'/manager_operator_routes.php';
