@@ -3011,6 +3011,109 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
     return redirect('/login');
 });
 
+        // ── Insurance: Manage inbox assignments for a proforma ────────────────────
+        Route::get('proforma/{proforma}/manage-inboxes', function (Proforma $proforma) {
+            abort_if($proforma->poster_id !== auth()->id(), 403);
+
+            $shopUserIds   = \App\Models\User::where('role', 'shop')->pluck('id');
+            $garageUserIds = \App\Models\User::where('role', 'garage')->pluck('id');
+
+            $shopInboxes = \App\Models\Inbox::with('user')
+                ->where('proforma_id', $proforma->id)
+                ->where('source', 'insurance')
+                ->whereIn('user_id', $shopUserIds)
+                ->get()->groupBy('inbox_group');
+
+            $garageInboxes = \App\Models\Inbox::with('user')
+                ->where('proforma_id', $proforma->id)
+                ->where('source', 'insurance')
+                ->whereIn('user_id', $garageUserIds)
+                ->get()->groupBy('inbox_group');
+
+            $appliedUserIds     = $proforma->applications()->pluck('application_by')->map(fn($id) => (int)$id)->toArray();
+            $shopApplications   = $proforma->applications()->where('from', 'shop')->with('applicationBy')->get();
+            $garageApplications = $proforma->applications()->where('from', 'garage')->with('applicationBy')->get();
+
+            $spare_part_partners = auth()->user()->sparePartPartners();
+            $garage_partners     = auth()->user()->garagePartners();
+            $all_shops           = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+            $all_garages         = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
+
+            return view('insurance.manage-inboxes', compact(
+                'proforma', 'shopInboxes', 'garageInboxes',
+                'appliedUserIds', 'shopApplications', 'garageApplications',
+                'spare_part_partners', 'garage_partners', 'all_shops', 'all_garages'
+            ));
+        })->name('insurance.manage-inboxes');
+
+        Route::post('proforma/{proforma}/manage-inboxes', function (Request $request, Proforma $proforma) {
+            abort_if($proforma->poster_id !== auth()->id(), 403);
+
+            $appliedUserIds = $proforma->applications()->pluck('application_by')->map(fn($id) => (int)$id)->toArray();
+            $shopUserIds    = \App\Models\User::where('role', 'shop')->pluck('id')->toArray();
+            $garageUserIds  = \App\Models\User::where('role', 'garage')->pluck('id')->toArray();
+            $shopGroupsUsed   = 0;
+            $garageGroupsUsed = 0;
+
+            foreach ([1, 2, 3] as $grp) {
+                $desiredIds = collect(array_unique(array_filter($request->input("shop_group_{$grp}", []))))
+                    ->map(fn($v) => (int)$v)
+                    ->reject(fn($id) => in_array($id, $appliedUserIds) || !in_array($id, $shopUserIds))
+                    ->unique()->values()->toArray();
+
+                $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
+                    ->where('source', 'insurance')->where('inbox_group', $grp)
+                    ->whereIn('user_id', $shopUserIds)
+                    ->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
+
+                $toRemove = array_diff($currentIds, $desiredIds);
+                if (!empty($toRemove)) {
+                    \App\Models\Inbox::where('proforma_id', $proforma->id)
+                        ->where('source', 'insurance')->where('inbox_group', $grp)
+                        ->whereIn('user_id', $toRemove)->delete();
+                }
+                foreach (array_diff($desiredIds, $currentIds) as $userId) {
+                    if (!\App\Models\Inbox::where('proforma_id', $proforma->id)->where('user_id', $userId)->exists()) {
+                        \App\Models\Inbox::create(['proforma_id' => $proforma->id, 'user_id' => $userId, 'source' => 'insurance', 'inbox_group' => $grp]);
+                    }
+                }
+                if (\App\Models\Inbox::where('proforma_id', $proforma->id)->where('source', 'insurance')->where('inbox_group', $grp)->whereIn('user_id', $shopUserIds)->exists()) {
+                    $shopGroupsUsed++;
+                }
+            }
+
+            foreach ([1, 2, 3] as $grp) {
+                $desiredIds = collect(array_unique(array_filter($request->input("garage_group_{$grp}", []))))
+                    ->map(fn($v) => (int)$v)
+                    ->reject(fn($id) => in_array($id, $appliedUserIds) || !in_array($id, $garageUserIds))
+                    ->unique()->values()->toArray();
+
+                $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
+                    ->where('source', 'insurance')->where('inbox_group', $grp)
+                    ->whereIn('user_id', $garageUserIds)
+                    ->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
+
+                $toRemove = array_diff($currentIds, $desiredIds);
+                if (!empty($toRemove)) {
+                    \App\Models\Inbox::where('proforma_id', $proforma->id)
+                        ->where('source', 'insurance')->where('inbox_group', $grp)
+                        ->whereIn('user_id', $toRemove)->delete();
+                }
+                foreach (array_diff($desiredIds, $currentIds) as $userId) {
+                    if (!\App\Models\Inbox::where('proforma_id', $proforma->id)->where('user_id', $userId)->exists()) {
+                        \App\Models\Inbox::create(['proforma_id' => $proforma->id, 'user_id' => $userId, 'source' => 'insurance', 'inbox_group' => $grp]);
+                    }
+                }
+                if (\App\Models\Inbox::where('proforma_id', $proforma->id)->where('source', 'insurance')->where('inbox_group', $grp)->whereIn('user_id', $garageUserIds)->exists()) {
+                    $garageGroupsUsed++;
+                }
+            }
+
+            $proforma->update(['insurance_shop_quota' => $shopGroupsUsed, 'insurance_garage_quota' => $garageGroupsUsed]);
+
+            return redirect()->back()->with('success', 'Inbox updated successfully.');
+        })->name('insurance.manage-inboxes.update');
+
         Route::get('proforma-details', function (Request $request) {
 
             $proforma = \App\Models\Proforma::with([

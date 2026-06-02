@@ -1,4 +1,4 @@
-@extends('layouts.insurance')
+﻿@extends('layouts.insurance')
 @section('content')
 <div class="row row-cols-12 row-cols-lg-12 row-cols-xl-12">
 	<div class="col mx-auto">
@@ -47,6 +47,7 @@
 									<th>Type</th>
 									<th>Phone #</th>
 									<th>Status</th>
+									<th>Actions</th>
 								</tr>
 							</thead>
 							<tbody>
@@ -77,6 +78,11 @@
 										@else text-secondary 
 										@endif">
 										{{ $proforma->status }}
+									</td>
+									<td>
+										<a href="{{ url('/insurance/proforma/' . $proforma->id . '/manage-inboxes') }}" class="btn btn-sm btn-outline-primary" title="Manage Inboxes">
+											<i class="bx bx-show"></i>
+										</a>
 									</td>
 								</tr>
 								@endforeach
