@@ -5060,22 +5060,22 @@ Route::get('/version', function () {
     $fileLines = file_exists($encFile) ? count(file($encFile)) : 0;
 
     // ── Public GitHub repo URL (update this when the repo URL changes) ─────
-    $repoUrl    = 'https://github.com/abel149/etera';
+    $repoUrl     = 'https://github.com/abel149/etera';
+    $rawBase     = 'https://raw.githubusercontent.com/abel149/etera';
     $encFilePath = 'resources/js/e2e-encryption.js';
-    $githubFileUrl = $repoUrl && $commitLong
-        ? "{$repoUrl}/blob/{$commitLong}/{$encFilePath}"
-        : null;
-    $githubCommitUrl = $repoUrl && $commitLong
-        ? "{$repoUrl}/commit/{$commitLong}"
-        : null;
+
+    $githubFileUrl   = $commitLong ? "{$repoUrl}/blob/{$commitLong}/{$encFilePath}"   : null;
+    $githubCommitUrl = $commitLong ? "{$repoUrl}/commit/{$commitLong}"               : null;
+    $rawDownloadUrl  = $commitLong ? "{$rawBase}/{$commitLong}/{$encFilePath}"        : null;
 
     return response()->json([
         'commit'       => $commitLong  ?: 'unknown',
         'commit_short' => $commitShort ?: 'unknown',
         'github' => [
-            'repo'            => $repoUrl ?: 'not configured',
-            'commit_url'      => $githubCommitUrl,
-            'encryption_file' => $githubFileUrl,
+            'repo'              => $repoUrl,
+            'commit_url'        => $githubCommitUrl,
+            'encryption_file'   => $githubFileUrl,
+            'raw_download_url'  => $rawDownloadUrl,
         ],
         'encryption_file' => [
             'path'       => $encFilePath,
@@ -5084,11 +5084,11 @@ Route::get('/version', function () {
             'line_count' => $fileLines,
         ],
         'how_to_verify' => [
-            'step_1' => 'Open github.commit_url in your browser to see the exact deployed commit.',
-            'step_2' => 'Open github.encryption_file to view the encryption source at that commit.',
-            'step_3' => 'Download that file and compute: openssl dgst -sha384 -binary e2e-encryption.js | openssl base64',
-            'step_4' => 'Prepend "sha384-" and compare with encryption_file.sha384 above.',
-            'step_5' => 'If they match, the live encryption code is byte-for-byte identical to what is on GitHub.',
+            'important_note' => 'ALWAYS download the file using the curl command below. Downloading via browser or git clone on Windows converts line endings (LF→CRLF) which changes the hash.',
+            'step_1' => 'Run: curl -o enc.js "' . ($rawDownloadUrl ?? '{raw_download_url}') . '"',
+            'step_2' => 'Run: openssl dgst -sha384 -binary enc.js | openssl base64',
+            'step_3' => 'Add "sha384-" before the result and compare with encryption_file.sha384 above.',
+            'step_4' => 'Match = live code is byte-for-byte identical to GitHub. Mismatch = code was changed on the server without pushing.',
         ],
     ], 200, ['Cache-Control' => 'no-store, no-cache']);
 })->name('version');
