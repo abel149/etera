@@ -84,6 +84,19 @@
 		.bg-dark-green { background-color: #068f28; }
 		.bg-dark-primary { background-color: #3B5998; }
 		.circle { height: 80px; width: 80px; }
+
+		/* Mobile hamburger notification dot */
+		.mobile-notif-dot {
+			position: absolute;
+			top: 2px;
+			right: 2px;
+			width: 9px;
+			height: 9px;
+			border-radius: 50%;
+			background: #dc3545;
+			border: 1.5px solid #fff;
+			pointer-events: none;
+		}
 	</style>
 	<title>etera - Insurances</title>
 @include('partials.green-theme')
@@ -219,8 +232,11 @@
     <nav class="navbar navbar-expand gap-3 w-100">
 
       <!-- Mobile hamburger -->
-      <button type="button" class="mobile-toggle-menu btn btn-link p-0">
+      <button type="button" class="mobile-toggle-menu btn btn-link p-0 position-relative">
         <i class="bx bx-menu fs-4"></i>
+        @if(auth()->user()->getReceivedProformasCount() > 0)
+          <span class="mobile-notif-dot"></span>
+        @endif
       </button>
 
       <!-- Right side icons -->
