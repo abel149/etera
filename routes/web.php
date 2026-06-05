@@ -3142,6 +3142,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'applications.prices',
                 'applications.applicationBy',
                 'parts',
+                'proformaInvoice',
+                'brand',
             ])->findOrFail($request->query('proforma_id'));
 
             // Shop applications

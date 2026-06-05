@@ -134,6 +134,38 @@
     border: 2px solid #ccc;
 }
 
+/* Invoice Link */
+.invoice-link-card {
+    text-align: center;
+    padding: 1.5rem;
+    margin-top: 1.5rem;
+    background: linear-gradient(135deg, #f0fdf4, #dcfce7);
+    border-radius: 16px;
+    border: 1px dashed #6ee7b7;
+    animation: fadeSlideUp 0.7s ease-out;
+}
+.btn-invoice {
+    background: linear-gradient(135deg, #10b981, #059669);
+    color: #fff;
+    border: none;
+    padding: 12px 32px;
+    border-radius: 50px;
+    font-size: 1rem;
+    font-weight: 600;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 14px rgba(5, 150, 105, 0.3);
+}
+.btn-invoice:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(5, 150, 105, 0.4);
+    color: #fff;
+    text-decoration: none;
+}
+
 </style>
 
 @if(auth()->user()->has_encryption)
@@ -447,9 +479,9 @@
 
         {{-- Invoice Link --}}
         @if($proforma->proformaInvoice && $proforma->proformaInvoice->sku)
-            <div class="text-center mt-4 mb-3">
-                <a href="{{ url('/transaction/' . $proforma->proformaInvoice->sku) }}" class="btn btn-primary rounded-pill px-5 py-2" target="_blank">
-                    <i class="fas fa-file-invoice me-2"></i> View Invoice
+            <div class="invoice-link-card">
+                <a href="{{ url('/transaction/' . $proforma->proformaInvoice->sku) }}" class="btn-invoice" target="_blank">
+                    <i class="bx bx-file"></i> View Invoice
                 </a>
             </div>
         @endif
