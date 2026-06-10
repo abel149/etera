@@ -272,7 +272,11 @@ class ProformaClosingService
             $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
             $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
-            if ($requiredShops > 0 && $requiredGarages == 0) {
+            if ($proforma->proforma_type && str_starts_with($proforma->proforma_type, 'insurance_')) {
+                $total = (float) ($proforma->insured
+                    ? ($latestCost->insured_cost ?? 0)
+                    : ($latestCost->insurance_proforma ?? 0));
+            } elseif ($requiredShops > 0 && $requiredGarages == 0) {
                 $count = ProformaApplication::where('proforma_id', $proforma->id)->count();
                 $field = "{$count}_proforma_cost";
                 $total = (float) ($latestCost->$field ?? 0);
@@ -327,7 +331,11 @@ class ProformaClosingService
             $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
             // Determine type and total
-            if ($requiredShops > 0 && $requiredGarages == 0) {
+            if ($proforma->proforma_type && str_starts_with($proforma->proforma_type, 'insurance_')) {
+                $total = (float) ($proforma->insured
+                    ? ($latestCost->insured_cost ?? 0)
+                    : ($latestCost->insurance_proforma ?? 0));
+            } elseif ($requiredShops > 0 && $requiredGarages == 0) {
                 $count = ProformaApplication::where('proforma_id', $proforma->id)->count();
                 $field = "{$count}_proforma_cost";
                 $total = (float) ($latestCost->$field ?? 0);

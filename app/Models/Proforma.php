@@ -123,9 +123,22 @@ class Proforma extends Model implements HasMedia
         return $this->required_number_of_shops + $this->required_number_of_garages;
     }
 
+    public function isGarageOnlyInsurance(): bool
+    {
+        return $this->proforma_type === 'insurance_garage_only';
+    }
+
+    public function isShopOnlyInsurance(): bool
+    {
+        return $this->proforma_type === 'insurance_shop_only';
+    }
+
     public function getRemainingShopsAttribute()
     {
-        if ($this->required_number_of_shops == 0) {
+        if ($this->isGarageOnlyInsurance()) {
+            return 0;
+        }
+        if ($this->isEteraCheretaMode()) {
             return '∞';
         }
         return max(0, $this->required_number_of_shops - $this->applicationsFromShops()->count());
@@ -133,6 +146,9 @@ class Proforma extends Model implements HasMedia
 
     public function getRemainingGaragesAttribute()
     {
+        if ($this->isShopOnlyInsurance()) {
+            return 0;
+        }
         return max(0, $this->required_number_of_garages - $this->applicationsFromGarages()->count());
     }
 
@@ -279,24 +295,29 @@ class Proforma extends Model implements HasMedia
 
     public function canBeAppliedByShop()
     {
-        // If Etera-Chereta mode (required_number_of_shops is 0), always allow applications
-        if ($this->required_number_of_shops == 0) {
+        if ($this->isGarageOnlyInsurance()) {
+            return false;
+        }
+        if ($this->isEteraCheretaMode()) {
             return true;
         }
-
-        if ($this->isFromInsurance()) {
-            return ($this->required_number_of_shops - $this->applications()->where('from', 'shop')->count()) <= 0 ? false : true;
+        if ($this->required_number_of_shops == 0) {
+            return false;
         }
-
-        return ($this->number_of_proformas - $this->applications()->where('from', 'shop')->count()) <= 0 ? false : true;
+        if ($this->isFromInsurance()) {
+            return ($this->required_number_of_shops - $this->applications()->where('from', 'shop')->count()) > 0;
+        }
+        return ($this->number_of_proformas - $this->applications()->where('from', 'shop')->count()) > 0;
     }
 
     public function canBeAppliedByGarage()
     {
-        if ($this->isFromInsurance()) {
-            return ($this->required_number_of_garages - $this->applications()->where('from', 'garage')->count()) <= 0 ? false : true;
+        if ($this->isShopOnlyInsurance()) {
+            return false;
         }
-
+        if ($this->isGarageOnlyInsurance() || $this->isFromInsurance()) {
+            return ($this->required_number_of_garages - $this->applications()->where('from', 'garage')->count()) > 0;
+        }
         return false;
     }
 
@@ -536,12 +557,13 @@ class Proforma extends Model implements HasMedia
     }
 
     /**
-     * Check if this proforma is in Etera-Chereta mode
-     * Etera-Chereta mode is identified by required_number_of_shops being 0
+     * Check if this proforma is in Etera-Chereta mode.
+     * Etera-Chereta requires BOTH shops AND garages to be 0.
+     * Garage-only insurance (shops=0, garages>0) is NOT Etera-Chereta.
      */
     public function isEteraCheretaMode()
     {
-        return $this->required_number_of_shops == 0;
+        return $this->required_number_of_shops == 0 && $this->required_number_of_garages == 0;
     }
 
     public function activityLogs()
@@ -564,7 +586,12 @@ class Proforma extends Model implements HasMedia
         $requiredShops = (int) ($this->required_number_of_shops ?? 0);
         $requiredGarages = (int) ($this->required_number_of_garages ?? 0);
 
-        // Determine type
+        // Explicit insurance subtypes always use insurance billing
+        if ($this->proforma_type && str_starts_with($this->proforma_type, 'insurance_')) {
+            return $this->insured ? 0 : (float) ($latestCost->insurance_proforma ?? 0);
+        }
+
+        // Legacy type determination by counts
         if ($requiredShops > 0 && $requiredGarages == 0) {
             $type = 'regular';
         } elseif ($requiredShops == 3 && $requiredGarages == 3) {

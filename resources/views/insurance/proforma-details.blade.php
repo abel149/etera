@@ -189,6 +189,7 @@
     <div class="card-body">
     
         <div class="row">
+            @if(!$proforma->isGarageOnlyInsurance())
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Spare Part Shops</h4>
                 @foreach($applications as $application)
@@ -335,6 +336,8 @@
                 @endforeach
             </div>
             
+            @endif
+            @if(!$proforma->isShopOnlyInsurance())
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
                 @foreach($applications as $application)
@@ -473,6 +476,7 @@
                 @endif
                 @endforeach
             </div>
+            @endif
         </div>
 
 @include('components.proforma-media', ['proforma' => $proforma])

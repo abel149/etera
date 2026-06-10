@@ -38,12 +38,20 @@ class UnifiedProformaList extends Component
     {
         // Start the query based on proforma type
         if ($this->proformaType === 'insurance') {
-            $query = Proforma::fromInsurances()->where('status', 'published');
+            $query = Proforma::fromInsurances()->where('status', 'published')
+                ->where(function ($q) {
+                    $q->whereNull('proforma_type')
+                      ->orWhere('proforma_type', '!=', 'insurance_garage_only');
+                });
         } elseif ($this->proformaType === 'others') {
             $query = Proforma::fromOthers()->where('status', 'published');
         } else {
             // Both - combine insurance and others
             $query = Proforma::where('status', 'published')
+                ->where(function ($q) {
+                    $q->whereNull('proforma_type')
+                      ->orWhere('proforma_type', '!=', 'insurance_garage_only');
+                })
                 ->where(function($q) {
                     $q->whereHas('poster', function($posterQuery) {
                         $posterQuery->where('role', 'insurance');

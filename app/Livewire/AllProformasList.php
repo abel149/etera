@@ -53,7 +53,11 @@ class AllProformasList extends Component
          * Base Query
          */
         $query = Proforma::query()
-            ->where('status', 'published');
+            ->where('status', 'published')
+            ->where(function ($q) {
+                $q->whereNull('proforma_type')
+                  ->orWhere('proforma_type', '!=', 'insurance_garage_only');
+            });
 
         /**
          * ✅ Brand filter — ONLY brands accepted by logged-in user

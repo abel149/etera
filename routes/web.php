@@ -1671,7 +1671,10 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
         $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
         // 🔹 Determine proforma type
-        if ($requiredShops > 0 && $requiredGarages == 0) {
+        // Explicit insurance subtypes always use insurance billing
+        if ($proforma->proforma_type && str_starts_with($proforma->proforma_type, 'insurance_')) {
+            $type = 'insurance';
+        } elseif ($requiredShops > 0 && $requiredGarages == 0) {
             $type = 'regular';
         } elseif ($requiredShops == 3 && $requiredGarages == 3) {
             $type = 'insurance';
@@ -1741,7 +1744,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             $rows[] = [
                 'proforma_id'     => $proforma->id,
                 'type'            => 'insurance',
-                'requested_count' => 6,
+                'requested_count' => ($requiredShops + $requiredGarages) ?: 6,
                 'unit_price'      => $unitPrice,
                 'vat_rate'        => $vatRate * 100,
                 'vat_amount'      => $vatAmount,
@@ -3383,7 +3386,9 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'parts.*.images.*' => 'nullable|image|max:10240', // Validate images
                 'number_of_proformas' => 'nullable|integer|min:-1|max:5',
                 'etera_chereta_hours' => 'nullable|integer|in:4,8,12,24,48,72',
-                'voice_note' => 'nullable|string|max:10485760'
+                'voice_note' => 'nullable|string|max:10485760',
+                'proforma_type' => 'nullable|in:insurance_standard,insurance_shop_only,insurance_garage_only',
+                'number_of_garages' => 'nullable|integer|min:1|max:5'
             ]);
             
             if ($validator->fails()) {
@@ -3399,19 +3404,28 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $requiredGarages = 3;
             $timerExpiresAt = null;
 
+            $proformaType = null;
+
             if ($isEteraChereta) {
                 $eteraHours = (int) $request->input('etera_chereta_hours', 24);
                 $timerMinutes = $eteraHours * 60;
-                // Timer starts when admin floats, not on creation
                 $timerExpiresAt = null;
-                $requiredShops = 0; // Float mode - no limit on shops
-                $requiredGarages = 0; // Float mode - no limit on garages
+                $requiredShops = 0;
+                $requiredGarages = 0;
+                $proformaType = null;
+            } elseif ($request->input('proforma_type') === 'insurance_garage_only') {
+                $requiredShops = 0;
+                $requiredGarages = max(1, (int) $request->input('number_of_garages', 3));
+                $proformaType = 'insurance_garage_only';
+            } elseif ($request->input('proforma_type') === 'insurance_shop_only') {
+                $requiredShops = max(1, (int) $request->input('number_of_proformas', 3));
+                $requiredGarages = 0;
+                $proformaType = 'insurance_shop_only';
             } else {
-                // Total required slots are always 3/3.
-                // insurance_shop/garage_quota only controls how many of those 3 are locked
-                // for insurance-selected partners; admin/float fills the remainder.
+                // Standard insurance: fixed 3+3 slots with quota system
                 $requiredShops   = 3;
                 $requiredGarages = 3;
+                $proformaType = 'insurance_standard';
             }
 
             $proforma = \App\Models\Proforma::create([
@@ -3428,6 +3442,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'model' => $request->model,
                 'required_number_of_shops' => $requiredShops,
                 'required_number_of_garages' => $requiredGarages,
+                'proforma_type' => $proformaType,
                 'timer_duration' => $timerMinutes,
                 'timer_expires_at' => $timerExpiresAt,
                 'insured' => $request->has('insured') ? true : false,
@@ -3446,7 +3461,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             }
             
-            // ── Insurance inbox groups (3 per side, each group = 1 required slot) ────
+            // ── Insurance inbox groups (each group = 1 required slot) ────────────
+            // Shop groups are skipped for garage-only; garage groups skipped for shop-only.
             $shopGroup1  = array_unique(array_filter($request->input('spare_part_partners', [])));
             $shopGroup2  = array_unique(array_filter($request->input('insurance_shop_extra1', [])));
             $shopGroup3  = array_unique(array_filter($request->input('insurance_shop_extra2', [])));
@@ -3460,31 +3476,35 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $garageGroup3 = array_values(array_diff($garageGroup3, $garageGroup2));
 
             $shopGroupsUsed = 0;
-            foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3] as $grp => $ids) {
-                if (!empty($ids)) {
-                    $shopGroupsUsed++;
-                    foreach ($ids as $userId) {
-                        Inbox::create([
-                            'proforma_id' => $proforma->id,
-                            'user_id'     => $userId,
-                            'source'      => 'insurance',
-                            'inbox_group' => $grp,
-                        ]);
+            if ($proformaType !== 'insurance_garage_only') {
+                foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3] as $grp => $ids) {
+                    if (!empty($ids)) {
+                        $shopGroupsUsed++;
+                        foreach ($ids as $userId) {
+                            Inbox::create([
+                                'proforma_id' => $proforma->id,
+                                'user_id'     => $userId,
+                                'source'      => 'insurance',
+                                'inbox_group' => $grp,
+                            ]);
+                        }
                     }
                 }
             }
 
             $garageGroupsUsed = 0;
-            foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3] as $grp => $ids) {
-                if (!empty($ids)) {
-                    $garageGroupsUsed++;
-                    foreach ($ids as $userId) {
-                        Inbox::create([
-                            'proforma_id' => $proforma->id,
-                            'user_id'     => $userId,
-                            'source'      => 'insurance',
-                            'inbox_group' => $grp,
-                        ]);
+            if ($proformaType !== 'insurance_shop_only') {
+                foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3] as $grp => $ids) {
+                    if (!empty($ids)) {
+                        $garageGroupsUsed++;
+                        foreach ($ids as $userId) {
+                            Inbox::create([
+                                'proforma_id' => $proforma->id,
+                                'user_id'     => $userId,
+                                'source'      => 'insurance',
+                                'inbox_group' => $grp,
+                            ]);
+                        }
                     }
                 }
             }

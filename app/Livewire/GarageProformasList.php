@@ -75,6 +75,10 @@ class GarageProformasList extends Component
                           $q2->where(fn($q3) => $q3->where('is_test', false)->orWhereNull('is_test'));
                       }
                   });
+            })
+            ->where(function ($q) {
+                $q->whereNull('proforma_type')
+                  ->orWhere('proforma_type', '!=', 'insurance_shop_only');
             });
 
         /**
