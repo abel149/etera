@@ -477,6 +477,14 @@
                         const inboxGarageExclude = @json(array_map('intval', $garageDropdownExclude));
                         </script>
 
+                        {{-- Locked notice: garage-only proforma — no shop inboxing --}}
+                        @if($proforma->isGarageOnlyInsurance())
+                        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-3">
+                            <i class="bx bx-lock fs-5"></i>
+                            <span><strong>Shop slots are locked.</strong> This is a <em>Garage Only</em> proforma — only garage inboxing is permitted.</span>
+                        </div>
+                        @endif
+
                         {{-- ── Shop Slots ────────────────────────────────────── --}}
                         @if($adminShopSlotCap > 0 || $shopQuota > 0)
                         <h6 class="fw-bold mb-2 text-primary"><i class="bx bx-store me-1"></i>Shop Slots</h6>
@@ -572,6 +580,14 @@
                             @endif
                         </div>
                         @endfor
+                        @endif
+
+                        {{-- Locked notice: shop-only proforma — no garage inboxing --}}
+                        @if($proforma->isShopOnlyInsurance())
+                        <div class="alert alert-secondary d-flex align-items-center gap-2 mb-3 mt-3">
+                            <i class="bx bx-lock fs-5"></i>
+                            <span><strong>Garage slots are locked.</strong> This is a <em>Shop Only</em> proforma — only shop inboxing is permitted.</span>
+                        </div>
                         @endif
 
                         {{-- ── Garage Slots ──────────────────────────────────── --}}

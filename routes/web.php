@@ -3466,18 +3466,26 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $shopGroup1  = array_unique(array_filter($request->input('spare_part_partners', [])));
             $shopGroup2  = array_unique(array_filter($request->input('insurance_shop_extra1', [])));
             $shopGroup3  = array_unique(array_filter($request->input('insurance_shop_extra2', [])));
+            $shopGroup4  = array_unique(array_filter($request->input('insurance_shop_extra3', [])));
+            $shopGroup5  = array_unique(array_filter($request->input('insurance_shop_extra4', [])));
 
             $garageGroup1 = array_unique(array_filter($request->input('garage_partners', [])));
             $garageGroup2 = array_unique(array_filter($request->input('insurance_garage_extra1', [])));
             $garageGroup3 = array_unique(array_filter($request->input('insurance_garage_extra2', [])));
+            $garageGroup4 = array_unique(array_filter($request->input('insurance_garage_extra3', [])));
+            $garageGroup5 = array_unique(array_filter($request->input('insurance_garage_extra4', [])));
 
-            // Backend safety: remove cross-group duplicates in inputs #2↔#3
+            // Backend safety: remove cross-group duplicates between consecutive extra groups
             $shopGroup3   = array_values(array_diff($shopGroup3,   $shopGroup2));
+            $shopGroup4   = array_values(array_diff($shopGroup4,   $shopGroup3, $shopGroup2));
+            $shopGroup5   = array_values(array_diff($shopGroup5,   $shopGroup4, $shopGroup3, $shopGroup2));
             $garageGroup3 = array_values(array_diff($garageGroup3, $garageGroup2));
+            $garageGroup4 = array_values(array_diff($garageGroup4, $garageGroup3, $garageGroup2));
+            $garageGroup5 = array_values(array_diff($garageGroup5, $garageGroup4, $garageGroup3, $garageGroup2));
 
             $shopGroupsUsed = 0;
             if ($proformaType !== 'insurance_garage_only') {
-                foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3] as $grp => $ids) {
+                foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3, 4 => $shopGroup4, 5 => $shopGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
                         $shopGroupsUsed++;
                         foreach ($ids as $userId) {
@@ -3494,7 +3502,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             $garageGroupsUsed = 0;
             if ($proformaType !== 'insurance_shop_only') {
-                foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3] as $grp => $ids) {
+                foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3, 4 => $garageGroup4, 5 => $garageGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
                         $garageGroupsUsed++;
                         foreach ($ids as $userId) {
@@ -4201,6 +4209,18 @@ Route::get('/my-files', function () {
 Route::post('/proformas', function (Request $request) {
     $proforma = \App\Models\Proforma::findOrFail($request->proforma);
     $telegram = new \App\Services\TelegramService();
+
+    // ── Guard: skip shop inboxing entirely for garage-only proformas ─────────────
+    if (($proforma->proforma_type ?? null) === 'insurance_garage_only'
+        && $request->has('spare_part_partners')) {
+        // Silently drop shop submissions for garage-only proformas
+        $request->request->remove('spare_part_partners');
+    }
+    // ── Guard: skip garage inboxing entirely for shop-only proformas ─────────────
+    if (($proforma->proforma_type ?? null) === 'insurance_shop_only'
+        && $request->has('garage_partners')) {
+        $request->request->remove('garage_partners');
+    }
 
     if ($request->has('spare_part_partners')) {
         $requiredShops  = (int) ($proforma->required_number_of_shops ?? 0);

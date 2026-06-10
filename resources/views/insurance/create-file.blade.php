@@ -411,9 +411,9 @@
                                 <div id="shopGroupsWrapper">
                                 <h6 class="mt-3 mb-2 text-muted fw-semibold">Shops</h6>
 
-                                {{-- Input #1: Registered shop partners --}}
-                                <div class="mb-3">
-                                    <label for="shopPartners" class="form-label">Shop Partners <span class="text-secondary small">(your registered partners only)</span></label>
+                                {{-- Group 1: Registered shop partners --}}
+                                <div class="mb-3 shop-inbox-group" data-group="1">
+                                    <label for="shopPartners" class="form-label">Shop Partners — Slot 1 <span class="text-secondary small">(your registered partners only)</span></label>
                                     <select class="form-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
                                         @foreach($spare_part_partners as $partner)
                                             <option value="{{ $partner->id }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
@@ -421,9 +421,9 @@
                                     </select>
                                 </div>
 
-                                {{-- Input #2: All shops (cross-excluded with #3) --}}
-                                <div class="mb-3">
-                                    <label for="shopExtra1" class="form-label">Additional Shops — Group 1 <span class="text-secondary small">(all shops)</span></label>
+                                {{-- Group 2 --}}
+                                <div class="mb-3 shop-inbox-group" data-group="2">
+                                    <label for="shopExtra1" class="form-label">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
@@ -431,24 +431,45 @@
                                     </select>
                                 </div>
 
-                                {{-- Input #3: All shops (cross-excluded with #2) --}}
-                                <div class="mb-3">
-                                    <label for="shopExtra2" class="form-label">Additional Shops — Group 2 <span class="text-secondary small">(all shops; cannot duplicate Group 1)</span></label>
+                                {{-- Group 3 --}}
+                                <div class="mb-3 shop-inbox-group" data-group="3">
+                                    <label for="shopExtra2" class="form-label">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
+
+                                {{-- Group 4 (shown when required ≥ 4) --}}
+                                <div class="mb-3 shop-inbox-group" data-group="4" style="display:none">
+                                    <label for="shopExtra3" class="form-label">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
+                                        @foreach($all_shops as $shop)
+                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Group 5 (shown when required = 5) --}}
+                                <div class="mb-3 shop-inbox-group" data-group="5" style="display:none">
+                                    <label for="shopExtra4" class="form-label">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
+                                        @foreach($all_shops as $shop)
+                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
                                 </div>{{-- end #shopGroupsWrapper --}}
 
                                 {{-- ── GARAGES ──────────────────────────────────────────── --}}
                                 <div id="garageGroupsWrapper">
                                 <h6 class="mt-3 mb-2 text-muted fw-semibold">Garages</h6>
 
-                                {{-- Input #4: Registered garage partners --}}
-                                <div class="mb-3">
-                                    <label for="garagePartners" class="form-label">Garage Partners <span class="text-secondary small">(your registered partners only)</span></label>
+                                {{-- Group 1: Registered garage partners --}}
+                                <div class="mb-3 garage-inbox-group" data-group="1">
+                                    <label for="garagePartners" class="form-label">Garage Partners — Slot 1 <span class="text-secondary small">(your registered partners only)</span></label>
                                     <select class="form-select" name="garage_partners[]" id="garagePartners" multiple size="4">
                                         @foreach($garage_partners as $partner)
                                             <option value="{{ $partner->id }}" {{ in_array($partner->id, old('garage_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
@@ -456,9 +477,9 @@
                                     </select>
                                 </div>
 
-                                {{-- Input #5: All garages (cross-excluded with #6) --}}
-                                <div class="mb-3">
-                                    <label for="garageExtra1" class="form-label">Additional Garages — Group 1 <span class="text-secondary small">(all garages)</span></label>
+                                {{-- Group 2 --}}
+                                <div class="mb-3 garage-inbox-group" data-group="2">
+                                    <label for="garageExtra1" class="form-label">Additional Garages — Slot 2 <span class="text-secondary small">(all garages)</span></label>
                                     <select class="form-select" name="insurance_garage_extra1[]" id="garageExtra1" multiple size="4">
                                         @foreach($all_garages as $garage)
                                             <option value="{{ $garage->id }}" {{ in_array($garage->id, old('insurance_garage_extra1', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
@@ -466,15 +487,36 @@
                                     </select>
                                 </div>
 
-                                {{-- Input #6: All garages (cross-excluded with #5) --}}
-                                <div class="mb-3">
-                                    <label for="garageExtra2" class="form-label">Additional Garages — Group 2 <span class="text-secondary small">(all garages; cannot duplicate Group 1)</span></label>
+                                {{-- Group 3 --}}
+                                <div class="mb-3 garage-inbox-group" data-group="3">
+                                    <label for="garageExtra2" class="form-label">Additional Garages — Slot 3 <span class="text-secondary small">(all garages)</span></label>
                                     <select class="form-select" name="insurance_garage_extra2[]" id="garageExtra2" multiple size="4">
                                         @foreach($all_garages as $garage)
                                             <option value="{{ $garage->id }}" {{ in_array($garage->id, old('insurance_garage_extra2', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
+
+                                {{-- Group 4 (shown when required ≥ 4) --}}
+                                <div class="mb-3 garage-inbox-group" data-group="4" style="display:none">
+                                    <label for="garageExtra3" class="form-label">Additional Garages — Slot 4 <span class="text-secondary small">(all garages)</span></label>
+                                    <select class="form-select" name="insurance_garage_extra3[]" id="garageExtra3" multiple size="4">
+                                        @foreach($all_garages as $garage)
+                                            <option value="{{ $garage->id }}" {{ in_array($garage->id, old('insurance_garage_extra3', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
+                                {{-- Group 5 (shown when required = 5) --}}
+                                <div class="mb-3 garage-inbox-group" data-group="5" style="display:none">
+                                    <label for="garageExtra4" class="form-label">Additional Garages — Slot 5 <span class="text-secondary small">(all garages)</span></label>
+                                    <select class="form-select" name="insurance_garage_extra4[]" id="garageExtra4" multiple size="4">
+                                        @foreach($all_garages as $garage)
+                                            <option value="{{ $garage->id }}" {{ in_array($garage->id, old('insurance_garage_extra4', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                        @endforeach
+                                    </select>
+                                </div>
+
                                 </div>{{-- end #garageGroupsWrapper --}}
 
                                 <div class="col-12 pt-4">
@@ -714,6 +756,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const shopGroupsWrapper      = document.getElementById('shopGroupsWrapper');
     const garageGroupsWrapper    = document.getElementById('garageGroupsWrapper');
 
+    // ── Group visibility: show exactly N inbox slots for each side ────────────
+    function updateGroupVisibility() {
+        const type = (document.querySelector('input[name="proforma_type"]:checked') || {}).value
+                     || 'insurance_standard';
+        const shopCount   = type === 'insurance_shop_only'
+            ? (parseInt((document.getElementById('number_of_proformas') || {}).value) || 3)
+            : (type === 'insurance_garage_only' ? 0 : 3);
+        const garageCount = type === 'insurance_garage_only'
+            ? (parseInt((document.getElementById('number_of_garages') || {}).value) || 3)
+            : (type === 'insurance_shop_only' ? 0 : 3);
+
+        document.querySelectorAll('.shop-inbox-group').forEach(el => {
+            el.style.display = (parseInt(el.dataset.group) <= shopCount) ? '' : 'none';
+        });
+        document.querySelectorAll('.garage-inbox-group').forEach(el => {
+            el.style.display = (parseInt(el.dataset.group) <= garageCount) ? '' : 'none';
+        });
+    }
+
     function applyProformaType(type) {
         if (type === 'insurance_garage_only') {
             if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = 'none';
@@ -731,6 +792,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = '';
         }
+        updateGroupVisibility();
     }
 
     typeCards.forEach(card => {
@@ -743,6 +805,12 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     });
 
+    // Wire count selectors to update group visibility on change
+    const shopCountSel   = document.getElementById('number_of_proformas');
+    const garageCountSel = document.getElementById('number_of_garages');
+    if (shopCountSel)   shopCountSel.addEventListener('change',   updateGroupVisibility);
+    if (garageCountSel) garageCountSel.addEventListener('change', updateGroupVisibility);
+
     // Initialise on page load (handles validation-error repopulation)
     const checkedRadio = document.querySelector('input[name="proforma_type"]:checked');
     if (checkedRadio) {
@@ -750,6 +818,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const activeCard = document.querySelector('.proforma-type-card[data-type="' + checkedRadio.value + '"]');
         if (activeCard) activeCard.classList.add('active');
         applyProformaType(checkedRadio.value);
+    } else {
+        updateGroupVisibility();
     }
     // ── End Proforma Type Selector ──────────────────────────────────────────────
 
