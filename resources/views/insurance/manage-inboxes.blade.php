@@ -2,10 +2,17 @@
 @section('content')
 
 @php
-    // ── Per-group current inbox user IDs ─────────────────────────────────────
+    // ── Dynamic group counts based on required slots ─────────────────────
+    $shopGroupCount   = max(0, (int)($proforma->required_number_of_shops ?? 3));
+    $garageGroupCount = max(0, (int)($proforma->required_number_of_garages ?? 3));
+    // Type-based override: lock the irrelevant side completely
+    if ($proforma->isShopOnlyInsurance())   $garageGroupCount = 0;
+    if ($proforma->isGarageOnlyInsurance()) $shopGroupCount   = 0;
+
+    // ── Per-group current inbox user IDs (covers up to 5 groups) ──────────
     $shopGrp   = [];
     $garageGrp = [];
-    foreach ([1,2,3] as $g) {
+    foreach (range(1, 5) as $g) {
         $shopGrp[$g]   = $shopInboxes->get($g, collect())->map(fn($i) => $i->user->id ?? null)->filter()->values()->toArray();
         $garageGrp[$g] = $garageInboxes->get($g, collect())->map(fn($i) => $i->user->id ?? null)->filter()->values()->toArray();
     }
@@ -125,7 +132,13 @@
                             Clear a group to free it for admin.
                         </p>
 
-                        @foreach ([1, 2, 3] as $grp)
+                        @if($shopGroupCount === 0)
+                            <div class="alert alert-secondary d-flex align-items-center gap-2">
+                                <i class="bx bx-lock fs-5"></i>
+                                <span>Shop inbox groups are <strong>not applicable</strong> for this <em>Garage Only</em> proforma.</span>
+                            </div>
+                        @else
+                        @for($grp = 1; $grp <= $shopGroupCount; $grp++)
                         @php
                             [$isLocked, $badgeClass, $badgeText] = $groupStatus($shopGrp[$grp], $proformaPending, $shopApplied);
                             $isPartnerGroup = ($grp === 1);
@@ -171,7 +184,8 @@
                                 @endif
                             @endif
                         </div>
-                        @endforeach
+                        @endfor
+                        @endif
 
                     </div>
                 </div>
@@ -191,13 +205,19 @@
                             Clear a group to free it for admin.
                         </p>
 
-                        @foreach ([1, 2, 3] as $grp)
+                        @if($garageGroupCount === 0)
+                            <div class="alert alert-secondary d-flex align-items-center gap-2">
+                                <i class="bx bx-lock fs-5"></i>
+                                <span>Garage inbox groups are <strong>not applicable</strong> for this <em>Shop Only</em> proforma.</span>
+                            </div>
+                        @else
+                        @for($grp = 1; $grp <= $garageGroupCount; $grp++)
                         @php
                             [$isLocked, $badgeClass, $badgeText] = $groupStatus($garageGrp[$grp], $proformaPending, $garageApplied);
                             $isPartnerGroup = ($grp === 1);
                         @endphp
                         <div class="mb-4">
-                            <label class="form-label fw-semibold d-flex align-items-center gap-2">
+            <label class="form-label fw-semibold d-flex align-items-center gap-2">
                                 Group {{ $grp }}
                                 @if($isPartnerGroup)
                                     <span class="badge bg-info text-dark">Partners</span>
@@ -237,7 +257,8 @@
                                 @endif
                             @endif
                         </div>
-                        @endforeach
+                        @endfor
+                        @endif
 
                     </div>
                 </div>

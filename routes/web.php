@@ -3063,7 +3063,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $shopGroupsUsed   = 0;
             $garageGroupsUsed = 0;
 
-            foreach ([1, 2, 3] as $grp) {
+            // Dynamic shop group count (0 for garage-only proformas)
+            $shopSlotCount = $proforma->isGarageOnlyInsurance() ? 0
+                : max(0, min(5, (int)($proforma->required_number_of_shops ?? 3)));
+
+            for ($grp = 1; $grp <= $shopSlotCount; $grp++) {
                 // ── Lock check: groups with no current insurance inbox entries are locked ──
                 // (chereta cleared them after an application, or insurance never used them)
                 $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
@@ -3101,7 +3105,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 }
             }
 
-            foreach ([1, 2, 3] as $grp) {
+            // Dynamic garage group count (0 for shop-only proformas)
+            $garageSlotCount = $proforma->isShopOnlyInsurance() ? 0
+                : max(0, min(5, (int)($proforma->required_number_of_garages ?? 3)));
+
+            for ($grp = 1; $grp <= $garageSlotCount; $grp++) {
                 // ── Lock check: groups with no current insurance inbox entries are locked ──
                 $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
                     ->where('source', 'insurance')->where('inbox_group', $grp)

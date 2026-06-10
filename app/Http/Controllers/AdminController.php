@@ -208,6 +208,17 @@ class AdminController extends Controller
         $adminShopSlotCap   = $requiredShops   > 0 ? max(0, $requiredShops   - $effectiveShopQuota)   : 0;
         $adminGarageSlotCap = $requiredGarages > 0 ? max(0, $requiredGarages - $effectiveGarageQuota) : 0;
 
+        // Hard-lock the irrelevant side based on proforma_type, regardless of stored column values.
+        // This handles legacy proformas where required_number columns may not match the type.
+        if ($proforma->isShopOnlyInsurance()) {
+            $adminGarageSlotCap   = 0;
+            $effectiveGarageQuota = 0;
+        }
+        if ($proforma->isGarageOnlyInsurance()) {
+            $adminShopSlotCap   = 0;
+            $effectiveShopQuota = 0;
+        }
+
         // IDs already inboxed (any source) — excluded from dropdown options
         $alreadyInboxedShopIds   = $proforma->inboxes
             ->filter(fn($i) => $i->user?->role === 'shop')->pluck('user_id')
