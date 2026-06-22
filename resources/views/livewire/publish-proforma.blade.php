@@ -3,7 +3,16 @@
         <div class="card-body">
             <div class="row">
                 <div class="col-sm-6">
-                    <h4 class="mb-3">Spare Part Shops</h4>
+                    <h4 class="mb-3">Spare Part Shops
+                        @if($isGarageOnly)
+                            <span class="badge bg-danger ms-2"><i class="bx bx-lock me-1"></i>Garage Only — Locked</span>
+                        @endif
+                    </h4>
+                    @if($isGarageOnly)
+                        <div class="alert alert-warning py-2 mb-3">
+                            <i class="bx bx-info-circle me-1"></i> This proforma is <strong>Garage Only</strong>. Shop inbox slots are disabled.
+                        </div>
+                    @endif
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Insurance Side</label>
                         
@@ -60,13 +69,34 @@
                     $reqShops   = (int) ($proforma->required_number_of_shops   ?? 0);
                     $reqGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
-                    // How many admin-editable client slots remain after insurance quota
-                    $adminShopCap   = $reqShops   > 0 ? max(0, $reqShops   - $effShopQuota)   : 2;
-                    $adminGarageCap = $reqGarages > 0 ? max(0, $reqGarages - $effGarageQuota) : 2;
-
                     $statusLocked = in_array($proforma->status ?? '', ['closed', 'completed']);
+
+                    // ── Type-based section locking ────────────────────────────────────────
+                    $isGarageOnly = $proforma->isGarageOnlyInsurance(); // insurance_garage_only → lock shops
+                    $isShopOnly   = $proforma->isShopOnlyInsurance();   // insurance_shop_only  → lock garages
+
+                    // Fix caps: type-locked side MUST be 0, not fall back to 2
+                    $adminShopCap   = $isGarageOnly ? 0 : ($reqShops   > 0 ? max(0, $reqShops   - $effShopQuota)   : 2);
+                    $adminGarageCap = $isShopOnly   ? 0 : ($reqGarages > 0 ? max(0, $reqGarages - $effGarageQuota) : 2);
+
+                    // ── Per-slot application check ────────────────────────────────────────
+                    // Lock only the specific slot whose admin-inboxed user has already applied.
+                    // This keeps other slots editable after float, even if some applications arrived.
+                    $shop1Applied   = $selectedClientShop1   && $proforma->applications()->where('application_by', $selectedClientShop1)->where('from', 'shop')->exists();
+                    $shop2Applied   = $selectedClientShop2   && $proforma->applications()->where('application_by', $selectedClientShop2)->where('from', 'shop')->exists();
+                    $garage1Applied = $selectedClientGarage1 && $proforma->applications()->where('application_by', $selectedClientGarage1)->where('from', 'garage')->exists();
+                    $garage2Applied = $selectedClientGarage2 && $proforma->applications()->where('application_by', $selectedClientGarage2)->where('from', 'garage')->exists();
+
+                    // After float (published): empty slots are locked — no point adding new inboxes
+                    // when the proforma is already public. Only assigned slots stay editable.
+                    $isFloated = $proforma->status === 'published';
                 @endphp
-                @if(count($shop_data))
+                @if($isGarageOnly)
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light text-muted" value="Not applicable (Garage Only)" readonly>
+                            <span class="input-group-text"><i class="bx bx-lock text-secondary"></i></span>
+                        </div>
+                @elseif(count($shop_data))
                     <div class="input-group">
     <input type="text" 
            name="shopPay" 
@@ -105,20 +135,29 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 1 || $statusLocked || $adminShopCap < 1) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
+                            <select name="spare_part_partners[]" {{ ($shop1Applied || $statusLocked || $adminShopCap < 1 || $isGarageOnly || ($isFloated && !$selectedClientShop1)) ? 'disabled' : '' }} class="form-select" id="multiple2" wire:model.live="selectedClientShop1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientShop1 || $adminShopCap < 1)
-                                    <i class="bx bx-lock text-danger"></i>
+                                @if($shop1Applied)
+                                    <i class="bx bx-lock text-danger" title="Applied — locked"></i>
+                                @elseif($isGarageOnly || $adminShopCap < 1)
+                                    <i class="bx bx-lock text-secondary" title="Not available"></i>
+                                @elseif($isFloated && !$selectedClientShop1)
+                                    <i class="bx bx-lock text-secondary" title="Floated — empty slot locked"></i>
+                                @elseif($selectedClientShop1)
+                                    <i class="bx bx-lock-open text-warning" title="Inboxed — can still change"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
                                 @endif
                             </span>
                         </div>
+                        @if($shop1Applied)
+                            <small class="text-danger"><i class="bx bx-check-circle"></i> Shop applied — slot locked</small>
+                        @endif
                         @error('selected_client_shop_1')
                         <span class="text-danger">{{$message}}</span>
                         @enderror
@@ -148,20 +187,29 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="spare_part_partners[]" {{ ($clientShopApplied >= 2 || $statusLocked || $adminShopCap < 2) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
+                            <select name="spare_part_partners[]" {{ ($shop2Applied || $statusLocked || $adminShopCap < 2 || $isGarageOnly || ($isFloated && !$selectedClientShop2)) ? 'disabled' : '' }} class="form-select" id="multiple3" wire:model.live="selectedClientShop2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($shops as $shop)
                                     <option value="{{$shop->id}}">{{$shop->store_id}} - {{$shop->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientShop2 || $adminShopCap < 2)
-                                    <i class="bx bx-lock text-danger"></i>
+                                @if($shop2Applied)
+                                    <i class="bx bx-lock text-danger" title="Applied — locked"></i>
+                                @elseif($isGarageOnly || $adminShopCap < 2)
+                                    <i class="bx bx-lock text-secondary" title="Not available"></i>
+                                @elseif($isFloated && !$selectedClientShop2)
+                                    <i class="bx bx-lock text-secondary" title="Floated — empty slot locked"></i>
+                                @elseif($selectedClientShop2)
+                                    <i class="bx bx-lock-open text-warning" title="Inboxed — can still change"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
                                 @endif
                             </span>
                         </div>
+                        @if($shop2Applied)
+                            <small class="text-danger"><i class="bx bx-check-circle"></i> Shop applied — slot locked</small>
+                        @endif
                         @error('selected_client_shop_2')
                         <span class="text-danger">{{$message}}</span>
                         @enderror
@@ -191,10 +239,24 @@
                 </div>
 
                 <div class="col-sm-6">
-                    <h4 class="mb-3">Garages</h4>
+                    <h4 class="mb-3">Garages
+                        @if($isShopOnly)
+                            <span class="badge bg-danger ms-2"><i class="bx bx-lock me-1"></i>Shop Only — Locked</span>
+                        @endif
+                    </h4>
+                    @if($isShopOnly)
+                        <div class="alert alert-warning py-2 mb-3">
+                            <i class="bx bx-info-circle me-1"></i> This proforma is <strong>Shop Only</strong>. Garage inbox slots are disabled.
+                        </div>
+                    @endif
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Insurance Side</label>
-                @if(count($garage_data))
+                @if($isShopOnly)
+                        <div class="input-group">
+                            <input type="text" class="form-control bg-light text-muted" value="Not applicable (Shop Only)" readonly>
+                            <span class="input-group-text"><i class="bx bx-lock text-secondary"></i></span>
+                        </div>
+                @elseif(count($garage_data))
                 <div class="input-group">
                     <input type="text"
                            name="Garage"
@@ -229,20 +291,29 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #1</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 1 || $statusLocked || $adminGarageCap < 1) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
+                            <select name="garage_partners[]" {{ ($garage1Applied || $statusLocked || $adminGarageCap < 1 || $isShopOnly || ($isFloated && !$selectedClientGarage1)) ? 'disabled' : '' }} class="form-select" id="multiple5" wire:model.live="selectedClientGarage1">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientGarage1 || $adminGarageCap < 1)
-                                    <i class="bx bx-lock text-danger"></i>
+                                @if($garage1Applied)
+                                    <i class="bx bx-lock text-danger" title="Applied — locked"></i>
+                                @elseif($isShopOnly || $adminGarageCap < 1)
+                                    <i class="bx bx-lock text-secondary" title="Not available"></i>
+                                @elseif($isFloated && !$selectedClientGarage1)
+                                    <i class="bx bx-lock text-secondary" title="Floated — empty slot locked"></i>
+                                @elseif($selectedClientGarage1)
+                                    <i class="bx bx-lock-open text-warning" title="Inboxed — can still change"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
                                 @endif
                             </span>
                         </div>
+                        @if($garage1Applied)
+                            <small class="text-danger"><i class="bx bx-check-circle"></i> Garage applied — slot locked</small>
+                        @endif
                         @error('selected_client_garage_1')
                         <span class="text-danger">{{$message}}</span>
                         @enderror
@@ -251,20 +322,29 @@
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Client Side #2</label>
                         <div class="input-group">
-                            <select name="garage_partners[]" {{ ($clientGarageApplied >= 2 || $statusLocked || $adminGarageCap < 2) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
+                            <select name="garage_partners[]" {{ ($garage2Applied || $statusLocked || $adminGarageCap < 2 || $isShopOnly || ($isFloated && !$selectedClientGarage2)) ? 'disabled' : '' }} class="form-select" id="multiple6" wire:model.live="selectedClientGarage2">
                                 <option value="">— Clear slot —</option>
                                 @foreach($garages as $garage)
                                     <option value="{{$garage->id}}">{{$garage->store_id}} - {{$garage->name}}</option>
                                 @endforeach
                             </select>
                             <span class="input-group-text">
-                                @if($selectedClientGarage2 || $adminGarageCap < 2)
-                                    <i class="bx bx-lock text-danger"></i>
+                                @if($garage2Applied)
+                                    <i class="bx bx-lock text-danger" title="Applied — locked"></i>
+                                @elseif($isShopOnly || $adminGarageCap < 2)
+                                    <i class="bx bx-lock text-secondary" title="Not available"></i>
+                                @elseif($isFloated && !$selectedClientGarage2)
+                                    <i class="bx bx-lock text-secondary" title="Floated — empty slot locked"></i>
+                                @elseif($selectedClientGarage2)
+                                    <i class="bx bx-lock-open text-warning" title="Inboxed — can still change"></i>
                                 @else
                                     <i class="bx bx-lock-open text-success"></i>
                                 @endif
                             </span>
                         </div>
+                        @if($garage2Applied)
+                            <small class="text-danger"><i class="bx bx-check-circle"></i> Garage applied — slot locked</small>
+                        @endif
                         @error('selected_client_garage_2')
                         <span class="text-danger">{{$message}}</span>
                         @enderror
