@@ -627,7 +627,7 @@
                                         <input type="number" id="discount" name="discount" class="with-border"
                                             placeholder="Enter discount"  min="0" max="100">
                                     </td>
-                                    <input type="hidden" name="final-amount" id="final-amount-hidden" value="0"
+                                    <input type="hidden" name="final-amount" id="final-amount-hidden" 
                                         class="with-border">
                                 </tr>
                                 <tr>
