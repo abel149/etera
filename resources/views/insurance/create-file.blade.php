@@ -1093,12 +1093,10 @@ console.log(1);
 
 @push('scripts')
 <script>
-// ── Inbox partner inputs: Select2 searchable multi-select + cross-group exclusion ──
 $(document).ready(function () {
-
-    // Initialise all 6 inputs as searchable Select2 multi-selects
-    ['shopPartners', 'shopExtra1', 'shopExtra2',
-     'garagePartners', 'garageExtra1', 'garageExtra2'].forEach(function (id) {
+    // Initialise all 10 inputs as searchable Select2 multi-selects
+    ['shopPartners', 'shopExtra1', 'shopExtra2', 'shopExtra3', 'shopExtra4',
+     'garagePartners', 'garageExtra1', 'garageExtra2', 'garageExtra3', 'garageExtra4'].forEach(function (id) {
         $('#' + id).select2({
             theme:       'bootstrap-5',
             placeholder: 'Type to search and select...',
@@ -1107,41 +1105,49 @@ $(document).ready(function () {
         });
     });
 
-    // Cross-group exclusion: Extra1 ↔ Extra2 (shops), Extra1 ↔ Extra2 (garages)
-    function syncExclusion(aId, bId) {
-        var $a = $('#' + aId);
-        var $b = $('#' + bId);
+    // N-way mutual exclusion across all specified inputs
+    function syncMutualExclusion(inputIds) {
+        var $inputs = inputIds.map(function (id) { return $('#' + id); });
         var syncing = false;
 
-        function applyAtoB() {
-            var selected = $a.val() || [];
-            $b.find('option').each(function () {
-                $(this).prop('disabled', selected.indexOf($(this).val()) !== -1);
+        function updateAll(sourceId) {
+            var selectedValues = [];
+            $inputs.forEach(function ($input) {
+                var vals = $input.val() || [];
+                selectedValues = selectedValues.concat(vals);
             });
-            var bVal = ($b.val() || []).filter(function (v) { return selected.indexOf(v) === -1; });
-            syncing = true;
-            $b.val(bVal).trigger('change');
-            syncing = false;
-        }
-        function applyBtoA() {
-            var selected = $b.val() || [];
-            $a.find('option').each(function () {
-                $(this).prop('disabled', selected.indexOf($(this).val()) !== -1);
+            selectedValues = [...new Set(selectedValues)]; // unique
+
+            $inputs.forEach(function ($input) {
+                if ($input.attr('id') === sourceId) return; // skip source
+                $input.find('option').each(function () {
+                    $(this).prop('disabled', selectedValues.indexOf($(this).val()) !== -1);
+                });
+                var currentVals = $input.val() || [];
+                var filteredVals = currentVals.filter(function (v) {
+                    var otherSelected = selectedValues.filter(function (sv, i) {
+                        return selectedValues.indexOf(sv) !== i || i !== selectedValues.lastIndexOf(sv);
+                    });
+                    return otherSelected.indexOf(v) === -1;
+                });
+                syncing = true;
+                $input.val(filteredVals).trigger('change');
+                syncing = false;
             });
-            var aVal = ($a.val() || []).filter(function (v) { return selected.indexOf(v) === -1; });
-            syncing = true;
-            $a.val(aVal).trigger('change');
-            syncing = false;
         }
 
-        $a.on('change', function () { if (!syncing) applyAtoB(); });
-        $b.on('change', function () { if (!syncing) applyBtoA(); });
-        applyAtoB();
-        applyBtoA();
+        $inputs.forEach(function ($input) {
+            $input.on('change', function () {
+                if (!syncing) updateAll($input.attr('id'));
+            });
+        });
+
+        // Initial state
+        updateAll(null);
     }
 
-    syncExclusion('shopExtra1',   'shopExtra2');
-    syncExclusion('garageExtra1', 'garageExtra2');
+    syncMutualExclusion(['shopExtra1', 'shopExtra2', 'shopExtra3', 'shopExtra4']);
+    syncMutualExclusion(['garageExtra1', 'garageExtra2', 'garageExtra3', 'garageExtra4']);
 });
 </script>
 @endpush
