@@ -607,7 +607,7 @@
                                     </td>
                                     <td colspan="2">
                                         <input type="number" name="amount" class="with-border" required
-                                            id="total-amount" value="0"
+                                            id="total-amount" 
                                             {{ auth()->check() && auth()->user()->role == 'shop' ? 'disabled' : '' }} min="1"
                                             step="any">
                                         @error('amount')
@@ -625,7 +625,7 @@
                                     </td>
                                     <td colspan="2">
                                         <input type="number" id="discount" name="discount" class="with-border"
-                                            placeholder="Enter discount" value="0" min="0" max="100">
+                                            placeholder="Enter discount"  min="0" max="100">
                                     </td>
                                     <input type="hidden" name="final-amount" id="final-amount-hidden" value="0"
                                         class="with-border">
