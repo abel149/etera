@@ -1,3 +1,77 @@
+@php
+    $shop_data = [];
+    $garage_data = [];
+    foreach (($proforma->inboxes ?? collect()) as $inbox) {
+        if (($inbox->source ?? '') !== 'insurance') continue;
+        $role = $inbox->user?->role;
+        $name = $inbox->user?->name ?? 'N/A';
+        if ($role === 'shop') { $shop_data[] = $name; }
+        else { $garage_data[] = $name; }
+    }
+
+    // Also check if a partner has already applied (inbox deleted on apply)
+    $appliedInsuranceShop = $proforma->applications()
+        ->where('application_source', 'partner')
+        ->where('from', 'shop')
+        ->with('applicationBy')
+        ->first();
+    $appliedInsuranceGarage = $proforma->applications()
+        ->where('application_source', 'partner')
+        ->where('from', 'garage')
+        ->with('applicationBy')
+        ->first();
+
+    if ($appliedInsuranceShop && !count($shop_data)) {
+        $shop_data[] = ($appliedInsuranceShop->applicationBy?->name ?? 'Partner') . ' ✓ Applied';
+    }
+    if ($appliedInsuranceGarage && !count($garage_data)) {
+        $garage_data[] = ($appliedInsuranceGarage->applicationBy?->name ?? 'Partner') . ' ✓ Applied';
+    }
+
+    // Count client-side applications (non-insurance-partner) to lock filled slots
+    $clientShopApplied = $proforma->applications()
+        ->where('from', 'shop')
+        ->where('application_source', '!=', 'partner')
+        ->count();
+    $clientGarageApplied = $proforma->applications()
+        ->where('from', 'garage')
+        ->where('application_source', '!=', 'partner')
+        ->count();
+
+    // Effective insurance quota — use stored column, fall back to inbox count
+    // so proformas created before the quota column was added still lock correctly.
+    $effShopQuota   = $proforma->shopPartnerQuota() > 0
+        ? $proforma->shopPartnerQuota()
+        : count($shop_data);
+    $effGarageQuota = $proforma->garagePartnerQuota() > 0
+        ? $proforma->garagePartnerQuota()
+        : count($garage_data);
+
+    $reqShops   = (int) ($proforma->required_number_of_shops   ?? 0);
+    $reqGarages = (int) ($proforma->required_number_of_garages ?? 0);
+
+    $statusLocked = in_array($proforma->status ?? '', ['closed', 'completed']);
+
+    // ── Type-based section locking ────────────────────────────────────────
+    $isGarageOnly = $proforma->isGarageOnlyInsurance(); // insurance_garage_only → lock shops
+    $isShopOnly   = $proforma->isShopOnlyInsurance();   // insurance_shop_only  → lock garages
+
+    // Fix caps: type-locked side MUST be 0, not fall back to 2
+    $adminShopCap   = $isGarageOnly ? 0 : ($reqShops   > 0 ? max(0, $reqShops   - $effShopQuota)   : 2);
+    $adminGarageCap = $isShopOnly   ? 0 : ($reqGarages > 0 ? max(0, $reqGarages - $effGarageQuota) : 2);
+
+    // ── Per-slot application check ────────────────────────────────────────
+    // Lock only the specific slot whose admin-inboxed user has already applied.
+    // This keeps other slots editable after float, even if some applications arrived.
+    $shop1Applied   = $selectedClientShop1   && $proforma->applications()->where('application_by', $selectedClientShop1)->where('from', 'shop')->exists();
+    $shop2Applied   = $selectedClientShop2   && $proforma->applications()->where('application_by', $selectedClientShop2)->where('from', 'shop')->exists();
+    $garage1Applied = $selectedClientGarage1 && $proforma->applications()->where('application_by', $selectedClientGarage1)->where('from', 'garage')->exists();
+    $garage2Applied = $selectedClientGarage2 && $proforma->applications()->where('application_by', $selectedClientGarage2)->where('from', 'garage')->exists();
+
+    // After float (published): empty slots are locked — no point adding new inboxes
+    // when the proforma is already public. Only assigned slots stay editable.
+    $isFloated = $proforma->status === 'published';
+@endphp
 <div>
     <div class="card">
         <div class="card-body">
@@ -15,82 +89,6 @@
                     @endif
                     <div class="mb-3">
                         <label class="mt-2 mb-1">Insurance Side</label>
-                        
-                        
-                @php
-                    $shop_data = [];
-                    $garage_data = [];
-                    foreach (($proforma->inboxes ?? collect()) as $inbox) {
-                        if (($inbox->source ?? '') !== 'insurance') continue;
-                        $role = $inbox->user?->role;
-                        $name = $inbox->user?->name ?? 'N/A';
-                        if ($role === 'shop') { $shop_data[] = $name; }
-                        else { $garage_data[] = $name; }
-                    }
-
-                    // Also check if a partner has already applied (inbox deleted on apply)
-                    $appliedInsuranceShop = $proforma->applications()
-                        ->where('application_source', 'partner')
-                        ->where('from', 'shop')
-                        ->with('applicationBy')
-                        ->first();
-                    $appliedInsuranceGarage = $proforma->applications()
-                        ->where('application_source', 'partner')
-                        ->where('from', 'garage')
-                        ->with('applicationBy')
-                        ->first();
-
-                    if ($appliedInsuranceShop && !count($shop_data)) {
-                        $shop_data[] = ($appliedInsuranceShop->applicationBy?->name ?? 'Partner') . ' ✓ Applied';
-                    }
-                    if ($appliedInsuranceGarage && !count($garage_data)) {
-                        $garage_data[] = ($appliedInsuranceGarage->applicationBy?->name ?? 'Partner') . ' ✓ Applied';
-                    }
-
-                    // Count client-side applications (non-insurance-partner) to lock filled slots
-                    $clientShopApplied = $proforma->applications()
-                        ->where('from', 'shop')
-                        ->where('application_source', '!=', 'partner')
-                        ->count();
-                    $clientGarageApplied = $proforma->applications()
-                        ->where('from', 'garage')
-                        ->where('application_source', '!=', 'partner')
-                        ->count();
-
-                    // Effective insurance quota — use stored column, fall back to inbox count
-                    // so proformas created before the quota column was added still lock correctly.
-                    $effShopQuota   = $proforma->shopPartnerQuota() > 0
-                        ? $proforma->shopPartnerQuota()
-                        : count($shop_data);
-                    $effGarageQuota = $proforma->garagePartnerQuota() > 0
-                        ? $proforma->garagePartnerQuota()
-                        : count($garage_data);
-
-                    $reqShops   = (int) ($proforma->required_number_of_shops   ?? 0);
-                    $reqGarages = (int) ($proforma->required_number_of_garages ?? 0);
-
-                    $statusLocked = in_array($proforma->status ?? '', ['closed', 'completed']);
-
-                    // ── Type-based section locking ────────────────────────────────────────
-                    $isGarageOnly = $proforma->isGarageOnlyInsurance(); // insurance_garage_only → lock shops
-                    $isShopOnly   = $proforma->isShopOnlyInsurance();   // insurance_shop_only  → lock garages
-
-                    // Fix caps: type-locked side MUST be 0, not fall back to 2
-                    $adminShopCap   = $isGarageOnly ? 0 : ($reqShops   > 0 ? max(0, $reqShops   - $effShopQuota)   : 2);
-                    $adminGarageCap = $isShopOnly   ? 0 : ($reqGarages > 0 ? max(0, $reqGarages - $effGarageQuota) : 2);
-
-                    // ── Per-slot application check ────────────────────────────────────────
-                    // Lock only the specific slot whose admin-inboxed user has already applied.
-                    // This keeps other slots editable after float, even if some applications arrived.
-                    $shop1Applied   = $selectedClientShop1   && $proforma->applications()->where('application_by', $selectedClientShop1)->where('from', 'shop')->exists();
-                    $shop2Applied   = $selectedClientShop2   && $proforma->applications()->where('application_by', $selectedClientShop2)->where('from', 'shop')->exists();
-                    $garage1Applied = $selectedClientGarage1 && $proforma->applications()->where('application_by', $selectedClientGarage1)->where('from', 'garage')->exists();
-                    $garage2Applied = $selectedClientGarage2 && $proforma->applications()->where('application_by', $selectedClientGarage2)->where('from', 'garage')->exists();
-
-                    // After float (published): empty slots are locked — no point adding new inboxes
-                    // when the proforma is already public. Only assigned slots stay editable.
-                    $isFloated = $proforma->status === 'published';
-                @endphp
                 @if($isGarageOnly)
                         <div class="input-group">
                             <input type="text" class="form-control bg-light text-muted" value="Not applicable (Garage Only)" readonly>
