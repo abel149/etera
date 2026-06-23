@@ -1111,34 +1111,52 @@ $(document).ready(function () {
         var syncing = false;
 
         function updateAll(sourceId) {
-            var selectedValues = [];
-            $inputs.forEach(function ($input) {
-                var vals = $input.val() || [];
-                selectedValues = selectedValues.concat(vals);
-            });
-            selectedValues = [...new Set(selectedValues)]; // unique
+            if (syncing) return;
+            syncing = true;
 
             $inputs.forEach(function ($input) {
-                if ($input.attr('id') === sourceId) return; // skip source
+                var thisId  = $input.attr('id');
+                var thisVals = $input.val() || [];
+
+                // Values selected in every OTHER input in this group
+                var othersSelected = [];
+                $inputs.forEach(function ($other) {
+                    if ($other.attr('id') !== thisId) {
+                        othersSelected = othersSelected.concat($other.val() || []);
+                    }
+                });
+
+                // Disable options that are taken by another input,
+                // but keep this input's OWN selections enabled so their tags stay visible
                 $input.find('option').each(function () {
-                    $(this).prop('disabled', selectedValues.indexOf($(this).val()) !== -1);
+                    var val = $(this).val();
+                    if (val) {
+                        var takenElsewhere = othersSelected.indexOf(val) !== -1;
+                        var ownSelection   = thisVals.indexOf(val) !== -1;
+                        $(this).prop('disabled', takenElsewhere && !ownSelection);
+                    }
                 });
-                var currentVals = $input.val() || [];
-                var filteredVals = currentVals.filter(function (v) {
-                    var otherSelected = selectedValues.filter(function (sv, i) {
-                        return selectedValues.indexOf(sv) !== i || i !== selectedValues.lastIndexOf(sv);
+
+                // For non-source inputs: remove any value that is now taken by another input
+                if (thisId !== sourceId) {
+                    var filteredVals = thisVals.filter(function (v) {
+                        return othersSelected.indexOf(v) === -1;
                     });
-                    return otherSelected.indexOf(v) === -1;
-                });
-                syncing = true;
-                $input.val(filteredVals).trigger('change');
-                syncing = false;
+                    if (filteredVals.length !== thisVals.length) {
+                        $input.val(filteredVals).trigger('change');
+                    }
+                }
+
+                // Refresh Select2 UI to reflect disabled state in dropdown
+                $input.trigger('change.select2');
             });
+
+            syncing = false;
         }
 
         $inputs.forEach(function ($input) {
             $input.on('change', function () {
-                if (!syncing) updateAll($input.attr('id'));
+                updateAll($input.attr('id'));
             });
         });
 
