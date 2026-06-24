@@ -44,8 +44,11 @@ class AuthenticateUser
         // Update last activity
         Session::put('last_activity', time());
 
-        // Redirect to Telegram connect if user hasn't linked Telegram yet
+        // Redirect to Telegram connect if user hasn't linked Telegram yet.
+        // Only interrupt GET requests (page navigation) — form submissions must
+        // always reach their handler so data is not silently discarded.
         if (!empty(Auth::user()->telegram_chat_id) === false 
+            && $request->isMethod('GET')
             && !$request->is('telegram-connect') 
             && !$request->is('telegram*')
             && !$request->is('logout')
