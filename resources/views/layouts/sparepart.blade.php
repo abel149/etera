@@ -785,9 +785,9 @@
 
 		<!-- Mobile Toggle -->
 		@php
-			$_mobileNotifCount = auth()->user()->getInboxCount()
-				+ auth()->user()->getReceivedProformasCount()
-				+ auth()->user()->getReturnedFromAdminCount();
+			$_mobileNotifCount = (auth()->user()?->getInboxCount() ?? 0)
+				+ (auth()->user()?->getReceivedProformasCount() ?? 0)
+				+ (auth()->user()?->getReturnedFromAdminCount() ?? 0);
 		@endphp
 		<button class="sp-mobile-toggle" id="sp-mobile-toggle" aria-label="Toggle navigation">
 			<i class="bi bi-list"></i>
