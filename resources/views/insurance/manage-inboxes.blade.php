@@ -30,14 +30,13 @@
     $garagePartnerIds= $garage_partners->pluck('id')->toArray();
 
     // Returns [locked, badgeClass, badgeText] for a group
-    $groupStatus = function(array $ids, bool $proformaPending, bool $hasApplied) {
+    // Empty groups always show Admin Slot — the insurance cleared them for admin.
+    // Applied user info is already shown in the info banner above.
+    $groupStatus = function(array $ids, bool $proformaPending) {
         if (!$proformaPending) {
             return [true, 'bg-secondary', 'Proforma Closed'];
         }
         if (empty($ids)) {
-            if ($hasApplied) {
-                return [true, 'bg-success', 'Applied ✓'];
-            }
             return [true, 'bg-warning text-dark', 'Admin Slot'];
         }
         return [false, '', ''];
@@ -140,7 +139,7 @@
                         @else
                         @for($grp = 1; $grp <= $shopGroupCount; $grp++)
                         @php
-                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($shopGrp[$grp], $proformaPending, $shopApplied);
+                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($shopGrp[$grp], $proformaPending);
                             $isPartnerGroup = ($grp === 1);
                         @endphp
                         <div class="mb-4">
@@ -163,7 +162,7 @@
                             @if($isLocked)
                                 <div class="rounded border bg-light p-2 text-muted d-flex align-items-center gap-2" style="min-height:38px;">
                                     <i class="bx bx-lock-alt"></i>
-                                    <span class="small">{{ $badgeText === 'Applied ✓' ? 'This slot has been satisfied by an application.' : ($badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.') }}</span>
+                                    <span class="small">{{ $badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.' }}</span>
                                 </div>
                             @else
                                 <select name="shop_group_{{ $grp }}[]"
@@ -213,7 +212,7 @@
                         @else
                         @for($grp = 1; $grp <= $garageGroupCount; $grp++)
                         @php
-                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($garageGrp[$grp], $proformaPending, $garageApplied);
+                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($garageGrp[$grp], $proformaPending);
                             $isPartnerGroup = ($grp === 1);
                         @endphp
                         <div class="mb-4">
@@ -236,7 +235,7 @@
                             @if($isLocked)
                                 <div class="rounded border bg-light p-2 text-muted d-flex align-items-center gap-2" style="min-height:38px;">
                                     <i class="bx bx-lock-alt"></i>
-                                    <span class="small">{{ $badgeText === 'Applied ✓' ? 'This slot has been satisfied by an application.' : ($badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.') }}</span>
+                                    <span class="small">{{ $badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.' }}</span>
                                 </div>
                             @else
                                 <select name="garage_group_{{ $grp }}[]"

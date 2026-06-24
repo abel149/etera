@@ -3752,11 +3752,11 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $finalAmount  = max($finalAmount, 1);
             }
 
-            // Detect inbox source BEFORE deleting inbox
-            $isInsuranceInboxed = $proforma->inboxes()
-                ->where('user_id', auth()->id())->where('source', 'insurance')->exists();
-            $isAdminInboxed = !$isInsuranceInboxed && $proforma->inboxes()
-                ->where('user_id', auth()->id())->where('source', 'admin')->exists();
+            // Detect inbox source AND group BEFORE deleting inbox
+            $ownInbox           = $proforma->inboxes()->where('user_id', auth()->id())->first();
+            $isInsuranceInboxed = $ownInbox && $ownInbox->source === 'insurance';
+            $isAdminInboxed     = $ownInbox && $ownInbox->source === 'admin';
+            $inboxGroup         = $ownInbox?->inbox_group;
 
             $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
 
@@ -3779,18 +3779,31 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 ->where('proforma_id', $proforma->id)
                 ->delete();
 
-            // Chereta: once insurance garage quota is filled, cancel remaining inboxes
+            // Chereta: wipe all garage inbox siblings in the same group (per-group cleanup)
             if ($isInsuranceInboxed) {
-                $garagePartnerApplied = $proforma->applications()
-                    ->where('from', 'garage')
-                    ->where('application_source', 'partner')
-                    ->count();
-                $garageQuota = (int) ($proforma->insurance_garage_quota ?? 1);
-                if ($garagePartnerApplied >= $garageQuota) {
+                $garageUserIds = \App\Models\User::where('role', 'garage')->pluck('id');
+
+                if ($inboxGroup !== null) {
+                    // Per-group chereta: wipe all others in the same inbox_group
                     $proforma->inboxes()
                         ->where('source', 'insurance')
-                        ->whereHas('user', fn($q) => $q->where('role', 'garage'))
+                        ->where('inbox_group', $inboxGroup)
+                        ->whereIn('user_id', $garageUserIds)
                         ->delete();
+                } else {
+                    // Legacy (no inbox_group): quota-based cleanup
+                    $garagePartnerApplied = $proforma->applications()
+                        ->where('from', 'garage')
+                        ->where('application_source', 'partner')
+                        ->count();
+                    $garageQuota = (int) ($proforma->insurance_garage_quota ?? 1);
+                    if ($garagePartnerApplied >= $garageQuota) {
+                        $proforma->inboxes()
+                            ->where('source', 'insurance')
+                            ->whereNull('inbox_group')
+                            ->whereIn('user_id', $garageUserIds)
+                            ->delete();
+                    }
                 }
             }
 
