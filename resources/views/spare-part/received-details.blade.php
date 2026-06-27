@@ -301,6 +301,14 @@
                                             </tr>
                                         </tfoot>
                                     </table>
+                                    @if($application->notes)
+                                    <div style="margin-top:12px; background: rgba(13,148,136,0.06); border-left: 3px solid rgba(13,148,136,0.5); border-radius: 0 6px 6px 0; padding: 9px 14px;">
+                                        <p style="font-size:0.78rem; font-weight:600; color:var(--etera-teal-light,#4dd0c4); margin-bottom:4px;">
+                                            <i class="bx bx-message-detail me-1"></i>Applicant Notes
+                                        </p>
+                                        <p style="font-size:0.85rem; margin:0; white-space:pre-wrap; color:inherit;">{{ $application->notes }}</p>
+                                    </div>
+                                    @endif
                                     <div class="text-end mt-3">
                                         <button class="button radius-30 rounded-pill px-4" onclick="openPrintPage(this)">Print</button>
                                     </div>

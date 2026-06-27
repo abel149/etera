@@ -326,6 +326,12 @@
                                     <strong>Discount:</strong> {{$application->discount}} %
                                 </div>
                             </div>
+                            @if($application->notes)
+                            <div style="margin: 10px 0 4px; background: rgba(13,148,136,0.06); border-left: 3px solid #4dd0c4; border-radius: 0 6px 6px 0; padding: 8px 12px;">
+                                <span style="font-size:10px; font-weight:600; color:#4dd0c4; display:block; margin-bottom:3px;"><i class="bx bx-message-detail" style="margin-right:3px;"></i>Applicant Notes</span>
+                                <span style="font-size:11px; color:#ccc; white-space:pre-wrap;">{{ $application->notes }}</span>
+                            </div>
+                            @endif
                         </div>
                         <div class="card-footer text-end">
                             <button class="btn btn-outline-primary select-shop-btn" data-application-id="{{ $application->id }}">Select</button>
@@ -467,6 +473,12 @@
                                     <strong class="text-danger">NOTE:</strong> All prices not including VAT
                                 </p>
                             </div>
+                            @if($application->notes)
+                            <div style="margin: 10px 16px 4px; background: rgba(13,148,136,0.06); border-left: 3px solid #4dd0c4; border-radius: 0 6px 6px 0; padding: 8px 12px;">
+                                <span style="font-size:10px; font-weight:600; color:#4dd0c4; display:block; margin-bottom:3px;"><i class="bx bx-message-detail" style="margin-right:3px;"></i>Applicant Notes</span>
+                                <span style="font-size:11px; color:#ccc; white-space:pre-wrap;">{{ $application->notes }}</span>
+                            </div>
+                            @endif
                         </div>
                         <div class="card-footer text-end">
                             <button class="btn btn-outline-primary select-garage-btn" data-application-id="{{ $application->id }}">Select</button>

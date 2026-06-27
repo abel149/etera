@@ -175,6 +175,7 @@ class ProformaApplicationController extends Controller
                     'from'              => $role,
                     'amount'            => $finalAmount,
                     'discount'          => $isEncrypted ? 0 : $discount,
+                    'notes'             => $request->filled('notes') ? trim($request->notes) : null,
                     'application_source'=> $applicationSource,
                     'inbox_group'       => $inboxGroup,
                 ];
