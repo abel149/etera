@@ -1085,6 +1085,12 @@ async function applyDecryption(privateKey) {
         document.querySelectorAll(`.encrypted-price[data-app-id="${appId}"]`).forEach(el => {
             el.outerHTML = `<span>${fmt(amount)}</span>`;
         });
+        // Update garage card dataset so openPrintPages reads the decrypted value, not 0
+        const garageCard = document.querySelector(`.garage-card[data-application-id="${appId}"]`);
+        if (garageCard) {
+            garageCard.dataset.amount = amount;
+            garageCard.dataset.amountIsEncrypted = '0';
+        }
     }
 
     const appSubtotals = {};
