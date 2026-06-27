@@ -203,7 +203,8 @@
                          data-shop-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
-                         data-discount="{{ $application->discount ?? 0 }}">
+                         data-discount="{{ $application->discount ?? 0 }}"
+                         data-notes="{{ $application->notes ?? '' }}">
 
                          
                         <div class="card-stamp">
@@ -360,7 +361,8 @@
                          data-discount="{{ $application->discount ?? 0 }}"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
-                         data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}">
+                         data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
+                         data-notes="{{ $application->notes ?? '' }}">
 
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
@@ -563,6 +565,7 @@ function openPrintPage(card) {
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
     const discountPct = parseFloat(card.dataset.discount) || 0;
+    const applicantNotes = card.dataset.notes || "";
     
     // Get proforma data
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
@@ -744,6 +747,7 @@ function openPrintPage(card) {
                     </div>
 
                     <p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
+                    ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 
                     <div class="card-stamp">
                         <img class="stamp-image" src="${stampImage}" alt="Stamp" />
@@ -775,6 +779,7 @@ function openPrintPages(card) {
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
     const discountPct = parseFloat(card.dataset.discount) || 0;
     const amount = parseFloat(card.dataset.amount) || 0;
+    const applicantNotes = card.dataset.notes || "";
     
     // Get proforma data
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
@@ -919,6 +924,7 @@ function openPrintPages(card) {
                     </div>
 
                     <p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
+                    ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 
                     <div class="card-stamp">
                         <img class="stamp-image" src="${stampImage}" alt="Stamp" />

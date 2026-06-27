@@ -186,6 +186,7 @@
                                  data-discount="{{ $application->discount ?? 0 }}"
                                  data-proforma-parts='@json($proforma->parts)'
                                  data-application-prices='@json($application->prices)'
+                                 data-notes="{{ $application->notes ?? '' }}"
                                  data-stamp-image-url="{{ $application->applicationBy->stamp_image ? asset('storage/' . ($application->applicationBy->stamp_image)) : asset('assets/images/stamp.png') }}"
                             >
                                 {{-- Stamp overlay --}}
@@ -302,11 +303,11 @@
                                         </tfoot>
                                     </table>
                                     @if($application->notes)
-                                    <div style="margin-top:12px; background: rgba(13,148,136,0.06); border-left: 3px solid rgba(13,148,136,0.5); border-radius: 0 6px 6px 0; padding: 9px 14px;">
-                                        <p style="font-size:0.78rem; font-weight:600; color:var(--etera-teal-light,#4dd0c4); margin-bottom:4px;">
+                                    <div style="margin-top:12px; background:#f0fdf9; border-left:3px solid #14b8a6; border-radius:0 6px 6px 0; padding:9px 14px;">
+                                        <p style="font-size:0.78rem; font-weight:700; color:#0f766e; margin-bottom:4px;">
                                             <i class="bx bx-message-detail me-1"></i>Applicant Notes
                                         </p>
-                                        <p style="font-size:0.85rem; margin:0; white-space:pre-wrap; color:inherit;">{{ $application->notes }}</p>
+                                        <p style="font-size:0.9rem; margin:0; white-space:pre-wrap; color:#1f2937;">{{ $application->notes }}</p>
                                     </div>
                                     @endif
                                     <div class="text-end mt-3">
@@ -371,6 +372,7 @@ function showMoreApplications() {
 			let phoneNumber = card.dataset.phoneNumber || "N/A";
 			let stampImage = card.dataset.stampImageUrl || "{{ asset('assets/images/stamp.png') }}";
             let discountPct = parseFloat(card.dataset.discount) || 0;
+            let applicantNotes = card.dataset.notes || "";
 
 
 			let table = card.querySelector("table");
@@ -521,6 +523,7 @@ function showMoreApplications() {
 							</div>
 
 							<p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
+						${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 						</main>
 
 						<footer class="text-center mt-4">
