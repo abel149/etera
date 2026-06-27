@@ -20,23 +20,26 @@
     // ── Global editable flag (proforma must be pending) ───────────────────────
     $proformaPending = $proforma->status === 'pending';
 
-    // ── Per-group lock: locked when group has no current insurance inbox entries ─
-    // (chereta removes all group members when one applies → group becomes empty = applied/locked)
-    // (never-used group = also empty = admin slot = locked)
-    $shopApplied   = $shopApplications->isNotEmpty();
-    $garageApplied = $garageApplications->isNotEmpty();
-
     $partnerIds      = $spare_part_partners->pluck('id')->toArray();
     $garagePartnerIds= $garage_partners->pluck('id')->toArray();
 
+    // ── Per-group applied status: which inbox groups were satisfied by a partner application
+    $shopAppliedGroups   = $shopApplications
+        ->where('application_source', 'partner')
+        ->pluck('inbox_group')->filter()->unique()->values()->toArray();
+    $garageAppliedGroups = $garageApplications
+        ->where('application_source', 'partner')
+        ->pluck('inbox_group')->filter()->unique()->values()->toArray();
+
     // Returns [locked, badgeClass, badgeText] for a group
-    // Empty groups always show Admin Slot — the insurance cleared them for admin.
-    // Applied user info is already shown in the info banner above.
-    $groupStatus = function(array $ids, bool $proformaPending) {
+    $groupStatus = function(array $ids, bool $proformaPending, array $appliedGroups, int $grp) {
         if (!$proformaPending) {
             return [true, 'bg-secondary', 'Proforma Closed'];
         }
         if (empty($ids)) {
+            if (in_array($grp, $appliedGroups)) {
+                return [true, 'bg-success', 'Applied ✓'];
+            }
             return [true, 'bg-warning text-dark', 'Admin Slot'];
         }
         return [false, '', ''];
@@ -139,7 +142,7 @@
                         @else
                         @for($grp = 1; $grp <= $shopGroupCount; $grp++)
                         @php
-                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($shopGrp[$grp], $proformaPending);
+                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($shopGrp[$grp], $proformaPending, $shopAppliedGroups, $grp);
                             $isPartnerGroup = ($grp === 1);
                         @endphp
                         <div class="mb-4">
@@ -162,7 +165,7 @@
                             @if($isLocked)
                                 <div class="rounded border bg-light p-2 text-muted d-flex align-items-center gap-2" style="min-height:38px;">
                                     <i class="bx bx-lock-alt"></i>
-                                    <span class="small">{{ $badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.' }}</span>
+                                    <span class="small">{{ $badgeText === 'Applied ✓' ? 'This slot has been satisfied by an application.' : ($badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.') }}</span>
                                 </div>
                             @else
                                 <select name="shop_group_{{ $grp }}[]"
@@ -212,7 +215,7 @@
                         @else
                         @for($grp = 1; $grp <= $garageGroupCount; $grp++)
                         @php
-                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($garageGrp[$grp], $proformaPending);
+                            [$isLocked, $badgeClass, $badgeText] = $groupStatus($garageGrp[$grp], $proformaPending, $garageAppliedGroups, $grp);
                             $isPartnerGroup = ($grp === 1);
                         @endphp
                         <div class="mb-4">
@@ -235,7 +238,7 @@
                             @if($isLocked)
                                 <div class="rounded border bg-light p-2 text-muted d-flex align-items-center gap-2" style="min-height:38px;">
                                     <i class="bx bx-lock-alt"></i>
-                                    <span class="small">{{ $badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.' }}</span>
+                                    <span class="small">{{ $badgeText === 'Applied ✓' ? 'This slot has been satisfied by an application.' : ($badgeText === 'Proforma Closed' ? 'Proforma is closed.' : 'This slot was not sent by insurance — managed by admin.') }}</span>
                                 </div>
                             @else
                                 <select name="garage_group_{{ $grp }}[]"

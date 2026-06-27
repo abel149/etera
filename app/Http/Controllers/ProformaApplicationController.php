@@ -176,6 +176,7 @@ class ProformaApplicationController extends Controller
                     'amount'            => $finalAmount,
                     'discount'          => $isEncrypted ? 0 : $discount,
                     'application_source'=> $applicationSource,
+                    'inbox_group'       => $inboxGroup,
                 ];
                 if ($isEncrypted && $request->filled('encrypted_amount')) {
                     $appData['encrypted_amount']   = $request->encrypted_amount;
