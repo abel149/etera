@@ -323,11 +323,38 @@
 
                             <!-- Step 3: Spare Parts -->
                             <div id="test-vl-3" role="tabpane3" class="bs-stepper-pane content fade" aria-labelledby="stepper3trigger3">
+
+                                {{-- ── Excel Import Panel ─────────────────────────────────── --}}
+                                <div class="d-flex align-items-center justify-content-between mb-1">
+                                    <div>
+                                        <h5 class="mb-0">Spare Parts</h5>
+                                        <p class="text-muted small mb-0">Enter parts manually, or <button type="button" id="toggleExcelImport" class="btn btn-link p-0 small text-success fw-semibold" style="vertical-align:baseline;"><i class="bx bx-table me-1"></i>import from Excel</button></p>
+                                    </div>
+                                </div>
+
+                                <div id="excelImportBox" style="display:none;" class="border rounded-3 p-3 mb-3 mt-2" style="border-color:rgba(20,184,166,0.35)!important; background:rgba(20,184,166,0.04);">
+                                    <p class="small text-muted mb-2">
+                                        Download the template, fill in your parts, then upload the file to auto-populate the list below.
+                                        <strong class="text-dark">Uploaded rows will replace any parts already entered.</strong>
+                                    </p>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                                        <button type="button" id="downloadExcelTemplate" class="btn btn-outline-secondary btn-sm rounded-pill">
+                                            <i class="bx bx-download me-1"></i>Download Template
+                                        </button>
+                                        <label class="btn btn-success btn-sm rounded-pill mb-0" style="cursor:pointer;">
+                                            <i class="bx bx-upload me-1"></i>Upload &amp; Import
+                                            <input type="file" id="excelFileInput" accept=".xlsx,.xls,.csv" style="display:none;">
+                                        </label>
+                                    </div>
+                                    <div id="excelImportStatus" class="mt-2 small"></div>
+                                </div>
+                                {{-- ── End Excel Import Panel ──────────────────────────────── --}}
+
                                 <div class="repeater-form">
                                     <div id="repeater">
                                         <div class="d-flex align-items-center justify-content-between">
                                             <div>
-                                                <h5 class="mb-1">Spare Parts</h5>
+                                                <h5 class="mb-1" style="display:none;"></h5>
                                             </div>
                                        </div>
 
@@ -1168,4 +1195,164 @@ $(document).ready(function () {
     syncMutualExclusion(['garageExtra1', 'garageExtra2', 'garageExtra3', 'garageExtra4']);
 });
 </script>
+
+{{-- ── Excel Import Logic ───────────────────────────────────────────── --}}
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script>
+(function () {
+    // ── Column mapping (header text → field key) ───────────────────────
+    const COL_MAP = {
+        'part name and number': 'number',
+        'part name & number':   'number',
+        'part name':            'number',
+        'grade':                'grade',
+        'country':              'country',
+        'qty':                  'quantity',
+        'quantity':             'quantity',
+        'condition':            'condition',
+        'component':            'component',
+    };
+
+    const GRADE_OPTIONS   = ['1st Grade(Original OEM)', '2nd Grade(After market)', '3rd Grade', '4th grade (Local)'];
+    const COMPONENT_OPTIONS = ['Body Parts', 'Mechanical Parts'];
+
+    function matchOption(options, raw) {
+        if (!raw) return options[0];
+        const r = String(raw).toLowerCase().trim();
+        return options.find(o => o.toLowerCase().includes(r) || r.includes(o.toLowerCase())) || options[0];
+    }
+
+    // ── Toggle panel ───────────────────────────────────────────────────
+    document.addEventListener('DOMContentLoaded', function () {
+        const toggleBtn = document.getElementById('toggleExcelImport');
+        const box       = document.getElementById('excelImportBox');
+        if (toggleBtn && box) {
+            toggleBtn.addEventListener('click', function () {
+                const open = box.style.display !== 'none';
+                box.style.display = open ? 'none' : 'block';
+                toggleBtn.innerHTML = open
+                    ? '<i class="bx bx-table me-1"></i>Import from Excel'
+                    : '<i class="bx bx-x me-1"></i>Close Import';
+            });
+        }
+
+        // ── Download Template ──────────────────────────────────────────
+        const dlBtn = document.getElementById('downloadExcelTemplate');
+        if (dlBtn) {
+            dlBtn.addEventListener('click', function () {
+                const wb = XLSX.utils.book_new();
+                const ws = XLSX.utils.aoa_to_sheet([
+                    ['Part Name and Number', 'Grade', 'Country', 'Qty', 'Condition', 'Component'],
+                    ['Example: Brake Pad F001', '1st Grade(Original OEM)', 'Japan', '2', 'New', 'Mechanical Parts'],
+                ]);
+                ws['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, { wch: 12 }, { wch: 18 }];
+                XLSX.utils.book_append_sheet(wb, ws, 'Parts');
+                XLSX.writeFile(wb, 'spare-parts-template.xlsx');
+            });
+        }
+
+        // ── File Upload & Parse ────────────────────────────────────────
+        const fileInput = document.getElementById('excelFileInput');
+        const status    = document.getElementById('excelImportStatus');
+        if (fileInput) {
+            fileInput.addEventListener('change', function () {
+                const file = this.files[0];
+                if (!file) return;
+                status.innerHTML = '<span class="text-muted">Reading file…</span>';
+
+                const reader = new FileReader();
+                reader.onload = function (e) {
+                    try {
+                        const wb    = XLSX.read(e.target.result, { type: 'array' });
+                        const ws    = wb.Sheets[wb.SheetNames[0]];
+                        const rows  = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+
+                        if (rows.length < 2) {
+                            status.innerHTML = '<span class="text-danger">No data rows found. Make sure your file has a header row and at least one data row.</span>';
+                            return;
+                        }
+
+                        // Map header row → column indices
+                        const headers = rows[0].map(h => String(h).toLowerCase().trim());
+                        const colIdx  = {};
+                        headers.forEach((h, i) => {
+                            const key = COL_MAP[h];
+                            if (key && !(key in colIdx)) colIdx[key] = i;
+                        });
+
+                        if (!('number' in colIdx)) {
+                            status.innerHTML = '<span class="text-danger">Could not find a "Part Name and Number" column. Please use the template.</span>';
+                            return;
+                        }
+
+                        const dataRows = rows.slice(1).filter(r => r.some(c => String(c).trim() !== ''));
+                        if (dataRows.length === 0) {
+                            status.innerHTML = '<span class="text-danger">No data rows found after the header.</span>';
+                            return;
+                        }
+
+                        populateRepeater(dataRows, colIdx);
+                        status.innerHTML = `<span class="text-success"><i class="bx bx-check-circle me-1"></i>${dataRows.length} part(s) imported successfully.</span>`;
+                        fileInput.value = '';
+                    } catch (err) {
+                        status.innerHTML = '<span class="text-danger">Failed to parse file: ' + err.message + '</span>';
+                    }
+                };
+                reader.readAsArrayBuffer(file);
+            });
+        }
+
+        // ── Populate repeater from parsed rows ─────────────────────────
+        function populateRepeater(dataRows, colIdx) {
+            const container = document.getElementById('repeater');
+            if (!container) return;
+
+            // Remove all existing items except the first (template)
+            const existing = container.querySelectorAll('.repeater-item');
+            existing.forEach((el, i) => { if (i > 0) el.remove(); });
+
+            const template = container.querySelector('.repeater-item');
+
+            dataRows.forEach(function (row, idx) {
+                let item;
+                if (idx === 0) {
+                    item = template;
+                } else {
+                    item = template.cloneNode(true);
+                    // Update names and label
+                    item.querySelectorAll('input, select').forEach(el => {
+                        if (el.name) el.name = el.name.replace(/parts\[\d+\]/, `parts[${idx}]`);
+                        el.classList.remove('is-invalid');
+                    });
+                    item.querySelector('.part-label b').textContent = 'Spare Part #' + (idx + 1);
+                    container.insertBefore(item, document.getElementById('add-repeater'));
+                }
+
+                const g = k => colIdx[k] !== undefined ? String(row[colIdx[k]] ?? '').trim() : '';
+
+                const numInput  = item.querySelector('input[name*="[number]"]');
+                const qtyInput  = item.querySelector('input[name*="[quantity]"]');
+                const ctrInput  = item.querySelector('input[name*="[country]"]');
+                const gradeSel  = item.querySelector('select[name*="[grade]"]');
+                const condSel   = item.querySelector('select[name*="[condition]"]');
+                const compSel   = item.querySelector('select[name*="[component]"]');
+
+                if (numInput)  numInput.value  = g('number');
+                if (qtyInput)  qtyInput.value  = g('quantity') || '1';
+                if (ctrInput)  ctrInput.value  = g('country');
+                if (gradeSel)  gradeSel.value  = matchOption(GRADE_OPTIONS, g('grade'));
+                if (condSel)   condSel.value   = 'New';
+                if (compSel)   compSel.value   = matchOption(COMPONENT_OPTIONS, g('component'));
+            });
+
+            // Re-index part labels
+            container.querySelectorAll('.repeater-item').forEach((item, i) => {
+                const lbl = item.querySelector('.part-label b');
+                if (lbl) lbl.textContent = 'Spare Part #' + (i + 1);
+            });
+        }
+    });
+}());
+</script>
+{{-- ── End Excel Import Logic ───────────────────────────────────────── --}}
 @endpush
