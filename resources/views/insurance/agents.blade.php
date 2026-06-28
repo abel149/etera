@@ -42,13 +42,13 @@
                         <div class="col-12 col-md-4">
                             <label class="form-label">Full Name <span class="text-danger">*</span></label>
                             <input type="text" name="name" class="form-control @error('name') is-invalid @enderror"
-                                   placeholder="Agent's full name"
+                                   placeholder="Agent's full name" autocomplete="off"
                                    value="{{ old('name', isset($editAgent) ? $editAgent->name : '') }}" required>
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label">Phone Number <span class="text-danger">*</span></label>
                             <input type="text" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror"
-                                   placeholder="10-digit phone number"
+                                   placeholder="" autocomplete="off"
                                    value="{{ old('phone_number', isset($editAgent) ? $editAgent->phone_number : '') }}" required maxlength="10">
                         </div>
                         <div class="col-12 col-md-4">
