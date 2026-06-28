@@ -22,7 +22,8 @@ class User extends Authenticatable
     public const ROLE_MANAGER        = 'manager';
     public const ROLE_OPERATOR       = 'operator';
     public const ROLE_BUSINESS_OWNER = 'others';
-    public const ROLE_INSURANCE      = 'insurance';
+    public const ROLE_INSURANCE       = 'insurance';
+    public const ROLE_INSURANCE_AGENT  = 'insurance_agent';
     public const ROLE_SHOP           = 'shop';
     public const ROLE_GARAGE         = 'garage';
     public const ROLE_EMPLOYEE       = 'employee';
@@ -75,6 +76,7 @@ class User extends Authenticatable
         'store_id',
         'approved',
         'registered_by',
+        'parent_insurance_id',
         'license_expire_date',
         'phone_number',
         'location',
@@ -127,6 +129,9 @@ class User extends Authenticatable
     public function isManager()            { return $this->role === self::ROLE_MANAGER; }
     public function isOperator()           { return $this->role === self::ROLE_OPERATOR; }
     public function isInsurance()          { return $this->role === self::ROLE_INSURANCE; }
+    public function isInsuranceAgent()     { return $this->role === self::ROLE_INSURANCE_AGENT; }
+    public function isInsuranceOrAgent()   { return in_array($this->role, [self::ROLE_INSURANCE, self::ROLE_INSURANCE_AGENT]); }
+    public function insuranceId()          { return $this->isInsuranceAgent() ? $this->parent_insurance_id : $this->id; }
     public function isBusinessOwner()      { return $this->role === self::ROLE_BUSINESS_OWNER; }
     public function isGarage()             { return $this->role === self::ROLE_GARAGE; }
     public function isShop()               { return $this->role === self::ROLE_SHOP; }
@@ -152,6 +157,8 @@ class User extends Authenticatable
     public function withdrawalRequests() { return $this->hasMany(WithdrawalRequest::class, 'from'); }
     public function partners()           { return $this->hasMany(Partner::class, 'insurance_id'); }
     public function myRegistrations()    { return $this->hasMany(User::class, 'registered_by'); }
+    public function agents()             { return $this->hasMany(User::class, 'parent_insurance_id'); }
+    public function parentInsurance()    { return $this->belongsTo(User::class, 'parent_insurance_id'); }
     public function inboxes()            { return $this->hasMany(ProformaInbox::class, 'user_id'); }
     public function myInbox()            { return $this->hasMany(Inbox::class, 'user_id')->latest(); }
     

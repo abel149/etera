@@ -3239,6 +3239,64 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
         Route::get('/profile', function () {
             return view('insurance.profile');
         });
+
+        // ── Agent Management (insurance admin only) ───────────────────────
+        Route::get('/agents', function () {
+            abort_if(auth()->user()->role !== 'insurance', 403);
+            $agents = \App\Models\User::where('parent_insurance_id', auth()->id())
+                ->orderBy('created_at', 'desc')
+                ->get();
+            return view('insurance.agents', compact('agents'));
+        })->name('insurance.agents');
+
+        Route::post('/agents', function (\Illuminate\Http\Request $request) {
+            abort_if(auth()->user()->role !== 'insurance', 403);
+            $request->validate([
+                'name'         => 'required|string|max:255',
+                'phone_number' => 'required|digits:10|unique:users,phone_number',
+                'password'     => 'nullable|string|min:6',
+            ]);
+            $password = $request->filled('password') ? $request->password : '123456';
+            \App\Models\User::create([
+                'name'                 => $request->name,
+                'phone_number'         => $request->phone_number,
+                'password'             => bcrypt($password),
+                'role'                 => 'insurance_agent',
+                'parent_insurance_id'  => auth()->id(),
+                'approved'             => true,
+                'balance'              => 0,
+            ]);
+            return redirect()->route('insurance.agents')->with('success', 'Agent account created successfully.');
+        })->name('insurance.agents.store');
+
+        Route::get('/agents/{agent}/edit', function (\App\Models\User $agent) {
+            abort_if(auth()->user()->role !== 'insurance', 403);
+            abort_if($agent->parent_insurance_id !== auth()->id(), 403);
+            return view('insurance.agents', ['agents' => \App\Models\User::where('parent_insurance_id', auth()->id())->orderBy('created_at','desc')->get(), 'editAgent' => $agent]);
+        })->name('insurance.agents.edit');
+
+        Route::put('/agents/{agent}', function (\Illuminate\Http\Request $request, \App\Models\User $agent) {
+            abort_if(auth()->user()->role !== 'insurance', 403);
+            abort_if($agent->parent_insurance_id !== auth()->id(), 403);
+            $request->validate([
+                'name'         => 'required|string|max:255',
+                'phone_number' => 'required|digits:10|unique:users,phone_number,' . $agent->id,
+                'password'     => 'nullable|string|min:6',
+            ]);
+            $data = ['name' => $request->name, 'phone_number' => $request->phone_number];
+            if ($request->filled('password')) {
+                $data['password'] = bcrypt($request->password);
+            }
+            $agent->update($data);
+            return redirect()->route('insurance.agents')->with('success', 'Agent updated successfully.');
+        })->name('insurance.agents.update');
+
+        Route::delete('/agents/{agent}', function (\App\Models\User $agent) {
+            abort_if(auth()->user()->role !== 'insurance', 403);
+            abort_if($agent->parent_insurance_id !== auth()->id(), 403);
+            $agent->delete();
+            return redirect()->route('insurance.agents')->with('success', 'Agent account deleted.');
+        })->name('insurance.agents.delete');
         
 
 

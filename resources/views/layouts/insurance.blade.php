@@ -153,6 +153,19 @@
 						<div class="menu-title">Partners</div>
 					</a>
 				</li>
+				@if(auth()->user()->role === 'insurance')
+				<li>
+					<a href="{{ route('insurance.agents') }}">
+						<div class="parent-icon"><i class='bx bx-group'></i></div>
+						<div class="menu-title">My Agents
+							@php $agentCount = auth()->user()->agents()->count(); @endphp
+							@if($agentCount > 0)
+							<span class="badge bg-light text-dark ms-1 small">{{ $agentCount }}</span>
+							@endif
+						</div>
+					</a>
+				</li>
+				@endif
 				<li>
 					<a href="{{ route('insurance.encryption.setup') }}">
 						<div class="parent-icon"><i class='bx bx-lock-alt'></i></div>
