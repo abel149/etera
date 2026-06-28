@@ -29,19 +29,25 @@ class InsuranceEncryptionController extends Controller
     public function saveKeys(Request $request)
     {
         $request->validate([
-            'public_key'             => 'required|string',
-            'encrypted_private_key'  => 'required|string',
-            'key_iv'                 => 'required|string',
-            'key_salt'               => 'required|string',
+            'public_key'                      => 'required|string',
+            'encrypted_private_key'           => 'required|string',
+            'key_iv'                          => 'required|string',
+            'key_salt'                        => 'required|string',
+            'recovery_encrypted_private_key'  => 'nullable|string',
+            'recovery_key_iv'                 => 'nullable|string',
+            'recovery_key_salt'               => 'nullable|string',
         ]);
 
         $user = Auth::user();
         $user->update([
-            'public_key'            => $request->public_key,
-            'encrypted_private_key' => $request->encrypted_private_key,
-            'key_iv'                => $request->key_iv,
-            'key_salt'              => $request->key_salt,
-            'has_encryption'        => true,
+            'public_key'                     => $request->public_key,
+            'encrypted_private_key'          => $request->encrypted_private_key,
+            'key_iv'                         => $request->key_iv,
+            'key_salt'                       => $request->key_salt,
+            'has_encryption'                 => true,
+            'recovery_encrypted_private_key' => $request->recovery_encrypted_private_key,
+            'recovery_key_iv'                => $request->recovery_key_iv,
+            'recovery_key_salt'              => $request->recovery_key_salt,
         ]);
 
         Log::info('E2E encryption keys saved', ['user_id' => $user->id]);
@@ -127,6 +133,31 @@ class InsuranceEncryptionController extends Controller
             'encrypted_private_key' => $user->encrypted_private_key,
             'key_iv'                => $user->key_iv,
             'key_salt'              => $user->key_salt,
+        ]);
+    }
+
+    /**
+     * Return the recovery-wrapped private key blob for the logged-in insurance user.
+     * Used when the user has forgotten their PIN and wants to recover via recovery code.
+     *
+     * GET /insurance/encryption/recovery-key
+     */
+    public function getRecoveryKey()
+    {
+        $user = Auth::user();
+
+        if (!$user->has_encryption) {
+            return response()->json(['error' => 'Encryption not set up.'], 404);
+        }
+
+        if (!$user->recovery_encrypted_private_key) {
+            return response()->json(['error' => 'No recovery key on file. Please regenerate keys to enable recovery.'], 404);
+        }
+
+        return response()->json([
+            'recovery_encrypted_private_key' => $user->recovery_encrypted_private_key,
+            'recovery_key_iv'                => $user->recovery_key_iv,
+            'recovery_key_salt'              => $user->recovery_key_salt,
         ]);
     }
 }

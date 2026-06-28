@@ -94,6 +94,9 @@ class User extends Authenticatable
         'key_iv',
         'key_salt',
         'has_encryption',
+        'recovery_encrypted_private_key',
+        'recovery_key_iv',
+        'recovery_key_salt',
     ];
 
     protected $hidden = [

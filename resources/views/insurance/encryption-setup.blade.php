@@ -64,6 +64,52 @@
             </div>
         </div>
 
+        {{-- ════ FORGOT PIN — Recovery Code ════ --}}
+        <div class="card mb-4">
+            <div class="card-header fw-semibold">
+                <i class="bx bx-help-circle me-2 text-warning"></i> Forgot Your PIN? Use Recovery Code
+            </div>
+            <div class="card-body">
+                <p class="text-secondary small mb-3">
+                    If you set up encryption after this feature was released, you received a
+                    <strong>one-time Recovery Code</strong>. Enter it below together with a new PIN to
+                    regain access. <strong class="text-success">All previously encrypted proformas will remain readable.</strong>
+                </p>
+                <div id="rcNoKeyWarning" class="alert alert-warning d-none mb-3">
+                    <i class="bx bx-error me-2"></i>
+                    No recovery key found for your account. You must <strong>Regenerate Keys</strong> below
+                    (this will lose access to old encrypted amounts), then you will have a new recovery code.
+                </div>
+                <div class="row g-3 mb-3">
+                    <div class="col-12">
+                        <label class="form-label">Recovery Code</label>
+                        <input type="password" id="rcCode" class="form-control font-monospace" placeholder="Paste your 48-character recovery code here">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">New PIN</label>
+                        <input type="password" id="rcNewPin" class="form-control" placeholder="Min 8 characters" minlength="8">
+                    </div>
+                    <div class="col-12 col-md-6">
+                        <label class="form-label">Confirm New PIN</label>
+                        <input type="password" id="rcNewPinConfirm" class="form-control" placeholder="Repeat new PIN">
+                    </div>
+                </div>
+                <button id="btnRecoverPin" class="btn btn-warning radius-30 px-4">
+                    <i class="bx bx-shield-check me-2"></i> Recover Access
+                </button>
+                <div id="rcStatus" class="mt-3 d-none">
+                    <div class="d-flex align-items-center gap-2 text-secondary">
+                        <div class="spinner-border spinner-border-sm"></div>
+                        <span id="rcStatusText">Processing…</span>
+                    </div>
+                </div>
+                <div id="rcSuccess" class="alert alert-success mt-3 d-none">
+                    <i class="bx bx-check-circle me-2"></i> PIN recovered successfully. All encrypted proformas are still readable.
+                </div>
+                <div id="rcError" class="alert alert-danger mt-3 d-none"></div>
+            </div>
+        </div>
+
         {{-- ════ DANGER ZONE: Regenerate Keys ════ --}}
         <div class="card mb-4 border-danger">
             <div class="card-header bg-danger text-white fw-semibold">
@@ -220,12 +266,20 @@ if (btnGenerate) {
             statusText.textContent = 'Wrapping private key with PIN…';
             const { encrypted, iv, salt } = await E2EEncryption.encryptPrivateKey(keyPair.privateKey, pin);
 
+            statusText.textContent = 'Generating recovery code…';
+            const recoveryCodeBytes = crypto.getRandomValues(new Uint8Array(24));
+            const recoveryCode = Array.from(recoveryCodeBytes).map(b => b.toString(16).padStart(2, '0')).join('');
+            const { encrypted: rEnc, iv: rIv, salt: rSalt } = await E2EEncryption.encryptPrivateKey(keyPair.privateKey, recoveryCode);
+
             statusText.textContent = 'Saving to server…';
             const data = await postJSON('{{ route("insurance.encryption.setup.save") }}', {
-                public_key:            publicKeyB64,
-                encrypted_private_key: encrypted,
-                key_iv:                iv,
-                key_salt:              salt,
+                public_key:                       publicKeyB64,
+                encrypted_private_key:            encrypted,
+                key_iv:                           iv,
+                key_salt:                         salt,
+                recovery_encrypted_private_key:   rEnc,
+                recovery_key_iv:                  rIv,
+                recovery_key_salt:                rSalt,
             });
 
             genStatus.classList.add('d-none');
@@ -233,6 +287,7 @@ if (btnGenerate) {
                 genSuccess.classList.remove('d-none');
                 document.getElementById('encPin').value        = '';
                 document.getElementById('encPinConfirm').value = '';
+                showRecoveryCodeModal(recoveryCode);
             } else {
                 throw new Error(data.message || 'Server error.');
             }
@@ -252,6 +307,42 @@ if (btnShowRegen) {
     btnShowRegen.addEventListener('click', () => {
         const f = document.getElementById('regenForm');
         if (f) f.classList.toggle('d-none');
+    });
+}
+
+// ── Recovery Code Modal ──────────────────────────────────────
+function showRecoveryCodeModal(code) {
+    const existing = document.getElementById('recoveryCodeModal');
+    if (existing) existing.remove();
+
+    const modal = document.createElement('div');
+    modal.id = 'recoveryCodeModal';
+    modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,0.7);z-index:9999;display:flex;align-items:center;justify-content:center;padding:16px;';
+    modal.innerHTML = `
+        <div style="background:#fff;border-radius:12px;padding:28px 32px;max-width:520px;width:100%;box-shadow:0 8px 40px rgba(0,0,0,0.3);">
+            <h5 style="margin:0 0 8px;"><i class="bx bx-key" style="color:#f59e0b;"></i> Save Your Recovery Code</h5>
+            <p style="font-size:0.88rem;color:#555;margin-bottom:16px;">
+                This code is shown <strong>only once</strong> and is never stored in plain text.
+                Save it somewhere safe (password manager, printed paper, etc.).<br>
+                <strong>If you lose both your PIN and this code, encrypted amounts cannot be recovered.</strong>
+            </p>
+            <div style="background:#fefce8;border:2px solid #f59e0b;border-radius:8px;padding:14px 16px;font-family:monospace;font-size:1rem;letter-spacing:0.05em;word-break:break-all;margin-bottom:16px;">${code}</div>
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                <button id="rcCopyBtn" style="padding:8px 20px;background:#f59e0b;color:#fff;border:none;border-radius:6px;cursor:pointer;font-weight:600;">Copy Code</button>
+                <button id="rcCloseBtn" style="padding:8px 20px;background:#e5e7eb;color:#111;border:none;border-radius:6px;cursor:pointer;">I have saved it, close</button>
+            </div>
+            <p id="rcCopied" style="color:#16a34a;font-size:0.82rem;margin:8px 0 0;display:none;">&#10003; Copied to clipboard!</p>
+        </div>
+    `;
+    document.body.appendChild(modal);
+
+    document.getElementById('rcCopyBtn').addEventListener('click', function() {
+        navigator.clipboard.writeText(code).then(() => {
+            document.getElementById('rcCopied').style.display = 'block';
+        });
+    });
+    document.getElementById('rcCloseBtn').addEventListener('click', function() {
+        modal.remove();
     });
 }
 
@@ -317,6 +408,83 @@ if (btnChangePin) {
             cpError.classList.remove('d-none');
         } finally {
             btnChangePin.disabled = false;
+        }
+    });
+}
+
+// ── Recover via Recovery Code (Forgot PIN) ────────────────────
+const btnRecoverPin = document.getElementById('btnRecoverPin');
+if (btnRecoverPin) {
+    btnRecoverPin.addEventListener('click', async () => {
+        const code     = document.getElementById('rcCode').value.trim();
+        const newPin   = document.getElementById('rcNewPin').value.trim();
+        const newPin2  = document.getElementById('rcNewPinConfirm').value.trim();
+        const rcStatus  = document.getElementById('rcStatus');
+        const rcSuccess = document.getElementById('rcSuccess');
+        const rcError   = document.getElementById('rcError');
+        const rcText    = document.getElementById('rcStatusText');
+        const rcWarn    = document.getElementById('rcNoKeyWarning');
+
+        rcSuccess.classList.add('d-none');
+        rcError.classList.add('d-none');
+        rcWarn.classList.add('d-none');
+
+        if (!code) { rcError.textContent = 'Enter your recovery code.'; rcError.classList.remove('d-none'); return; }
+        if (newPin.length < 8) { rcError.textContent = 'New PIN must be at least 8 characters.'; rcError.classList.remove('d-none'); return; }
+        if (newPin !== newPin2) { rcError.textContent = 'New PINs do not match.'; rcError.classList.remove('d-none'); return; }
+
+        rcStatus.classList.remove('d-none');
+        btnRecoverPin.disabled = true;
+
+        try {
+            rcText.textContent = 'Fetching recovery key from server…';
+            const resp = await fetch('{{ route("insurance.encryption.recovery-key") }}');
+            if (resp.status === 404) {
+                rcStatus.classList.add('d-none');
+                const body = await resp.json();
+                if (body.error && body.error.includes('No recovery key')) {
+                    rcWarn.classList.remove('d-none');
+                } else {
+                    rcError.textContent = body.error || 'Recovery key not found.';
+                    rcError.classList.remove('d-none');
+                }
+                return;
+            }
+            if (!resp.ok) throw new Error('Could not fetch recovery key.');
+            const keyBlob = await resp.json();
+
+            rcText.textContent = 'Re-wrapping private key with new PIN…';
+            const { encrypted, iv, salt } = await E2EEncryption.rewrapPrivateKey(
+                keyBlob.recovery_encrypted_private_key,
+                keyBlob.recovery_key_iv,
+                keyBlob.recovery_key_salt,
+                code, newPin
+            );
+
+            rcText.textContent = 'Saving to server…';
+            const data = await postJSON('{{ route("insurance.encryption.change-pin") }}', {
+                encrypted_private_key: encrypted,
+                key_iv:                iv,
+                key_salt:              salt,
+            });
+
+            rcStatus.classList.add('d-none');
+            if (data.success) {
+                rcSuccess.classList.remove('d-none');
+                document.getElementById('rcCode').value          = '';
+                document.getElementById('rcNewPin').value         = '';
+                document.getElementById('rcNewPinConfirm').value  = '';
+            } else {
+                throw new Error(data.message || 'Server error.');
+            }
+        } catch (err) {
+            rcStatus.classList.add('d-none');
+            rcError.textContent = err.message.includes('decrypt') || err.message.includes('operation')
+                ? 'Wrong recovery code. Please check and try again.'
+                : 'Error: ' + err.message;
+            rcError.classList.remove('d-none');
+        } finally {
+            btnRecoverPin.disabled = false;
         }
     });
 }

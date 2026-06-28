@@ -3233,6 +3233,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             ->name('insurance.encryption.private-key');
         Route::post('encryption/change-pin', [\App\Http\Controllers\InsuranceEncryptionController::class, 'changePin'])
             ->name('insurance.encryption.change-pin');
+        Route::get('encryption/recovery-key', [\App\Http\Controllers\InsuranceEncryptionController::class, 'getRecoveryKey'])
+            ->name('insurance.encryption.recovery-key');
 
         Route::get('/profile', function () {
             return view('insurance.profile');
