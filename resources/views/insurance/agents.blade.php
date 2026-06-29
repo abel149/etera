@@ -47,7 +47,7 @@
                         </div>
                         <div class="col-12 col-md-4">
                             <label class="form-label">Phone Number <span class="text-danger">*</span></label>
-                            <input type="text" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror"
+                            <input type="number" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror"
                                    placeholder="" autocomplete="off"
                                    value="{{ old('phone_number', isset($editAgent) ? $editAgent->phone_number : '') }}" required maxlength="10">
                         </div>
