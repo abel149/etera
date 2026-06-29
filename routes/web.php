@@ -3251,22 +3251,32 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
         Route::post('/agents', function (\Illuminate\Http\Request $request) {
             abort_if(auth()->user()->role !== 'insurance', 403);
-            $request->validate([
-                'name'         => 'required|string|max:255',
-                'phone_number' => 'required|digits:10|unique:users,phone_number',
-                'password'     => 'nullable|string|min:6',
-            ]);
-            $password = $request->filled('password') ? $request->password : '123456';
-            \App\Models\User::create([
-                'name'                 => $request->name,
-                'phone_number'         => $request->phone_number,
-                'password'             => bcrypt($password),
-                'role'                 => 'insurance_agent',
-                'parent_insurance_id'  => auth()->id(),
-                'approved'             => true,
-                'balance'              => 0,
-            ]);
-            return redirect()->route('insurance.agents')->with('success', 'Agent account created successfully.');
+            try {
+                $request->validate([
+                    'name'         => 'required|string|max:255',
+                    'phone_number' => 'required|digits:10|unique:users,phone_number',
+                    'password'     => 'nullable|string|min:6',
+                ]);
+                $password = $request->filled('password') ? $request->password : '123456';
+                \App\Models\User::create([
+                    'name'                 => $request->name,
+                    'phone_number'         => $request->phone_number,
+                    'password'             => bcrypt($password),
+                    'role'                 => 'insurance_agent',
+                    'parent_insurance_id'  => auth()->id(),
+                    'approved'             => true,
+                    'balance'              => 0,
+                ]);
+                return redirect()->route('insurance.agents')->with('success', 'Agent account created successfully.');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['error' => collect($e->errors())->flatten()->implode(' ')]);
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['error' => 'Failed to create agent. ' . $e->getMessage()]);
+            }
         })->name('insurance.agents.store');
 
         Route::get('/agents/{agent}/edit', function (\App\Models\User $agent) {
@@ -3278,17 +3288,27 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
         Route::put('/agents/{agent}', function (\Illuminate\Http\Request $request, \App\Models\User $agent) {
             abort_if(auth()->user()->role !== 'insurance', 403);
             abort_if($agent->parent_insurance_id !== auth()->id(), 403);
-            $request->validate([
-                'name'         => 'required|string|max:255',
-                'phone_number' => 'required|digits:10|unique:users,phone_number,' . $agent->id,
-                'password'     => 'nullable|string|min:6',
-            ]);
-            $data = ['name' => $request->name, 'phone_number' => $request->phone_number];
-            if ($request->filled('password')) {
-                $data['password'] = bcrypt($request->password);
+            try {
+                $request->validate([
+                    'name'         => 'required|string|max:255',
+                    'phone_number' => 'required|digits:10|unique:users,phone_number,' . $agent->id,
+                    'password'     => 'nullable|string|min:6',
+                ]);
+                $data = ['name' => $request->name, 'phone_number' => $request->phone_number];
+                if ($request->filled('password')) {
+                    $data['password'] = bcrypt($request->password);
+                }
+                $agent->update($data);
+                return redirect()->route('insurance.agents')->with('success', 'Agent updated successfully.');
+            } catch (\Illuminate\Validation\ValidationException $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['error' => collect($e->errors())->flatten()->implode(' ')]);
+            } catch (\Exception $e) {
+                return redirect()->back()
+                    ->withInput()
+                    ->withErrors(['error' => 'Failed to update agent. ' . $e->getMessage()]);
             }
-            $agent->update($data);
-            return redirect()->route('insurance.agents')->with('success', 'Agent updated successfully.');
         })->name('insurance.agents.update');
 
         Route::delete('/agents/{agent}', function (\App\Models\User $agent) {
