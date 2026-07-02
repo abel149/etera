@@ -392,6 +392,15 @@ Route::post('/login', function (Request $request) {
     return back()->withErrors(['email_or_phone' => 'Invalid credentials.'])->withInput();
 })->name('login');
 
+
+
+//forgot password sms
+
+Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+    ->middleware('throttle:3,1');
+Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+    ->middleware('throttle:5,1');
+
     // Signup routes
     Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup');
     Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual');
