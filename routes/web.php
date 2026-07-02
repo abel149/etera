@@ -396,9 +396,9 @@ Route::post('/login', function (Request $request) {
 
 //forgot password sms
 
-Route::post('/auth/forgot-password', [AuthController::class, 'forgotPassword'])
+Route::post('/auth/forgot-password', [\App\Http\Controllers\Api\AuthController::class, 'forgotPassword'])
     ->middleware('throttle:3,1');
-Route::post('/auth/reset-password', [AuthController::class, 'resetPassword'])
+Route::post('/auth/reset-password', [\App\Http\Controllers\Api\AuthController::class, 'resetPassword'])
     ->middleware('throttle:5,1');
 
     // Signup routes
