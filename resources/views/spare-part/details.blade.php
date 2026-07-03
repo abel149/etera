@@ -1178,9 +1178,20 @@
             });
         }
 
+        // Safe base64 encoder — processes in 8 KB chunks to avoid call-stack overflow on large ArrayBuffers
+        function arrayBufferToBase64(buffer) {
+            const bytes = new Uint8Array(buffer);
+            let binary = '';
+            const chunk = 8192;
+            for (let i = 0; i < bytes.length; i += chunk) {
+                binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunk, bytes.length)));
+            }
+            return btoa(binary);
+        }
+
         // Hybrid RSA/AES encryption for PDF bytes
         async function encryptPdfBytes(pdfBytes, publicKeyBase64) {
-            const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+            const b64 = buf => arrayBufferToBase64(buf);
             const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
 
             const rsaKey = await crypto.subtle.importKey(
@@ -1223,8 +1234,7 @@
                         const keyData = await resp.json();
                         if (!keyData.has_encryption || !keyData.public_key) {
                             // Insurance has no encryption — treat as plain PDF
-                            const b64pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-                            document.getElementById('hiddenPdfData').value = b64pdf;
+                            document.getElementById('hiddenPdfData').value = arrayBufferToBase64(arrayBuffer);
                         } else {
                             const result = await encryptPdfBytes(arrayBuffer, keyData.public_key);
                             document.getElementById('hiddenEncryptedPdf').value    = result.encrypted_pdf;
@@ -1233,13 +1243,23 @@
                             // Do NOT set prices_encrypted=1 here — the bubble handler manages price encryption separately
                         }
                     } else {
-                        const b64pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
-                        document.getElementById('hiddenPdfData').value = b64pdf;
+                        document.getElementById('hiddenPdfData').value = arrayBufferToBase64(arrayBuffer);
                     }
 
                     document.getElementById('hiddenPdfFilename').value = file.name;
                 } catch (err) {
                     console.error('PDF processing failed:', err);
+                    if (proc) {
+                        proc.style.display = 'none';
+                    }
+                    const sizeErr = document.getElementById('pdfSizeError');
+                    if (sizeErr) {
+                        sizeErr.textContent = 'Failed to process PDF: ' + (err.message || 'Unknown error');
+                        sizeErr.style.display = 'block';
+                    }
+                    // Re-attach handler so user can try again
+                    proformaQuoteForm.addEventListener('submit', pdfPreSubmit, true);
+                    return; // do not submit
                 } finally {
                     if (proc) proc.style.display = 'none';
                 }
