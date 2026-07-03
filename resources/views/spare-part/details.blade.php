@@ -1219,7 +1219,7 @@
 
                 e.preventDefault();
                 e.stopImmediatePropagation(); // prevent bubble handler from firing while PDF is being processed async
-                proformaQuoteForm.removeEventListener('submit', pdfPreSubmit);
+                proformaQuoteForm.removeEventListener('submit', pdfPreSubmit, true);
 
                 const file = fileInput.files[0];
                 const proc = document.getElementById('pdfProcessing');
