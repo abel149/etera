@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\ApplicationPdf;
 use App\Models\Proforma;
 use App\Models\ProformaApplication;
 use App\Models\ProformaPartPrice;
@@ -103,7 +104,8 @@ class ProformaApplicationController extends Controller
                             ->filter(fn($v) => $v !== null && floatval($v) > 0)
                             ->isNotEmpty();
 
-                        if (!$hasAtLeastOnePrice) {
+                        $hasPdf = $request->filled('encrypted_pdf') || $request->filled('pdf_data');
+                        if (!$hasAtLeastOnePrice && !$hasPdf) {
                             return redirect()->back()
                                 ->withErrors(['total' => 'Please enter a price for at least one part. Leave fields blank only for parts you do not carry.'])
                                 ->withInput();
@@ -118,8 +120,12 @@ class ProformaApplicationController extends Controller
                     'shop_parts_count' => is_array($request->total ?? null) ? count($request->total) : null,
                 ]);
 
+                // Resolve $hasPdf for all roles (garage path doesn't set it above)
+                $hasPdf = $hasPdf ?? ($request->filled('encrypted_pdf') || $request->filled('pdf_data'));
+
                 // Step 2b: Insurance proformas require encrypted submissions — always.
-                if (!$isEncrypted && optional($proforma->poster)->role === 'insurance') {
+                // Exception: a PDF-only submission counts as acceptable (PDF is encrypted client-side).
+                if (!$isEncrypted && optional($proforma->poster)->role === 'insurance' && !$hasPdf) {
                     $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
                     return redirect($redirectUrl)
                         ->withErrors(['general' => 'Encrypted price submission is required for this proforma. Please contact the insurance.'])
@@ -228,6 +234,32 @@ class ProformaApplicationController extends Controller
                     'amount' => $application->amount,
                 ]);
 
+                // Step 4b: Handle PDF upload
+                if ($hasPdf) {
+                    try {
+                        if ($request->filled('encrypted_pdf')) {
+                            ApplicationPdf::create([
+                                'application_id'    => $application->id,
+                                'storage_type'      => 'encrypted',
+                                'encrypted_pdf'     => $request->encrypted_pdf,
+                                'encrypted_aes_key' => $request->encrypted_aes_key,
+                                'aes_iv'            => $request->aes_iv,
+                                'original_filename' => $request->pdf_filename ?? 'quotation.pdf',
+                            ]);
+                        } elseif ($request->filled('pdf_data')) {
+                            ApplicationPdf::create([
+                                'application_id'    => $application->id,
+                                'storage_type'      => 'plain',
+                                'encrypted_pdf'     => $request->pdf_data,
+                                'original_filename' => $request->pdf_filename ?? 'quotation.pdf',
+                            ]);
+                        }
+                        Log::info('Application PDF stored', ['application_id' => $application->id]);
+                    } catch (\Exception $e) {
+                        Log::error('Failed to store application PDF: ' . $e->getMessage());
+                    }
+                }
+
                 // Step 5: Handle voice note uploads.
                 if ($request->has('voice_note') && !empty($request->voice_note)) {
                     try {
@@ -277,7 +309,11 @@ class ProformaApplicationController extends Controller
                 }
 
                 // Step 7: Save individual part prices for shops.
-                if (auth()->user()->role === 'shop') {
+                $isPdfOnly = $hasPdf
+                    && !$request->filled('encrypted_total')
+                    && empty(array_filter($request->input('total', [])));
+
+                if (auth()->user()->role === 'shop' && !$isPdfOnly) {
                     $partsProcessed = 0;
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
                         $quantity = $part->quantity ?? 1;

@@ -660,6 +660,34 @@
                     @endif
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
+                    {{-- PDF Upload Section --}}
+                    <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px dashed rgba(13,148,136,0.3); border-radius: 8px; padding: 14px 16px;" id="pdfUploadSection">
+                        <label style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
+                            <i class="bx bx-file-pdf" style="margin-right:4px;"></i>Upload PDF Quotation <span style="font-weight:400; color:#aaa;">(optional — max 5MB)</span>
+                        </label>
+                        <input type="file" id="pdfFileInput" accept=".pdf" style="display:none;">
+                        <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                            <button type="button" onclick="document.getElementById('pdfFileInput').click()"
+                                style="background:rgba(13,148,136,0.12); color:var(--etera-teal-light,#4dd0c4); border:1px solid rgba(13,148,136,0.3); border-radius:6px; padding:7px 14px; font-size:0.85rem; cursor:pointer;">
+                                <i class="bx bx-upload"></i> Choose PDF
+                            </button>
+                            <span id="pdfFileLabel" style="font-size:0.85rem; color:#aaa;">No file chosen</span>
+                            <button type="button" id="pdfClearBtn" onclick="clearPdfUpload()" style="display:none; background:transparent; color:#ef4444; border:none; cursor:pointer; font-size:0.82rem;">
+                                <i class="bx bx-x"></i> Remove
+                            </button>
+                        </div>
+                        <div id="pdfSizeError" style="color:#ef4444; font-size:0.8rem; margin-top:4px; display:none;">File too large. Maximum size is 5MB.</div>
+                        <div id="pdfProcessing" style="font-size:0.8rem; color:var(--etera-teal-light,#4dd0c4); margin-top:4px; display:none;"><i class="bx bx-loader-alt bx-spin"></i> Processing PDF…</div>
+                    </div>
+                    {{-- Hidden fields for PDF data (populated by JS) --}}
+                    <input type="hidden" name="encrypted_pdf" id="hiddenEncryptedPdf">
+                    <input type="hidden" name="encrypted_aes_key" id="hiddenEncryptedAesKey">
+                    <input type="hidden" name="aes_iv" id="hiddenAesIv">
+                    <input type="hidden" name="pdf_data" id="hiddenPdfData">
+                    <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">
+                    @endif
+
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
                         <button type="submit" class="apply-now-button radius-30 margin-top-15" id="submitBtn">
                             <span class="btn-text">Apply Now <i class="icon-material-outline-arrow-right-alt"></i></span>
                             <span class="btn-loading" style="display: none;">
@@ -1058,6 +1086,122 @@
                 });
             }
         });
+
+        // ── PDF Upload Handling ─────────────────────────────────────────────────
+        const pdfFileInput = document.getElementById('pdfFileInput');
+        if (pdfFileInput) {
+            pdfFileInput.addEventListener('change', function () {
+                const file = this.files[0];
+                const sizeErr = document.getElementById('pdfSizeError');
+                const label   = document.getElementById('pdfFileLabel');
+                const clearBtn = document.getElementById('pdfClearBtn');
+                if (!file) return;
+                if (file.size > 5 * 1024 * 1024) {
+                    sizeErr.style.display = 'block';
+                    this.value = '';
+                    label.textContent = 'No file chosen';
+                    clearBtn.style.display = 'none';
+                    return;
+                }
+                sizeErr.style.display = 'none';
+                label.textContent = file.name;
+                clearBtn.style.display = 'inline';
+            });
+        }
+
+        function clearPdfUpload() {
+            const fi = document.getElementById('pdfFileInput');
+            if (fi) fi.value = '';
+            const label = document.getElementById('pdfFileLabel');
+            if (label) label.textContent = 'No file chosen';
+            const clearBtn = document.getElementById('pdfClearBtn');
+            if (clearBtn) clearBtn.style.display = 'none';
+            ['hiddenEncryptedPdf','hiddenEncryptedAesKey','hiddenAesIv','hiddenPdfData','hiddenPdfFilename'].forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.value = '';
+            });
+        }
+
+        // Hybrid RSA/AES encryption for PDF bytes
+        async function encryptPdfBytes(pdfBytes, publicKeyBase64) {
+            const b64 = buf => btoa(String.fromCharCode(...new Uint8Array(buf)));
+            const unb64 = str => Uint8Array.from(atob(str), c => c.charCodeAt(0));
+
+            const rsaKey = await crypto.subtle.importKey(
+                'spki', unb64(publicKeyBase64),
+                { name: 'RSA-OAEP', hash: 'SHA-256' }, false, ['encrypt']
+            );
+            const aesKey = await crypto.subtle.generateKey({ name: 'AES-GCM', length: 256 }, true, ['encrypt']);
+            const iv = crypto.getRandomValues(new Uint8Array(12));
+            const encryptedPdf = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, aesKey, pdfBytes);
+            const rawAesKey = await crypto.subtle.exportKey('raw', aesKey);
+            const encryptedAesKey = await crypto.subtle.encrypt({ name: 'RSA-OAEP' }, rsaKey, rawAesKey);
+            return {
+                encrypted_pdf:     b64(encryptedPdf),
+                encrypted_aes_key: b64(encryptedAesKey),
+                aes_iv:            b64(iv),
+            };
+        }
+
+        // Attach PDF processing to submit (runs before existing encryption logic)
+        const proformaQuoteForm = document.getElementById('proforma-quote-form');
+        if (proformaQuoteForm) {
+            proformaQuoteForm.addEventListener('submit', async function pdfPreSubmit(e) {
+                const fileInput = document.getElementById('pdfFileInput');
+                if (!fileInput || !fileInput.files[0]) return; // no PDF, continue normally
+
+                e.preventDefault();
+                proformaQuoteForm.removeEventListener('submit', pdfPreSubmit);
+
+                const file = fileInput.files[0];
+                const proc = document.getElementById('pdfProcessing');
+                if (proc) proc.style.display = 'block';
+
+                try {
+                    const arrayBuffer = await file.arrayBuffer();
+                    const isInsurance = {{ $proforma->poster?->role === 'insurance' ? 'true' : 'false' }};
+
+                    if (isInsurance) {
+                        const resp = await fetch('{{ route("insurance.public-key", $proforma->id) }}');
+                        const keyData = await resp.json();
+                        if (!keyData.has_encryption || !keyData.public_key) {
+                            // Insurance has no encryption — treat as plain PDF
+                            const b64pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                            document.getElementById('hiddenPdfData').value = b64pdf;
+                        } else {
+                            const result = await encryptPdfBytes(arrayBuffer, keyData.public_key);
+                            document.getElementById('hiddenEncryptedPdf').value    = result.encrypted_pdf;
+                            document.getElementById('hiddenEncryptedAesKey').value = result.encrypted_aes_key;
+                            document.getElementById('hiddenAesIv').value           = result.aes_iv;
+                            // Mark prices as encrypted so the insurance check passes for PDF-only
+                            let flagInput = proformaQuoteForm.querySelector('input[name="prices_encrypted"]');
+                            if (!flagInput) {
+                                flagInput = document.createElement('input');
+                                flagInput.type = 'hidden';
+                                flagInput.name = 'prices_encrypted';
+                                proformaQuoteForm.appendChild(flagInput);
+                            }
+                            flagInput.value = '1';
+                        }
+                    } else {
+                        const b64pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
+                        document.getElementById('hiddenPdfData').value = b64pdf;
+                    }
+
+                    document.getElementById('hiddenPdfFilename').value = file.name;
+                } catch (err) {
+                    console.error('PDF processing failed:', err);
+                } finally {
+                    if (proc) proc.style.display = 'none';
+                }
+
+                // Re-trigger submit (the other submit handler will now run)
+                proformaQuoteForm.requestSubmit
+                    ? proformaQuoteForm.requestSubmit()
+                    : proformaQuoteForm.submit();
+            }, true); // capture phase so this runs first
+        }
+        // ── End PDF Upload Handling ─────────────────────────────────────────────
 
         /**
          * Opens the part image gallery modal.

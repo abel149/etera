@@ -194,6 +194,72 @@
                 <h4 class="mb-3 steper-title text-center">Spare Part Shops</h4>
                 @foreach($applications as $application)
                 @if($application->applicationBy->role == 'shop')
+                @php $appHasPdf = $application->pdf !== null; $appPdfOnly = $appHasPdf && $application->prices->isEmpty(); @endphp
+                @if($appPdfOnly)
+                {{-- PDF-only card: show shop name + stamp + View PDF button --}}
+                <div class="col-lg-12 mb-3">
+                    <div class="card shadow application-card pdf-application-card"
+                         style="position:relative; overflow:hidden;"
+                         data-application-id="{{ $application->id }}"
+                         data-shop-name="{{ $application->applicationBy->name }}"
+                         data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                         data-pdf-app-id="{{ $application->id }}"
+                         data-pdf-encrypted="{{ $application->pdf->isEncrypted() ? '1' : '0' }}"
+                         data-pdf-filename="{{ $application->pdf->original_filename }}"
+                         data-pdf-serve-url="{{ route('application.pdf.serve', $application->id) }}"
+                         data-pdf-encrypted-url="{{ route('application.pdf.encrypted', $application->id) }}">
+                        <div class="card-stamp">
+                            @if($application->applicationBy->stamp_image)
+                            <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
+                            @else
+                            <img class="profile-pic stamp-image" src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
+                            @endif
+                        </div>
+                        <div class="card-header">
+                            <div class="d-flex align-items-center">
+                                <img src="{{ asset('assets/images/avatars/avatar-9.jpg') }}" class="rounded-circle" width="40" height="40" alt="">
+                                <div class="ms-2">
+                                    <h6 class="mb-0 font-17">{{ $application->applicationBy->name }}</h6>
+                                    <small class="text-muted">Spare Part Shop</small>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="card-body py-3 px-4">
+                            <div class="row g-2 mb-3">
+                                <div class="col-6"><span><b class="font-17">Store ID: </b><span class="text-secondary font-16">{{ $application->applicationBy->store_id }}</span></span></div>
+                                <div class="col-6"><span><b class="font-17">Tin #: </b><span class="text-secondary font-16">{{ $application->applicationBy->tin_number }}</span></span></div>
+                                <div class="col-12"><span><b class="font-17">Location: </b><span class="text-secondary font-16">{{ $application->applicationBy->location }}</span></span></div>
+                            </div>
+                            <div class="d-flex align-items-center gap-2 py-2 px-3" style="background:rgba(13,148,136,0.08);border:1px solid rgba(13,148,136,0.2);border-radius:8px;">
+                                <i class="bx bxs-file-pdf fs-4" style="color:#ef4444;"></i>
+                                <div class="flex-grow-1">
+                                    <div style="font-weight:600;font-size:0.88rem;">PDF Quotation</div>
+                                    <div style="font-size:0.78rem;color:#aaa;">{{ $application->pdf->original_filename }}</div>
+                                </div>
+                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                        onclick="openPdfViewer(this)"
+                                        data-app-id="{{ $application->id }}"
+                                        data-encrypted="{{ $application->pdf->isEncrypted() ? '1' : '0' }}"
+                                        data-stamp="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                                        data-encrypted-url="{{ route('application.pdf.encrypted', $application->id) }}"
+                                        data-serve-url="{{ route('application.pdf.serve', $application->id) }}">
+                                    <i class="bx bx-show"></i> View PDF
+                                </button>
+                            </div>
+                            @if($application->notes)
+                            <div style="margin-top:10px; background:rgba(13,148,136,0.06); border-left:3px solid #4dd0c4; border-radius:0 6px 6px 0; padding:8px 12px;">
+                                <span style="font-size:10px;font-weight:600;color:#4dd0c4;display:block;margin-bottom:3px;"><i class="bx bx-message-detail" style="margin-right:3px;"></i>Applicant Notes</span>
+                                <span style="font-size:11px;color:#ccc;white-space:pre-wrap;">{{ $application->notes }}</span>
+                            </div>
+                            @endif
+                        </div>
+                        <div class="card-footer text-end">
+                            <button class="btn btn-outline-primary select-shop-btn" data-application-id="{{ $application->id }}">Select</button>
+                        </div>
+                    </div>
+                </div>
+                @else
+                {{-- Normal card (price table) --}}
                 <div class="col-lg-12 mb-3">
                     <div class="card shadow application-card"
                          data-application-id="{{ $application->id }}"
@@ -339,6 +405,8 @@
                         </div>
                     </div>
                 </div>
+                @endif
+                {{-- end @if($appPdfOnly) --}}
                 @endif
                 @endforeach
             </div>
@@ -504,6 +572,44 @@
             </div>
         @endif
 
+    </div>
+</div>
+
+<!-- PDF Viewer Modal -->
+<div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="height:90vh;">
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bx bxs-file-pdf fs-5" style="color:#ef4444;"></i>
+                    <h5 class="modal-title mb-0" id="pdfViewerModalTitle">PDF Quotation</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePdfViewer()"></button>
+            </div>
+            <div class="modal-body p-0" style="position:relative; flex:1; overflow:hidden;">
+                <div id="pdfViewerLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:rgba(0,0,0,0.3);">
+                    <div class="text-center text-white">
+                        <div class="spinner-border mb-2" role="status"></div>
+                        <div id="pdfViewerLoadingMsg">Loading PDF…</div>
+                    </div>
+                </div>
+                <div id="pdfViewerError" style="display:none;position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:20px;">
+                    <div class="alert alert-danger mb-0" id="pdfViewerErrorMsg"></div>
+                </div>
+                <!-- PDF iframe + stamp overlay -->
+                <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
+                    <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
+                    <!-- Shop stamp overlaid on the PDF -->
+                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:120px;height:120px;opacity:0.75;pointer-events:none;z-index:5;transform:rotate(10deg);">
+                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #ccc;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-print-none">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closePdfViewer()">Close</button>
+                <button type="button" class="btn btn-outline-primary" onclick="printPdfViewer()"><i class="bx bx-printer"></i> Print</button>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -1186,6 +1292,125 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     });
 });
+
+// ── PDF Viewer ────────────────────────────────────────────────────────────────
+let _pdfBlobUrl = null;
+
+function closePdfViewer() {
+    const iframe = document.getElementById('pdfViewerIframe');
+    if (iframe) iframe.src = '';
+    if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
+}
+
+function printPdfViewer() {
+    const iframe = document.getElementById('pdfViewerIframe');
+    if (!iframe || !iframe.src) return;
+    try {
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+    } catch(e) {
+        window.open(iframe.src, '_blank');
+    }
+}
+
+async function openPdfViewer(btn) {
+    const isEncrypted  = btn.dataset.encrypted === '1';
+    const stampSrc     = btn.dataset.stamp || '';
+    const encryptedUrl = btn.dataset.encryptedUrl || '';
+
+    const modal       = new bootstrap.Modal(document.getElementById('pdfViewerModal'));
+    const loading     = document.getElementById('pdfViewerLoading');
+    const loadingMsg  = document.getElementById('pdfViewerLoadingMsg');
+    const errBox      = document.getElementById('pdfViewerError');
+    const errMsg      = document.getElementById('pdfViewerErrorMsg');
+    const iframe      = document.getElementById('pdfViewerIframe');
+    const stampImg    = document.getElementById('pdfStampImg');
+
+    errBox.style.display = 'none';
+    loading.style.display = 'flex';
+    iframe.src = '';
+    if (stampImg) stampImg.src = stampSrc;
+
+    modal.show();
+
+    try {
+        if (isEncrypted) {
+            // Need PIN — use existing private key flow
+            loadingMsg.textContent = 'Fetching encrypted PDF…';
+            const resp = await fetch(encryptedUrl);
+            if (!resp.ok) throw new Error('Could not fetch PDF data.');
+            const data = await resp.json();
+
+            loadingMsg.textContent = 'Enter PIN to decrypt PDF…';
+            loading.style.display = 'none';
+
+            // Show inline PIN prompt inside modal loading area
+            loading.style.display = 'flex';
+            loadingMsg.innerHTML = `
+                <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:20px;max-width:320px;margin:auto;">
+                    <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this PDF:</p>
+                    <input type="password" id="pdfDecryptPin" class="form-control mb-2" placeholder="Encryption PIN" autocomplete="off">
+                    <button class="btn btn-primary w-100" id="pdfDecryptBtn">Decrypt &amp; View</button>
+                    <div id="pdfDecryptErr" class="text-danger small mt-2"></div>
+                </div>`;
+
+            document.getElementById('pdfDecryptBtn').addEventListener('click', async function() {
+                const pin = document.getElementById('pdfDecryptPin').value.trim();
+                if (!pin) {
+                    document.getElementById('pdfDecryptErr').textContent = 'Please enter your PIN.';
+                    return;
+                }
+                this.disabled = true;
+                this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Decrypting…';
+                document.getElementById('pdfDecryptErr').textContent = '';
+                try {
+                    const keyResp = await fetch('{{ route("insurance.encryption.private-key") }}');
+                    if (!keyResp.ok) throw new Error('Could not load private key.');
+                    const keyBlob = await keyResp.json();
+
+                    const privateKey = await E2EEncryption.decryptPrivateKey(
+                        keyBlob.encrypted_private_key,
+                        keyBlob.key_iv,
+                        keyBlob.key_salt,
+                        pin
+                    );
+                    // Decrypt AES key with RSA private key
+                    const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+                    const rawAesKey = await crypto.subtle.decrypt(
+                        { name: 'RSA-OAEP' },
+                        privateKey,
+                        unb64(data.encrypted_aes_key)
+                    );
+                    const aesKey = await crypto.subtle.importKey(
+                        'raw', rawAesKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+                    );
+                    const pdfBytes = await crypto.subtle.decrypt(
+                        { name: 'AES-GCM', iv: unb64(data.aes_iv) },
+                        aesKey,
+                        unb64(data.encrypted_pdf)
+                    );
+                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+                    _pdfBlobUrl = URL.createObjectURL(blob);
+                    iframe.src = _pdfBlobUrl;
+                    loading.style.display = 'none';
+                } catch(err) {
+                    document.getElementById('pdfDecryptErr').textContent = 'Decryption failed — check your PIN. (' + err.message + ')';
+                    this.disabled = false;
+                    this.textContent = 'Decrypt & View';
+                }
+            });
+        } else {
+            // Plain PDF — load directly
+            iframe.src = btn.dataset.serveUrl || '';
+            loading.style.display = 'none';
+        }
+    } catch(err) {
+        loading.style.display = 'none';
+        errMsg.textContent = 'Error: ' + err.message;
+        errBox.style.display = 'flex';
+    }
+}
 
 // ── Etera-Chereta dropdown functionality
 document.addEventListener('DOMContentLoaded', function() {

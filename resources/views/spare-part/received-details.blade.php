@@ -175,6 +175,57 @@
             <div class="row">
                 @foreach($applications as $index => $application)
                     @if($application->applicationBy->role === 'shop')
+                        @php $appPdfOnly = $application->pdf !== null && $application->prices->isEmpty(); @endphp
+                        @if($appPdfOnly)
+                        {{-- PDF-only card --}}
+                        <div class="col-12 mb-4 application-card" data-index="{{ $index }}" @if(($proforma->required_number_of_shops ?? 0) == 0 && ($proforma->required_number_of_garages ?? 0) == 0 && $index >= 5) style="display:none;" @endif>
+                            <div class="card" style="position:relative;overflow:hidden;">
+                                <div class="card-stamp">
+                                    @if($application->applicationBy->stamp_image)
+                                        <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
+                                    @else
+                                        <img class="profile-pic stamp-image" src="{{ asset('assets/images/stamp.png') }}" alt="No Stamp Here" />
+                                    @endif
+                                </div>
+                                <div class="card-body pb-2">
+                                    <div class="d-flex align-items-center gap-3 mb-3">
+                                        <img src="{{ asset('assets/images/avatars/avatar-9.jpg') }}" alt="Shop" style="width:50px;height:50px;border-radius:50%;border:2px solid rgba(13,148,136,0.3);">
+                                        <div>
+                                            <h5 class="mb-0">{{ $application->applicationBy->name }}</h5>
+                                            <small class="text-muted">{{ ucfirst($application->applicationBy->role) }}</small>
+                                        </div>
+                                    </div>
+                                    <div class="row g-2 mb-3">
+                                        <div class="col-sm-6 col-12"><span><b>Store ID:</b> <span class="text-muted">{{ $application->applicationBy->store_id }}</span></span></div>
+                                        <div class="col-sm-6 col-12"><span><b>Tin #:</b> <span class="text-muted">{{ $application->applicationBy->tin_number }}</span></span></div>
+                                        <div class="col-sm-6 col-12"><span><b>Phone:</b> <span class="text-muted">{{ $application->applicationBy->phone_number }}</span></span></div>
+                                        <div class="col-sm-6 col-12"><span><b>Location:</b> <span class="text-muted">{{ $application->applicationBy->location }}</span></span></div>
+                                    </div>
+                                    <div style="padding:12px 16px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.18);border-radius:10px;display:flex;align-items:center;gap:12px;">
+                                        <i class="bx bxs-file-pdf" style="font-size:1.8rem;color:#ef4444;flex-shrink:0;"></i>
+                                        <div style="flex:1;min-width:0;">
+                                            <div style="font-weight:600;font-size:0.88rem;">PDF Quotation</div>
+                                            <div style="font-size:0.78rem;color:#aaa;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">{{ $application->pdf->original_filename }}</div>
+                                        </div>
+                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                onclick="openPdfViewer(this)"
+                                                data-encrypted="{{ $application->pdf->isEncrypted() ? '1' : '0' }}"
+                                                data-stamp="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                                                data-serve-url="{{ route('application.pdf.serve', $application->id) }}"
+                                                data-encrypted-url="{{ route('application.pdf.encrypted', $application->id) }}">
+                                            <i class="bx bx-show"></i> View PDF
+                                        </button>
+                                    </div>
+                                    @if($application->notes)
+                                    <div style="margin-top:10px;background:#f0fdf9;border-left:3px solid #14b8a6;border-radius:0 6px 6px 0;padding:9px 14px;">
+                                        <p style="font-size:0.78rem;font-weight:700;color:#0f766e;margin-bottom:4px;"><i class="bx bx-message-detail me-1"></i>Applicant Notes</p>
+                                        <p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">{{ $application->notes }}</p>
+                                    </div>
+                                    @endif
+                                </div>
+                            </div>
+                        </div>
+                        @else
                         <div class="col-12 mb-4 application-card" data-index="{{ $index }}" @if(($proforma->required_number_of_shops ?? 0) == 0 && ($proforma->required_number_of_garages ?? 0) == 0 && $index >= 5) style="display:none;" @endif>
                             <div class="card"
                                  style="position: relative; overflow: hidden;"
@@ -316,6 +367,7 @@
                                 </div>
                             </div>
                         </div>
+                        @endif
                     @endif
                 @endforeach
             </div>
@@ -338,6 +390,36 @@
             </a>
         </div>
     @endif
+</div>
+
+{{-- PDF Viewer Modal --}}
+<div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
+        <div class="modal-content" style="height:90vh;">
+            <div class="modal-header">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bx bxs-file-pdf fs-5" style="color:#ef4444;"></i>
+                    <h5 class="modal-title mb-0">PDF Quotation</h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePdfViewer()"></button>
+            </div>
+            <div class="modal-body p-0" style="position:relative;flex:1;overflow:hidden;">
+                <div id="pdfViewerLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:rgba(0,0,0,0.15);">
+                    <div class="spinner-border" style="color:var(--etera-teal,#0d9488);" role="status"></div>
+                </div>
+                <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
+                    <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
+                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:120px;height:120px;opacity:0.6;pointer-events:none;z-index:5;transform:rotate(10deg);">
+                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #ccc;">
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer d-print-none">
+                <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closePdfViewer()">Close</button>
+                <button type="button" class="btn btn-outline-primary" onclick="printPdfViewer()"><i class="bx bx-printer"></i> Print</button>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
@@ -654,6 +736,37 @@ function showMoreApplications() {
 			printWindow.document.close();
 		}
 	}
+
+    // ── PDF Viewer ─────────────────────────────────────────────────────────────
+    function closePdfViewer() {
+        const iframe = document.getElementById('pdfViewerIframe');
+        if (iframe) iframe.src = '';
+    }
+
+    function printPdfViewer() {
+        const iframe = document.getElementById('pdfViewerIframe');
+        if (!iframe || !iframe.src) return;
+        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); }
+        catch(e) { window.open(iframe.src, '_blank'); }
+    }
+
+    function openPdfViewer(btn) {
+        const stampSrc = btn.dataset.stamp || '';
+        const serveUrl = btn.dataset.serveUrl || '';
+
+        const modal    = new bootstrap.Modal(document.getElementById('pdfViewerModal'));
+        const loading  = document.getElementById('pdfViewerLoading');
+        const iframe   = document.getElementById('pdfViewerIframe');
+        const stampImg = document.getElementById('pdfStampImg');
+
+        if (stampImg) stampImg.src = stampSrc;
+        iframe.src = '';
+        loading.style.display = 'flex';
+        modal.show();
+
+        iframe.onload = function() { loading.style.display = 'none'; };
+        iframe.src = serveUrl;
+    }
 </script>
 
 @endsection

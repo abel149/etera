@@ -785,6 +785,7 @@ Route::get('/', function () {
 Route::get('/received-details', function (Request $request) {
     $proforma = Proforma::with([
         'applications.prices.part',
+        'applications.pdf',
         'brand'
     ])->findOrFail($request->query('proforma'));
 
@@ -3161,6 +3162,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $proforma = \App\Models\Proforma::with([
                 'applications.prices',
                 'applications.applicationBy',
+                'applications.pdf',
                 'parts',
                 'proformaInvoice',
                 'brand',
@@ -3965,7 +3967,7 @@ Route::get('/received-details', function (Request $request) {
 
     // Eagerly load the 'applicationBy' relationship for each application
     $applications = $proforma->applications()
-        ->with(['prices', 'applicationBy']) // ✅ Added 'applicationBy'
+        ->with(['prices', 'applicationBy', 'pdf']) // ✅ Added 'applicationBy'
         ->orderBy('created_at', 'desc')
         ->get()
         ->sortByDesc(function($application) use ($proforma) {
@@ -4226,6 +4228,44 @@ Route::post('apply/{proforma}', [ProformaApplicationController::class, 'store'])
 Route::get('insurance/public-key/{proforma}', [\App\Http\Controllers\InsuranceEncryptionController::class, 'getPublicKey'])
     ->middleware('auth')
     ->name('insurance.public-key');
+
+// PDF routes — serve encrypted blobs to insurance, or plain PDF to poster
+Route::get('insurance/application/{application}/pdf', function (\App\Models\ProformaApplication $application) {
+    $proforma = $application->proforma;
+    if (!$proforma || $proforma->poster_id !== auth()->id()) {
+        abort(403);
+    }
+    $pdf = $application->pdf;
+    if (!$pdf || !$pdf->isEncrypted()) {
+        abort(404);
+    }
+    return response()->json([
+        'encrypted_pdf'     => $pdf->encrypted_pdf,
+        'encrypted_aes_key' => $pdf->encrypted_aes_key,
+        'aes_iv'            => $pdf->aes_iv,
+        'original_filename' => $pdf->original_filename,
+    ]);
+})->middleware(['auth'])->name('application.pdf.encrypted');
+
+Route::get('application/{application}/pdf/serve', function (\App\Models\ProformaApplication $application) {
+    $proforma = $application->proforma;
+    $userId = auth()->id();
+    // Allow the proforma poster OR the shop that submitted the application
+    $isPoster    = $proforma && $proforma->poster_id === $userId;
+    $isApplicant = $application->application_by === $userId;
+    if (!$isPoster && !$isApplicant) {
+        abort(403);
+    }
+    $pdf = $application->pdf;
+    if (!$pdf || $pdf->isEncrypted()) {
+        abort(404);
+    }
+    $pdfBytes = base64_decode($pdf->encrypted_pdf);
+    return response($pdfBytes, 200, [
+        'Content-Type'        => 'application/pdf',
+        'Content-Disposition' => 'inline; filename="' . $pdf->original_filename . '"',
+    ]);
+})->middleware(['auth'])->name('application.pdf.serve');
 
 Route::prefix('spare-part-shops')
     ->middleware([ShopMiddleware::class])
@@ -4970,7 +5010,7 @@ Route::get('received-proformas', function () {
 // Proforma Details 
 Route::get('proforma-details', function (Request $request) {
 
-    $proforma = Proforma::with(['proformaInvoice', 'applications.prices'])
+    $proforma = Proforma::with(['proformaInvoice', 'applications.prices', 'applications.applicationBy', 'applications.pdf'])
         ->findOrFail($request->query('proforma_id'));
 
     $reciept = $proforma->proformaInvoice;
