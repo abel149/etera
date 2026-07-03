@@ -85,8 +85,13 @@ class ProformaApplicationController extends Controller
                         ]);
                     }
                 } else { // 'shop' role
-                    if ($isEncrypted) {
+                    // Check for PDF early so we can bypass price validation for PDF-only
+                    $hasPdf = $request->filled('encrypted_pdf') || $request->filled('pdf_data');
+
+                    if ($isEncrypted && !$hasPdf) {
                         $request->validate(['encrypted_total' => 'required|array']);
+                    } elseif ($isEncrypted && $hasPdf) {
+                        // PDF-only with encrypted=1 flag: encrypted_total is optional
                     } else {
                         $request->validate([
                             'total' => 'nullable|array',
@@ -104,7 +109,6 @@ class ProformaApplicationController extends Controller
                             ->filter(fn($v) => $v !== null && floatval($v) > 0)
                             ->isNotEmpty();
 
-                        $hasPdf = $request->filled('encrypted_pdf') || $request->filled('pdf_data');
                         if (!$hasAtLeastOnePrice && !$hasPdf) {
                             return redirect()->back()
                                 ->withErrors(['total' => 'Please enter a price for at least one part. Leave fields blank only for parts you do not carry.'])
@@ -120,7 +124,7 @@ class ProformaApplicationController extends Controller
                     'shop_parts_count' => is_array($request->total ?? null) ? count($request->total) : null,
                 ]);
 
-                // Resolve $hasPdf for all roles (garage path doesn't set it above)
+                // Resolve $hasPdf for garage role (shop sets it above)
                 $hasPdf = $hasPdf ?? ($request->filled('encrypted_pdf') || $request->filled('pdf_data'));
 
                 // Step 2b: Insurance proformas require encrypted submissions — always.
@@ -156,7 +160,11 @@ class ProformaApplicationController extends Controller
                     }
                     $discountAmount = ($totalAmount * $discount) / 100;
                     $finalAmount = $totalAmount - $discountAmount;
-                    $finalAmount = max($finalAmount, 1);
+                    // PDF-only submission has no price; avoid forcing min:1
+                    $isPdfOnlyCalc = $hasPdf && $totalAmount == 0;
+                    if (!$isPdfOnlyCalc) {
+                        $finalAmount = max($finalAmount, 1);
+                    }
                 }
 
                 Log::info('Price quote submission: totals computed', [

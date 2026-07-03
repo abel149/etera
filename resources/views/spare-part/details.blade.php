@@ -496,6 +496,7 @@
                     action="{{ auth()->check() && auth()->user()->role === 'garage' ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
                     method="POST" id="proforma-quote-form" novalidate>
                     @csrf
+                    <div id="price-table-section">
                     <div class="table-container">
                         <table class="basic-table">
                             <thead>
@@ -646,6 +647,7 @@
                             </tfoot>
                         </table>
                     </div>
+                    </div>{{-- /price-table-section --}}
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
                     <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.15); border-radius: 8px; padding: 14px 16px;">
@@ -660,10 +662,23 @@
                     @endif
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
-                    {{-- PDF Upload Section --}}
-                    <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px dashed rgba(13,148,136,0.3); border-radius: 8px; padding: 14px 16px;" id="pdfUploadSection">
+                    {{-- Submission Mode Toggle --}}
+                    <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
+                        <button type="button" id="modePriceBtn" onclick="setSubmissionMode('price')"
+                            style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(13,148,136,0.5); background:rgba(13,148,136,0.18); color:var(--etera-teal-light,#4dd0c4); transition:all .2s;">
+                            <i class="bx bx-list-ul"></i> Enter Prices
+                        </button>
+                        <button type="button" id="modePdfBtn" onclick="setSubmissionMode('pdf')"
+                            style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(255,255,255,0.12); background:transparent; color:#aaa; transition:all .2s;">
+                            <i class="bx bxs-file-pdf"></i> Upload PDF Quotation
+                        </button>
+                    </div>
+                    <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
+
+                    {{-- PDF Upload Section (hidden until mode=pdf) --}}
+                    <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px dashed rgba(13,148,136,0.3); border-radius: 8px; padding: 14px 16px; display:none;" id="pdfUploadSection">
                         <label style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
-                            <i class="bx bx-file-pdf" style="margin-right:4px;"></i>Upload PDF Quotation <span style="font-weight:400; color:#aaa;">(optional — max 5MB)</span>
+                            <i class="bx bx-file-pdf" style="margin-right:4px;"></i>PDF Quotation <span style="font-weight:400; color:#aaa;">(max 5MB)</span>
                         </label>
                         <input type="file" id="pdfFileInput" accept=".pdf" style="display:none;">
                         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -968,24 +983,30 @@
 
                     const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
 
+                    // Check if PDF data was already populated by the capture-phase PDF handler
+                    const hasPdfData = !!(document.getElementById('hiddenEncryptedPdf')?.value ||
+                                         document.getElementById('hiddenPdfData')?.value);
+
                     // ── Frontend validation ──────────────────────────────────
                     if (isShopRole) {
-                        const priceInputs = form.querySelectorAll('.unit-price-input');
-                        const hasAtLeastOne = Array.from(priceInputs).some(
-                            inp => inp.value.trim() !== '' && parseFloat(inp.value) > 0
-                        );
-                        if (!hasAtLeastOne) {
-                            alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
-                            return;
-                        }
-                        for (const inp of priceInputs) {
-                            const val = inp.value.trim();
-                            if (val !== '' && parseFloat(val) < 1) {
-                                inp.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable');
-                                inp.reportValidity();
+                        if (!hasPdfData) {
+                            const priceInputs = form.querySelectorAll('.unit-price-input');
+                            const hasAtLeastOne = Array.from(priceInputs).some(
+                                inp => inp.value.trim() !== '' && parseFloat(inp.value) > 0
+                            );
+                            if (!hasAtLeastOne) {
+                                alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
                                 return;
                             }
-                            inp.setCustomValidity('');
+                            for (const inp of priceInputs) {
+                                const val = inp.value.trim();
+                                if (val !== '' && parseFloat(val) < 1) {
+                                    inp.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable');
+                                    inp.reportValidity();
+                                    return;
+                                }
+                                inp.setCustomValidity('');
+                            }
                         }
                     } else {
                         // Garage: validate the repair estimate amount
@@ -1004,20 +1025,24 @@
                     const btnLoad   = submitBtn ? submitBtn.querySelector('.btn-loading') : null;
                     if (submitBtn) submitBtn.disabled = true;
                     if (btnText)   btnText.style.display = 'none';
-                    if (btnLoad) { btnLoad.style.display = 'inline-flex'; btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Checking encryption…'; }
+                    if (btnLoad) { btnLoad.style.display = 'inline-flex'; btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…'; }
 
                     // ── E2E Encryption (insurance proformas only) ────────────
                     const isInsuranceProforma = {{ $proforma->poster?->role === 'insurance' ? 'true' : 'false' }};
 
-                    if (isInsuranceProforma) {
-                        // Encryption is MANDATORY for insurance proformas.
+                    // Check if any prices are actually entered
+                    const hasActualPrices = isShopRole
+                        ? Array.from(form.querySelectorAll('.unit-price-input')).some(inp => inp.value.trim() && parseFloat(inp.value) > 0)
+                        : (parseFloat(form.querySelector('#total-amount')?.value || 0) > 0);
+
+                    if (isInsuranceProforma && hasActualPrices) {
+                        // Prices entered for insurance proforma: encrypt them
                         let keyData;
                         try {
                             if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Checking encryption…';
                             const resp = await fetch('{{ route("insurance.public-key", $proforma->id) }}');
                             keyData = await resp.json();
                         } catch (err) {
-                            // Network / fetch error — do NOT fall through to plaintext
                             if (submitBtn) submitBtn.disabled = false;
                             if (btnText)   btnText.style.display = '';
                             if (btnLoad)   btnLoad.style.display = 'none';
@@ -1026,7 +1051,6 @@
                         }
 
                         if (!keyData.has_encryption || !keyData.public_key) {
-                            // Insurance has not set up their encryption keys yet
                             if (submitBtn) submitBtn.disabled = false;
                             if (btnText)   btnText.style.display = '';
                             if (btnLoad)   btnLoad.style.display = 'none';
@@ -1034,7 +1058,6 @@
                             return;
                         }
 
-                        // Encrypt prices before POST
                         if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-lock-alt bx-spin"></i> Encrypting prices…';
 
                         let flagInput = form.querySelector('input[name="prices_encrypted"]');
@@ -1077,15 +1100,48 @@
                             if (amtInput) amtInput.name = '';
                         }
                     }
-                    // Non-insurance proformas: no encryption, submit plaintext as normal
+                    // Non-insurance proformas (or PDF-only to insurance): submit as-is
 
                     if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…';
-                    // Yield one macrotask so the browser paints the loading state before navigation
                     await new Promise(r => setTimeout(r, 0));
                     form.submit();
                 });
             }
         });
+
+        // ── Submission Mode Toggle ──────────────────────────────────────────────
+        function setSubmissionMode(mode) {
+            const priceBtn    = document.getElementById('modePriceBtn');
+            const pdfBtn      = document.getElementById('modePdfBtn');
+            const pdfSection  = document.getElementById('pdfUploadSection');
+            // Price table wrapper (the div containing the parts table + totals)
+            const priceTable  = document.getElementById('price-table-section');
+            const modeInput   = document.getElementById('hiddenSubmissionMode');
+
+            const activeStyle   = { border:'2px solid rgba(13,148,136,0.5)', background:'rgba(13,148,136,0.18)', color:'var(--etera-teal-light,#4dd0c4)' };
+            const inactiveStyle = { border:'2px solid rgba(255,255,255,0.12)', background:'transparent', color:'#aaa' };
+
+            if (mode === 'pdf') {
+                Object.assign(pdfBtn.style,   activeStyle);
+                Object.assign(priceBtn.style, inactiveStyle);
+                if (pdfSection)  pdfSection.style.display  = 'block';
+                if (priceTable)  priceTable.style.display  = 'none';
+                if (modeInput)   modeInput.value = 'pdf';
+                // Clear any entered prices so they don't interfere
+                document.querySelectorAll('.unit-price-input').forEach(inp => { inp.value = ''; });
+                const totalAmtEl = document.getElementById('total-amount');
+                if (totalAmtEl) totalAmtEl.value = '';
+                calculateAmounts();
+            } else {
+                Object.assign(priceBtn.style, activeStyle);
+                Object.assign(pdfBtn.style,   inactiveStyle);
+                if (pdfSection) pdfSection.style.display  = 'none';
+                if (priceTable) priceTable.style.display  = '';
+                if (modeInput)  modeInput.value = 'price';
+                // Clear any attached PDF
+                clearPdfUpload();
+            }
+        }
 
         // ── PDF Upload Handling ─────────────────────────────────────────────────
         const pdfFileInput = document.getElementById('pdfFileInput');
@@ -1173,15 +1229,7 @@
                             document.getElementById('hiddenEncryptedPdf').value    = result.encrypted_pdf;
                             document.getElementById('hiddenEncryptedAesKey').value = result.encrypted_aes_key;
                             document.getElementById('hiddenAesIv').value           = result.aes_iv;
-                            // Mark prices as encrypted so the insurance check passes for PDF-only
-                            let flagInput = proformaQuoteForm.querySelector('input[name="prices_encrypted"]');
-                            if (!flagInput) {
-                                flagInput = document.createElement('input');
-                                flagInput.type = 'hidden';
-                                flagInput.name = 'prices_encrypted';
-                                proformaQuoteForm.appendChild(flagInput);
-                            }
-                            flagInput.value = '1';
+                            // Do NOT set prices_encrypted=1 here — the bubble handler manages price encryption separately
                         }
                     } else {
                         const b64pdf = btoa(String.fromCharCode(...new Uint8Array(arrayBuffer)));
@@ -1195,7 +1243,8 @@
                     if (proc) proc.style.display = 'none';
                 }
 
-                // Re-trigger submit (the other submit handler will now run)
+                // Re-trigger submit (bubble-phase handler will now run for price encryption)
+                // NOTE: prices_encrypted is NOT set here — PDF uses its own encryption path
                 proformaQuoteForm.requestSubmit
                     ? proformaQuoteForm.requestSubmit()
                     : proformaQuoteForm.submit();
