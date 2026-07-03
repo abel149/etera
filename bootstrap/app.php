@@ -54,8 +54,11 @@ return Application::configure(basePath: dirname(__DIR__))
         |--------------------------------------------------------------------------
         */
         $developers = [
-            ['name' => 'Beemnet Abraham dev', 'email' => 'beemnetabraham1@gmail.com'],
-            ['name' => 'Husni owner',   'email' => 'hsherif77@gmail.com'],
+            
+            
+            ['name' => 'Husni Owner', 'email' => 'hsherif77@gmail.com'],
+        
+            ['name' => 'Abel Ashenafi dev', 'email' => 'ashenafiabel49@gmail.com'],
         ];
 
         /*
@@ -105,23 +108,25 @@ return Application::configure(basePath: dirname(__DIR__))
                     // Prepare user array
                     $userData = ['email' => auth()->user()?->email ?? 'Guest'];
 
-                    // Email developers
-                    foreach ($developers as $dev) {
-                        try {
-                            Mail::to($dev['email'])->send(new ServerErrorMail([
-                                'errorMessage' => (string)$e->getMessage(),
-                                'status'  => $status,
-                                'url'     => request()->fullUrl(),
-                                'method'  => request()->method(),
-                                'trace'   => (string)$e->getTraceAsString(),
-                                'user'    => $userData,
-                            ]));
-                        } catch (\Throwable $mailError) {
-                            \Log::error('Failed to send server error email', [
-                                'original_exception' => $e->getMessage(),
-                                'mail_exception' => $mailError->getMessage(),
-                                'developer_email' => $dev['email'],
-                            ]);
+                    if (config('app.send_server_error_emails', false)) {
+                        // Email developers
+                        foreach ($developers as $dev) {
+                            try {
+                                Mail::to($dev['email'])->send(new ServerErrorMail([
+                                    'errorMessage' => (string)$e->getMessage(),
+                                    'status'  => $status,
+                                    'url'     => request()->fullUrl(),
+                                    'method'  => request()->method(),
+                                    'trace'   => (string)$e->getTraceAsString(),
+                                    'user'    => $userData,
+                                ]));
+                            } catch (\Throwable $mailError) {
+                                \Log::error('Failed to send server error email', [
+                                    'original_exception' => $e->getMessage(),
+                                    'mail_exception' => $mailError->getMessage(),
+                                    'developer_email' => $dev['email'],
+                                ]);
+                            }
                         }
                     }
                 }
