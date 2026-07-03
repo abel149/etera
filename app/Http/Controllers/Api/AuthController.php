@@ -295,7 +295,9 @@ class AuthController extends Controller
         ]);
 
         DB::table('password_reset_tokens')->where('email', $user->phone_number)->delete();
-        $user->tokens()->delete();
+        if (method_exists($user, 'tokens')) {
+            $user->tokens()->delete();
+        }
 
         return response()->json([
             'success' => true,
