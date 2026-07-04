@@ -604,6 +604,7 @@
             </div>
             <div class="modal-footer d-print-none">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closePdfViewer()">Close</button>
+                <button type="button" id="pdfDownloadBtn" class="btn btn-outline-success" onclick="downloadPdfViewer()"><i class="bx bx-download"></i> Download</button>
                 <button type="button" class="btn btn-outline-primary" onclick="printPdfViewer()"><i class="bx bx-printer"></i> Print</button>
             </div>
         </div>
@@ -631,6 +632,7 @@
 
 @endsection
 
+<script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>{!! file_get_contents(base_path('resources/js/e2e-encryption.js')) !!}</script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
@@ -1301,35 +1303,80 @@ function closePdfViewer() {
     if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
 }
 
-function printPdfViewer() {
-    const iframe = document.getElementById('pdfViewerIframe');
+async function buildStampedPdfUrl(pdfBlobUrl, stampSrc) {
+    const { PDFDocument, degrees } = PDFLib;
+    const pdfBytes = await fetch(pdfBlobUrl).then(r => r.arrayBuffer());
+    const pdfDoc  = await PDFDocument.load(pdfBytes);
+
+    if (stampSrc) {
+        try {
+            const stampResp  = await fetch(stampSrc);
+            const stampBytes = await stampResp.arrayBuffer();
+            const mime = stampResp.headers.get('content-type') || '';
+            const cleanSrc = stampSrc.split('?')[0].toLowerCase();
+            const isJpeg = mime.includes('jpeg') || mime.includes('jpg') || cleanSrc.endsWith('.jpg') || cleanSrc.endsWith('.jpeg');
+            const isPng  = mime.includes('png')  || cleanSrc.endsWith('.png');
+            if (!isJpeg && !isPng) throw new Error('Unsupported stamp image format (need JPEG or PNG)');
+            const stampImg = isJpeg ? await pdfDoc.embedJpg(stampBytes) : await pdfDoc.embedPng(stampBytes);
+            for (const page of pdfDoc.getPages()) {
+                const { width, height } = page.getSize();
+                const sz = Math.min(width, height) * 0.15;
+                page.drawImage(stampImg, {
+                    x: width - sz - 24,
+                    y: 20,
+                    width: sz,
+                    height: sz,
+                    rotate: degrees(10),
+                    opacity: 0.72,
+                });
+            }
+        } catch(e) {
+            console.warn('Stamp embedding skipped:', e.message);
+        }
+    }
+
+    const stamped = await pdfDoc.save();
+    return URL.createObjectURL(new Blob([stamped], { type: 'application/pdf' }));
+}
+
+async function printPdfViewer() {
+    const iframe   = document.getElementById('pdfViewerIframe');
     const stampImg = document.getElementById('pdfStampImg');
     if (!iframe || !iframe.src) return;
-    const pdfUrl = iframe.src;
-    const stampSrc = (stampImg && stampImg.src && !stampImg.src.endsWith('/')) ? stampImg.src : '';
-    const pw = window.open('', '_blank');
-    if (!pw) { window.open(pdfUrl, '_blank'); return; }
-    pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
-        *{margin:0;padding:0;box-sizing:border-box;}
-        body{background:#fff;font-family:Arial,sans-serif;}
-        .stamp-header{display:flex;align-items:center;gap:16px;padding:10px 20px;border-bottom:2px solid #0d9488;background:#f0fdf9;}
-        .stamp-img{width:75px;height:75px;border-radius:50%;object-fit:cover;border:2px solid #ccc;opacity:0.85;transform:rotate(-8deg);flex-shrink:0;}
-        .stamp-label{font-size:1rem;font-weight:600;color:#0d9488;}
-        .pdf-frame{width:100%;height:calc(100vh - 80px);border:none;display:block;}
-        @media print{
-            .stamp-header{border-bottom:2px solid #0d9488!important;background:#f0fdf9!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
-            .stamp-img{opacity:0.8!important;}
-        }
-    </style></head><body>
-        <div class="stamp-header">
-            ${stampSrc ? `<img class="stamp-img" src="${stampSrc}" alt="Stamp">` : ''}
-            <span class="stamp-label">PDF Quotation</span>
-        </div>
-        <iframe class="pdf-frame" src="${pdfUrl}"></iframe>
-    </body></html>`);
-    pw.document.close();
-    pw.focus();
-    pw.onload = () => setTimeout(() => pw.print(), 300);
+    const btn = document.querySelector('button[onclick="printPdfViewer()"]');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>'; }
+    try {
+        const stampSrc   = (stampImg && stampImg.src && !stampImg.src.endsWith('/')) ? stampImg.src : '';
+        const stampedUrl = await buildStampedPdfUrl(iframe.src, stampSrc);
+        const pw = window.open(stampedUrl, '_blank');
+        setTimeout(() => { if (pw) { pw.focus(); pw.print(); } }, 1500);
+        setTimeout(() => URL.revokeObjectURL(stampedUrl), 120000);
+    } catch(e) {
+        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch(ex) { window.open(iframe.src, '_blank'); }
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bx bx-printer"></i> Print'; }
+    }
+}
+
+async function downloadPdfViewer() {
+    const iframe   = document.getElementById('pdfViewerIframe');
+    const stampImg = document.getElementById('pdfStampImg');
+    if (!iframe || !iframe.src) return;
+    const btn = document.getElementById('pdfDownloadBtn');
+    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>'; }
+    try {
+        const stampSrc   = (stampImg && stampImg.src && !stampImg.src.endsWith('/')) ? stampImg.src : '';
+        const stampedUrl = await buildStampedPdfUrl(iframe.src, stampSrc);
+        const a = document.createElement('a');
+        a.href = stampedUrl; a.download = 'quotation.pdf';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(() => URL.revokeObjectURL(stampedUrl), 60000);
+    } catch(e) {
+        const a = document.createElement('a');
+        a.href = iframe.src; a.download = 'quotation.pdf'; a.click();
+    } finally {
+        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bx bx-download"></i> Download'; }
+    }
 }
 
 async function openPdfViewer(btn) {

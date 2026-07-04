@@ -344,6 +344,10 @@
         #partImageGalleryModal .carousel-control-next { z-index: 1066; pointer-events: auto !important; }
         #partImageGalleryModal .btn,
         #partImageGalleryModal .btn-close { pointer-events: auto !important; }
+        @keyframes pdfUploadPulse {
+            0%, 100% { opacity: 1; background-position: 0% 50%; }
+            50%       { opacity: 0.55; background-position: 100% 50%; }
+        }
     </style>
 
     <div class="single-page-header" data-background-image="{{ asset('asset/images/banner-auto-insurance.jpg') }}">
@@ -1279,8 +1283,20 @@
                     // Re-attach handler so user can try again
                     proformaQuoteForm.addEventListener('submit', pdfPreSubmit, true);
                     return; // do not submit
-                } finally {
-                    if (proc) proc.style.display = 'none';
+                }
+
+                // Keep proc visible — switch to animated "uploading" state for the HTTP round-trip
+                if (proc) {
+                    const el = document.getElementById('pdfProcessingMsg');
+                    if (el) el.textContent = 'Uploading to server…';
+                    const pb = document.getElementById('pdfProgressBar');
+                    if (pb) {
+                        pb.style.transition = 'none';
+                        pb.style.width = '100%';
+                        pb.style.backgroundImage = 'linear-gradient(90deg,var(--etera-teal,#0d9488),#4dd0c4,var(--etera-teal,#0d9488))';
+                        pb.style.backgroundSize = '200% 100%';
+                        pb.style.animation = 'pdfUploadPulse 1.4s ease-in-out infinite';
+                    }
                 }
 
                 // Re-trigger submit (bubble-phase handler will now run for price encryption)
