@@ -678,7 +678,7 @@
                     {{-- PDF Upload Section (hidden until mode=pdf) --}}
                     <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px dashed rgba(13,148,136,0.3); border-radius: 8px; padding: 14px 16px; display:none;" id="pdfUploadSection">
                         <label style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
-                            <i class="bx bx-file-pdf" style="margin-right:4px;"></i>PDF Quotation <span style="font-weight:400; color:#aaa;">(max 5MB)</span>
+                            <i class="bx bx-file-pdf" style="margin-right:4px;"></i>PDF Quotation <span style="font-weight:400; color:#aaa;">(max 10MB)</span>
                         </label>
                         <input type="file" id="pdfFileInput" accept=".pdf" style="display:none;">
                         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
@@ -691,8 +691,11 @@
                                 <i class="bx bx-x"></i> Remove
                             </button>
                         </div>
-                        <div id="pdfSizeError" style="color:#ef4444; font-size:0.8rem; margin-top:4px; display:none;">File too large. Maximum size is 5MB.</div>
-                        <div id="pdfProcessing" style="font-size:0.8rem; color:var(--etera-teal-light,#4dd0c4); margin-top:4px; display:none;"><i class="bx bx-loader-alt bx-spin"></i> Processing PDF…</div>
+                        <div id="pdfSizeError" style="color:#ef4444; font-size:0.8rem; margin-top:4px; display:none;">File too large. Maximum size is 10MB.</div>
+                        <div id="pdfProcessing" style="margin-top:6px; display:none;">
+                            <div style="font-size:0.8rem; color:var(--etera-teal-light,#4dd0c4); margin-bottom:4px;"><i class="bx bx-loader-alt bx-spin"></i> <span id="pdfProcessingMsg">Processing PDF…</span></div>
+                            <div style="width:100%;background:rgba(255,255,255,0.1);border-radius:4px;overflow:hidden;height:5px;"><div id="pdfProgressBar" style="height:100%;width:0%;background:var(--etera-teal,#0d9488);border-radius:4px;transition:width 0.25s ease;"></div></div>
+                        </div>
                     </div>
                     {{-- Hidden fields for PDF data (populated by JS) --}}
                     <input type="hidden" name="encrypted_pdf" id="hiddenEncryptedPdf">
@@ -1152,7 +1155,7 @@
                 const label   = document.getElementById('pdfFileLabel');
                 const clearBtn = document.getElementById('pdfClearBtn');
                 if (!file) return;
-                if (file.size > 5 * 1024 * 1024) {
+                if (file.size > 10 * 1024 * 1024) {
                     sizeErr.style.display = 'block';
                     this.value = '';
                     label.textContent = 'No file chosen';
@@ -1226,26 +1229,42 @@
                 if (proc) proc.style.display = 'block';
 
                 try {
-                    const arrayBuffer = await file.arrayBuffer();
                     const isInsurance = {{ $proforma->poster?->role === 'insurance' ? 'true' : 'false' }};
+                    const setProgress = p => { const pb = document.getElementById('pdfProgressBar'); if (pb) pb.style.width = p + '%'; };
+                    const setMsg = m => { const el = document.getElementById('pdfProcessingMsg'); if (el) el.textContent = m; };
+
+                    setProgress(10);
 
                     if (isInsurance) {
+                        setMsg('Fetching encryption info…');
                         const resp = await fetch('{{ route("insurance.public-key", $proforma->id) }}');
                         const keyData = await resp.json();
+                        setProgress(30);
                         if (!keyData.has_encryption || !keyData.public_key) {
-                            // Insurance has no encryption — treat as plain PDF
-                            document.getElementById('hiddenPdfData').value = arrayBufferToBase64(arrayBuffer);
+                            setMsg('Reading PDF…');
+                            const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
+                            setProgress(90);
+                            document.getElementById('hiddenPdfData').value = b64;
                         } else {
+                            setMsg('Reading PDF…');
+                            const arrayBuffer = await file.arrayBuffer();
+                            setProgress(50);
+                            setMsg('Encrypting PDF…');
                             const result = await encryptPdfBytes(arrayBuffer, keyData.public_key);
+                            setProgress(90);
                             document.getElementById('hiddenEncryptedPdf').value    = result.encrypted_pdf;
                             document.getElementById('hiddenEncryptedAesKey').value = result.encrypted_aes_key;
                             document.getElementById('hiddenAesIv').value           = result.aes_iv;
                             // Do NOT set prices_encrypted=1 here — the bubble handler manages price encryption separately
                         }
                     } else {
-                        document.getElementById('hiddenPdfData').value = arrayBufferToBase64(arrayBuffer);
+                        setMsg('Reading PDF…');
+                        const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
+                        setProgress(90);
+                        document.getElementById('hiddenPdfData').value = b64;
                     }
 
+                    setProgress(100);
                     document.getElementById('hiddenPdfFilename').value = file.name;
                 } catch (err) {
                     console.error('PDF processing failed:', err);

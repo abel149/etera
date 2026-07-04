@@ -249,12 +249,9 @@
                             @if($application->notes)
                             <div style="margin-top:10px; background:rgba(13,148,136,0.06); border-left:3px solid #4dd0c4; border-radius:0 6px 6px 0; padding:8px 12px;">
                                 <span style="font-size:10px;font-weight:600;color:#4dd0c4;display:block;margin-bottom:3px;"><i class="bx bx-message-detail" style="margin-right:3px;"></i>Applicant Notes</span>
-                                <span style="font-size:11px;color:#ccc;white-space:pre-wrap;">{{ $application->notes }}</span>
+                                <span style="font-size:11px;color:#374151;white-space:pre-wrap;">{{ $application->notes }}</span>
                             </div>
                             @endif
-                        </div>
-                        <div class="card-footer text-end">
-                            <button class="btn btn-outline-primary select-shop-btn" data-application-id="{{ $application->id }}">Select</button>
                         </div>
                     </div>
                 </div>
@@ -396,7 +393,7 @@
                             @if($application->notes)
                             <div style="margin: 10px 0 4px; background: rgba(13,148,136,0.06); border-left: 3px solid #4dd0c4; border-radius: 0 6px 6px 0; padding: 8px 12px;">
                                 <span style="font-size:10px; font-weight:600; color:#4dd0c4; display:block; margin-bottom:3px;"><i class="bx bx-message-detail" style="margin-right:3px;"></i>Applicant Notes</span>
-                                <span style="font-size:11px; color:#ccc; white-space:pre-wrap;">{{ $application->notes }}</span>
+                                <span style="font-size:11px; color:#374151; white-space:pre-wrap;">{{ $application->notes }}</span>
                             </div>
                             @endif
                         </div>
@@ -546,7 +543,7 @@
                             @if($application->notes)
                             <div style="margin: 10px 16px 4px; background: rgba(13,148,136,0.06); border-left: 3px solid #4dd0c4; border-radius: 0 6px 6px 0; padding: 8px 12px;">
                                 <span style="font-size:10px; font-weight:600; color:#4dd0c4; display:block; margin-bottom:3px;"><i class="bx bx-message-detail" style="margin-right:3px;"></i>Applicant Notes</span>
-                                <span style="font-size:11px; color:#ccc; white-space:pre-wrap;">{{ $application->notes }}</span>
+                                <span style="font-size:11px; color:#374151; white-space:pre-wrap;">{{ $application->notes }}</span>
                             </div>
                             @endif
                         </div>
@@ -1283,6 +1280,7 @@ document.addEventListener('DOMContentLoaded', function() {
             );
 
             await applyDecryption(privateKey);
+            _cachedPrivateKey = privateKey;
 
         } catch (err) {
             decryptErr.textContent = 'Decryption failed — check your PIN and try again. (' + err.message + ')';
@@ -1295,6 +1293,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── PDF Viewer ────────────────────────────────────────────────────────────────
 let _pdfBlobUrl = null;
+let _cachedPrivateKey = null;
 
 function closePdfViewer() {
     const iframe = document.getElementById('pdfViewerIframe');
@@ -1304,13 +1303,33 @@ function closePdfViewer() {
 
 function printPdfViewer() {
     const iframe = document.getElementById('pdfViewerIframe');
+    const stampImg = document.getElementById('pdfStampImg');
     if (!iframe || !iframe.src) return;
-    try {
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-    } catch(e) {
-        window.open(iframe.src, '_blank');
-    }
+    const pdfUrl = iframe.src;
+    const stampSrc = (stampImg && stampImg.src && !stampImg.src.endsWith('/')) ? stampImg.src : '';
+    const pw = window.open('', '_blank');
+    if (!pw) { window.open(pdfUrl, '_blank'); return; }
+    pw.document.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><style>
+        *{margin:0;padding:0;box-sizing:border-box;}
+        body{background:#fff;font-family:Arial,sans-serif;}
+        .stamp-header{display:flex;align-items:center;gap:16px;padding:10px 20px;border-bottom:2px solid #0d9488;background:#f0fdf9;}
+        .stamp-img{width:75px;height:75px;border-radius:50%;object-fit:cover;border:2px solid #ccc;opacity:0.85;transform:rotate(-8deg);flex-shrink:0;}
+        .stamp-label{font-size:1rem;font-weight:600;color:#0d9488;}
+        .pdf-frame{width:100%;height:calc(100vh - 80px);border:none;display:block;}
+        @media print{
+            .stamp-header{border-bottom:2px solid #0d9488!important;background:#f0fdf9!important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+            .stamp-img{opacity:0.8!important;}
+        }
+    </style></head><body>
+        <div class="stamp-header">
+            ${stampSrc ? `<img class="stamp-img" src="${stampSrc}" alt="Stamp">` : ''}
+            <span class="stamp-label">PDF Quotation</span>
+        </div>
+        <iframe class="pdf-frame" src="${pdfUrl}"></iframe>
+    </body></html>`);
+    pw.document.close();
+    pw.focus();
+    pw.onload = () => setTimeout(() => pw.print(), 300);
 }
 
 async function openPdfViewer(btn) {
@@ -1335,71 +1354,70 @@ async function openPdfViewer(btn) {
 
     try {
         if (isEncrypted) {
-            // Need PIN — use existing private key flow
             loadingMsg.textContent = 'Fetching encrypted PDF…';
             const resp = await fetch(encryptedUrl);
             if (!resp.ok) throw new Error('Could not fetch PDF data.');
             const data = await resp.json();
 
-            loadingMsg.textContent = 'Enter PIN to decrypt PDF…';
-            loading.style.display = 'none';
+            // Helper: decrypt PDF bytes and show in iframe
+            const decryptAndShow = async (privateKey) => {
+                const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+                const rawAesKey = await crypto.subtle.decrypt(
+                    { name: 'RSA-OAEP' }, privateKey, unb64(data.encrypted_aes_key)
+                );
+                const aesKey = await crypto.subtle.importKey(
+                    'raw', rawAesKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
+                );
+                const pdfBytes = await crypto.subtle.decrypt(
+                    { name: 'AES-GCM', iv: unb64(data.aes_iv) }, aesKey, unb64(data.encrypted_pdf)
+                );
+                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+                if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+                _pdfBlobUrl = URL.createObjectURL(blob);
+                iframe.src = _pdfBlobUrl;
+                loading.style.display = 'none';
+            };
 
-            // Show inline PIN prompt inside modal loading area
-            loading.style.display = 'flex';
-            loadingMsg.innerHTML = `
-                <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:20px;max-width:320px;margin:auto;">
-                    <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this PDF:</p>
-                    <input type="password" id="pdfDecryptPin" class="form-control mb-2" placeholder="Encryption PIN" autocomplete="off">
-                    <button class="btn btn-primary w-100" id="pdfDecryptBtn">Decrypt &amp; View</button>
-                    <div id="pdfDecryptErr" class="text-danger small mt-2"></div>
-                </div>`;
+            if (_cachedPrivateKey) {
+                // Prices already decrypted — reuse key without asking for PIN again
+                loadingMsg.textContent = 'Decrypting PDF…';
+                await decryptAndShow(_cachedPrivateKey);
+            } else {
+                // Show inline PIN prompt
+                loading.style.display = 'flex';
+                loadingMsg.innerHTML = `
+                    <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:20px;max-width:320px;margin:auto;">
+                        <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this PDF:</p>
+                        <input type="password" id="pdfDecryptPin" class="form-control mb-2" placeholder="Encryption PIN" autocomplete="off">
+                        <button class="btn btn-primary w-100" id="pdfDecryptBtn">Decrypt &amp; View</button>
+                        <div id="pdfDecryptErr" class="text-danger small mt-2"></div>
+                    </div>`;
 
-            document.getElementById('pdfDecryptBtn').addEventListener('click', async function() {
-                const pin = document.getElementById('pdfDecryptPin').value.trim();
-                if (!pin) {
-                    document.getElementById('pdfDecryptErr').textContent = 'Please enter your PIN.';
-                    return;
-                }
-                this.disabled = true;
-                this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Decrypting…';
-                document.getElementById('pdfDecryptErr').textContent = '';
-                try {
-                    const keyResp = await fetch('{{ route("insurance.encryption.private-key") }}');
-                    if (!keyResp.ok) throw new Error('Could not load private key.');
-                    const keyBlob = await keyResp.json();
-
-                    const privateKey = await E2EEncryption.decryptPrivateKey(
-                        keyBlob.encrypted_private_key,
-                        keyBlob.key_iv,
-                        keyBlob.key_salt,
-                        pin
-                    );
-                    // Decrypt AES key with RSA private key
-                    const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
-                    const rawAesKey = await crypto.subtle.decrypt(
-                        { name: 'RSA-OAEP' },
-                        privateKey,
-                        unb64(data.encrypted_aes_key)
-                    );
-                    const aesKey = await crypto.subtle.importKey(
-                        'raw', rawAesKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
-                    );
-                    const pdfBytes = await crypto.subtle.decrypt(
-                        { name: 'AES-GCM', iv: unb64(data.aes_iv) },
-                        aesKey,
-                        unb64(data.encrypted_pdf)
-                    );
-                    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
-                    _pdfBlobUrl = URL.createObjectURL(blob);
-                    iframe.src = _pdfBlobUrl;
-                    loading.style.display = 'none';
-                } catch(err) {
-                    document.getElementById('pdfDecryptErr').textContent = 'Decryption failed — check your PIN. (' + err.message + ')';
-                    this.disabled = false;
-                    this.textContent = 'Decrypt & View';
-                }
-            });
+                document.getElementById('pdfDecryptBtn').addEventListener('click', async function() {
+                    const pin = document.getElementById('pdfDecryptPin').value.trim();
+                    if (!pin) {
+                        document.getElementById('pdfDecryptErr').textContent = 'Please enter your PIN.';
+                        return;
+                    }
+                    this.disabled = true;
+                    this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Decrypting…';
+                    document.getElementById('pdfDecryptErr').textContent = '';
+                    try {
+                        const keyResp = await fetch('{{ route("insurance.encryption.private-key") }}');
+                        if (!keyResp.ok) throw new Error('Could not load private key.');
+                        const keyBlob = await keyResp.json();
+                        const privateKey = await E2EEncryption.decryptPrivateKey(
+                            keyBlob.encrypted_private_key, keyBlob.key_iv, keyBlob.key_salt, pin
+                        );
+                        _cachedPrivateKey = privateKey;
+                        await decryptAndShow(privateKey);
+                    } catch(err) {
+                        document.getElementById('pdfDecryptErr').textContent = 'Decryption failed — check your PIN. (' + err.message + ')';
+                        this.disabled = false;
+                        this.textContent = 'Decrypt & View';
+                    }
+                });
+            }
         } else {
             // Plain PDF — load directly
             iframe.src = btn.dataset.serveUrl || '';
