@@ -9,9 +9,15 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('proforma_applications', function (Blueprint $table) {
-            $table->unsignedSmallInteger('filled_parts_count')->default(0)->after('inbox_group');
-            $table->unsignedSmallInteger('total_parts_count')->default(0)->after('filled_parts_count');
-            $table->boolean('is_partial')->default(false)->after('total_parts_count');
+            if (!Schema::hasColumn('proforma_applications', 'filled_parts_count')) {
+                $table->unsignedSmallInteger('filled_parts_count')->default(0)->after('inbox_group');
+            }
+            if (!Schema::hasColumn('proforma_applications', 'total_parts_count')) {
+                $table->unsignedSmallInteger('total_parts_count')->default(0)->after('filled_parts_count');
+            }
+            if (!Schema::hasColumn('proforma_applications', 'is_partial')) {
+                $table->boolean('is_partial')->default(false)->after('total_parts_count');
+            }
         });
     }
 

@@ -10,9 +10,13 @@ return new class extends Migration
     public function up(): void
     {
         Schema::table('proforma_part_prices', function (Blueprint $table) {
-            $table->unsignedBigInteger('proforma_id')->nullable()->after('id');
-            $table->unsignedTinyInteger('inbox_group')->nullable()->after('proforma_id');
-            $table->foreign('proforma_id')->references('id')->on('proformas')->nullOnDelete();
+            if (!Schema::hasColumn('proforma_part_prices', 'proforma_id')) {
+                $table->unsignedBigInteger('proforma_id')->nullable()->after('id');
+                $table->foreign('proforma_id')->references('id')->on('proformas')->nullOnDelete();
+            }
+            if (!Schema::hasColumn('proforma_part_prices', 'inbox_group')) {
+                $table->unsignedTinyInteger('inbox_group')->nullable()->after('proforma_id');
+            }
         });
 
         // Backfill proforma_id from the related application
@@ -48,12 +52,21 @@ return new class extends Migration
                     AND ppp.id          != dupes.keep_id
         ');
 
-        // Unique constraint: prevents two prices for the same part in the same group
-        // NULL inbox_group is excluded from MySQL unique enforcement (NULLs != NULLs),
-        // so only new records with real group numbers are protected.
-        Schema::table('proforma_part_prices', function (Blueprint $table) {
-            $table->unique(['proforma_id', 'inbox_group', 'car_part_id'], 'uq_group_part_price');
-        });
+        // Unique constraint: prevents two prices for the same part in the same group.
+        // NULL inbox_group is excluded from MySQL unique enforcement (NULLs != NULLs).
+        // Check via information_schema so re-running the migration is safe.
+        $indexExists = DB::select("
+            SELECT 1 FROM information_schema.STATISTICS
+            WHERE TABLE_SCHEMA = DATABASE()
+              AND TABLE_NAME   = 'proforma_part_prices'
+              AND INDEX_NAME   = 'uq_group_part_price'
+            LIMIT 1
+        ");
+        if (empty($indexExists)) {
+            Schema::table('proforma_part_prices', function (Blueprint $table) {
+                $table->unique(['proforma_id', 'inbox_group', 'car_part_id'], 'uq_group_part_price');
+            });
+        }
     }
 
     public function down(): void

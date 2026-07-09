@@ -8,6 +8,10 @@ return new class extends Migration
 {
     public function up(): void
     {
+        if (Schema::hasTable('partials')) {
+            return;
+        }
+
         Schema::create('partials', function (Blueprint $table) {
             $table->id();
             $table->foreignId('proforma_id')->constrained('proformas')->cascadeOnDelete();
