@@ -4314,29 +4314,40 @@ Route::prefix('spare-part-shops')
                     $assignedGroup = $partial->inbox_group;
                     $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
                 } else {
-                    // Fresh mode: auto-assign to first empty group (preview only, not committed yet)
-                    $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                    $ownInbox        = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                    $isAdminInboxed  = $ownInbox && $ownInbox->source === 'admin';
+
                     if ($ownInbox && $ownInbox->inbox_group !== null) {
+                        // Insurance-inboxed or admin-inboxed with a specific group
                         $assignedGroup = $ownInbox->inbox_group;
                         $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
                     } else {
+                        // Null-group (admin-float) or public browse: try empty group first
                         $assignedGroup = $groupService->autoAssignGroup($proforma);
+
+                        // Admin-floated shops: fall back to the first incomplete group when
+                        // no fully-empty slot is available (all groups partially filled)
+                        if ($assignedGroup === null && $isAdminInboxed) {
+                            $assignedGroup = $groupService->findFirstIncompleteGroup($proforma);
+                        }
+
+                        if ($assignedGroup !== null) {
+                            $lockedParts = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                        }
                     }
                 }
             }
 
-            // Build lockedDataByPartId: proforma_part.id => ['unit_price' => N] for locked parts
+            // Build lockedDataByPartId: proforma_part.id => ['unit_price' => N]
+            // CarParts are now stored as 'ppart_{proforma_part.id}' — match on that name.
             $lockedDataByPartId = collect();
             if ($lockedParts->isNotEmpty()) {
-                $parts = $proforma->parts->sortBy('id')->values();
-                $partNames = $parts->mapWithKeys(
-                    fn ($p) => [$p->id => $p->component ?: ($p->number ?: ('Part-' . $p->id))]
-                );
-                $carPartMap = \App\Models\CarPart::whereIn('name', $partNames->values()->toArray())
+                $parts      = $proforma->parts->sortBy('id')->values();
+                $ppartNames = $parts->map(fn ($p) => 'ppart_' . $p->id)->values()->all();
+                $carPartMap = \App\Models\CarPart::whereIn('name', $ppartNames)
                     ->pluck('id', 'name');
                 foreach ($parts as $p) {
-                    $name      = $partNames[$p->id] ?? null;
-                    $carPartId = $name ? ($carPartMap[$name] ?? null) : null;
+                    $carPartId = $carPartMap['ppart_' . $p->id] ?? null;
                     if ($carPartId && $lockedParts->has($carPartId)) {
                         $lockedDataByPartId[$p->id] = [
                             'unit_price' => $lockedParts[$carPartId]->unit_price ?? 0,

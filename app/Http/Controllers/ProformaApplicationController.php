@@ -203,8 +203,15 @@ class ProformaApplicationController extends Controller
                         $inboxGroup = $ownPartial->inbox_group;
                         $isPartialApplication = true;
                     } elseif ($inboxGroup === null) {
-                        // Null-group (admin-float) or public browse: auto-assign to first empty group
+                        // Null-group (admin-float) or public browse: try empty group first
                         $inboxGroup = $groupService->autoAssignGroup($proforma);
+
+                        // Admin-floated shops: fall back to first incomplete group when all slots
+                        // already have some prices (partial fills)
+                        if ($inboxGroup === null && $isAdminInboxed) {
+                            $inboxGroup = $groupService->findFirstIncompleteGroup($proforma);
+                        }
+
                         if ($inboxGroup === null) {
                             return redirect()->back()->with('error', 'All available slots are currently being filled. You may receive a notification if additional pricing is needed.');
                         }
@@ -353,10 +360,16 @@ class ProformaApplicationController extends Controller
                     $totalPartsCount = $proforma->parts()->count();
 
                     // Pre-fetch already-priced car_part_ids for this group to skip locked parts.
-                    // $priceGroup is null for normal (non-group) proformas; skip the lookup in that case.
+                    // Only count rows with a real price (unit_price > 0 OR encrypted) so that
+                    // legacy zero-price rows never permanently block a part from being priced.
+                    // $priceGroup is null for normal (non-group) proformas; skip the lookup.
                     $alreadyPricedCarPartIds = ($priceGroup !== null)
                         ? ProformaPartPrice::where('proforma_id', $proforma->id)
                             ->where('inbox_group', $priceGroup)
+                            ->where(function ($q) {
+                                $q->where('unit_price', '>', 0)
+                                  ->orWhere('price_is_encrypted', true);
+                            })
                             ->pluck('car_part_id')
                             ->toArray()
                         : [];

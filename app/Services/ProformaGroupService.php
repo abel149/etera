@@ -67,9 +67,15 @@ class ProformaGroupService
      */
     public function getLockedParts(int $proformaId, int $group): Collection
     {
+        // Only return rows with a real price so that legacy zero-price rows
+        // are never shown as locked in the UI (price=0 = not actually priced).
         return ProformaPartPrice::with('part')
             ->where('proforma_id', $proformaId)
             ->where('inbox_group', $group)
+            ->where(function ($q) {
+                $q->where('unit_price', '>', 0)
+                  ->orWhere('price_is_encrypted', true);
+            })
             ->get()
             ->keyBy('car_part_id');
     }
@@ -188,6 +194,40 @@ class ProformaGroupService
             'parts_needed'   => $partsNeeded,
             'shops_notified' => $count,
         ]);
+    }
+
+    /**
+     * Find the first group that has been started but is not yet complete.
+     * Used as fallback for admin-floated shops when no fully-empty group exists.
+     */
+    public function findFirstIncompleteGroup(Proforma $proforma): ?int
+    {
+        $required   = (int) ($proforma->required_number_of_shops ?? 0);
+        $totalParts = $proforma->parts()->count();
+
+        if ($required <= 0 || $totalParts === 0) {
+            return null;
+        }
+
+        for ($g = 1; $g <= $required; $g++) {
+            // Don't take over a group that still has an insurance-inboxed shop waiting —
+            // that shop is expected to complete the remaining parts themselves.
+            $insurancePending = Inbox::where('proforma_id', $proforma->id)
+                ->where('source', 'insurance')
+                ->where('inbox_group', $g)
+                ->exists();
+
+            if ($insurancePending) {
+                continue;
+            }
+
+            $priced = $this->getPricedCount($proforma->id, $g);
+            if ($priced > 0 && $priced < $totalParts) {
+                return $g;
+            }
+        }
+
+        return null;
     }
 
     /**

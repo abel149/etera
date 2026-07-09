@@ -110,7 +110,12 @@ if (!empty($acceptedBrandIds)) {
                           );
                 });
             })
-            // Always show if this user has an active Partial for this proforma
+            // Always show if this user is still inboxed (covers partial-fill flow where
+            // the shop needs to fill remaining parts in their assigned group)
+            ->orWhereHas('inboxes', fn ($iq) =>
+                $iq->where('user_id', $userId)
+            )
+            // Always show if this user has an active Partial broadcast record
             ->orWhereHas('partials', fn ($pq) =>
                 $pq->where('user_id', $userId)->where('active', true)
             );
