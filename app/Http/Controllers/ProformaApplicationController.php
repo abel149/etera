@@ -212,6 +212,12 @@ class ProformaApplicationController extends Controller
                     // Insurance-inboxed with real group number: $inboxGroup already set correctly
                 }
 
+                // For non-group proformas (required_number_of_shops = 0), the inbox_group on the
+                // shop's inbox record is just a counter with no slot meaning.  Writing it into
+                // proforma_part_prices would hit the unique constraint when two shops share the
+                // same counter value.  Use null so the constraint is bypassed for normal flow.
+                $priceGroup = ($requiredShops > 0) ? $inboxGroup : null;
+
                 // Step 4b: Create a new application record.
                 $appData = [
                     'application_by'    => auth()->id(),
@@ -346,23 +352,28 @@ class ProformaApplicationController extends Controller
                     $partsProcessed = 0;
                     $totalPartsCount = $proforma->parts()->count();
 
-                    // Pre-fetch already-priced car_part_ids for this group to skip locked parts
-                    $alreadyPricedCarPartIds = ($inboxGroup !== null)
+                    // Pre-fetch already-priced car_part_ids for this group to skip locked parts.
+                    // $priceGroup is null for normal (non-group) proformas; skip the lookup in that case.
+                    $alreadyPricedCarPartIds = ($priceGroup !== null)
                         ? ProformaPartPrice::where('proforma_id', $proforma->id)
-                            ->where('inbox_group', $inboxGroup)
+                            ->where('inbox_group', $priceGroup)
                             ->pluck('car_part_id')
                             ->toArray()
                         : [];
 
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
                         $quantity = $part->quantity ?? 1;
+
+                        // Use the ProformaPart's own id as the CarPart name so each part always
+                        // maps to a unique car_part_id — prevents duplicate-key errors when
+                        // multiple proforma parts share the same component/category name.
                         $resolvedCarPartId = \App\Models\CarPart::firstOrCreate([
-                            'name' => $part->component ?: ($part->number ?: ('Part-' . $part->id))
+                            'name' => 'ppart_' . $part->id,
                         ], [
-                            'component' => $part->component ?: 'Mechanical Parts'
+                            'component' => $part->component ?: 'Mechanical Parts',
                         ])->id;
 
-                        // Skip if this part is already priced in this group (locked)
+                        // Skip if this part is already priced in this group (locked by an earlier shop)
                         if (in_array($resolvedCarPartId, $alreadyPricedCarPartIds)) {
                             $skippedPartsCount++;
                             continue;
@@ -370,10 +381,12 @@ class ProformaApplicationController extends Controller
 
                         if ($isEncrypted) {
                             $encryptedPrice = $request->encrypted_total[$index] ?? null;
+                            // Skip entirely if no encrypted value provided for this slot
+                            if (!$encryptedPrice) { continue; }
                             $application->prices()->create([
                                 'car_part_id'          => $resolvedCarPartId,
                                 'proforma_id'          => $proforma->id,
-                                'inbox_group'          => $inboxGroup,
+                                'inbox_group'          => $priceGroup,
                                 'quantity'             => $quantity,
                                 'unit_price'           => 0,
                                 'part_total'           => 0,
@@ -381,19 +394,22 @@ class ProformaApplicationController extends Controller
                                 'encrypted_part_total' => null,
                                 'price_is_encrypted'   => true,
                             ]);
-                            if ($encryptedPrice) { $partsProcessed++; $filledPartsCount++; }
+                            $partsProcessed++; $filledPartsCount++;
                         } else {
                             $unitPrice = floatval($request->total[$index] ?? 0);
+                            // Skip blank/zero-price entries — don't pollute the group with
+                            // zero rows that would block partial triggering and the unique constraint.
+                            if ($unitPrice <= 0) { continue; }
                             $partTotal = $unitPrice * $quantity;
                             $application->prices()->create([
                                 'car_part_id' => $resolvedCarPartId,
                                 'proforma_id' => $proforma->id,
-                                'inbox_group' => $inboxGroup,
+                                'inbox_group' => $priceGroup,
                                 'quantity'    => $quantity,
                                 'unit_price'  => $unitPrice,
                                 'part_total'  => $partTotal,
                             ]);
-                            if ($unitPrice > 0) { $partsProcessed++; $filledPartsCount++; }
+                            $partsProcessed++; $filledPartsCount++;
                         }
                     }
 

@@ -42,9 +42,13 @@ class ProformaGroupService
                 continue;
             }
 
-            // Skip if the group already has priced parts (not empty)
+            // Skip if the group already has filled prices (unit_price > 0 or encrypted)
             $pricedCount = ProformaPartPrice::where('proforma_id', $proforma->id)
                 ->where('inbox_group', $g)
+                ->where(function ($q) {
+                    $q->where('unit_price', '>', 0)
+                      ->orWhere('price_is_encrypted', true);
+                })
                 ->count();
 
             if ($pricedCount > 0) {
@@ -84,11 +88,17 @@ class ProformaGroupService
             return;
         }
 
+        // Only count rows where a real price was provided (unit_price > 0 OR encrypted).
+        // Zero-price rows must not count — they'd incorrectly mark a partial group as complete.
         $pricedCount = ProformaPartPrice::where('proforma_id', $proforma->id)
             ->where('inbox_group', $group)
+            ->where(function ($q) {
+                $q->where('unit_price', '>', 0)
+                  ->orWhere('price_is_encrypted', true);
+            })
             ->count();
 
-        // Condition 1: group was started (at least 1 part priced)
+        // Condition 1: group was started (at least 1 part genuinely priced)
         if ($pricedCount === 0) {
             return;
         }
@@ -187,6 +197,10 @@ class ProformaGroupService
     {
         return ProformaPartPrice::where('proforma_id', $proformaId)
             ->where('inbox_group', $group)
+            ->where(function ($q) {
+                $q->where('unit_price', '>', 0)
+                  ->orWhere('price_is_encrypted', true);
+            })
             ->count();
     }
 
