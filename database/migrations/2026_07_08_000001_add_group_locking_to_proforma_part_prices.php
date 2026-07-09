@@ -31,6 +31,23 @@ return new class extends Migration
             WHERE ppp.inbox_group IS NULL AND pa.inbox_group IS NOT NULL
         ');
 
+        // Deduplicate: for any (proforma_id, inbox_group, car_part_id) with multiple rows,
+        // keep the newest (highest id) and delete the older ones before adding the constraint.
+        DB::statement('
+            DELETE ppp FROM proforma_part_prices ppp
+            INNER JOIN (
+                SELECT MAX(id) AS keep_id, proforma_id, inbox_group, car_part_id
+                FROM proforma_part_prices
+                WHERE proforma_id IS NOT NULL
+                  AND inbox_group IS NOT NULL
+                GROUP BY proforma_id, inbox_group, car_part_id
+                HAVING COUNT(*) > 1
+            ) dupes ON ppp.proforma_id = dupes.proforma_id
+                    AND ppp.inbox_group  = dupes.inbox_group
+                    AND ppp.car_part_id  = dupes.car_part_id
+                    AND ppp.id          != dupes.keep_id
+        ');
+
         // Unique constraint: prevents two prices for the same part in the same group
         // NULL inbox_group is excluded from MySQL unique enforcement (NULLs != NULLs),
         // so only new records with real group numbers are protected.
