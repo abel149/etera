@@ -192,7 +192,22 @@
             @if(!$proforma->isGarageOnlyInsurance())
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Spare Part Shops</h4>
-                @foreach($applications as $application)
+                @php
+                    $shopApps = $applications->filter(fn($a) => $a->applicationBy && $a->applicationBy->role === 'shop');
+                    $shopGroups = $shopApps->groupBy('inbox_group');
+                    $isCollaborative = $shopGroups->count() > 1
+                        || ($shopGroups->count() === 1 && $shopGroups->keys()->first() !== null);
+                @endphp
+                @foreach($shopGroups as $groupKey => $groupApplications)
+                @if($isCollaborative)
+                <div style="margin-bottom:8px; padding:6px 12px; background:rgba(13,148,136,0.08); border-left:3px solid rgba(13,148,136,0.5); border-radius:0 8px 8px 0;">
+                    <span style="font-size:0.82rem; font-weight:600; color:var(--etera-teal-light,#4dd0c4);">
+                        Group {{ $groupKey ?? 'Unassigned' }}
+                        <span style="font-weight:400; color:rgba(255,255,255,0.5); margin-left:6px;">{{ $groupApplications->count() }} shop(s)</span>
+                    </span>
+                </div>
+                @endif
+                @foreach($groupApplications as $application)
                 @if($application->applicationBy->role == 'shop')
                 @php $appHasPdf = $application->pdf !== null; $appPdfOnly = $appHasPdf && $application->prices->isEmpty(); @endphp
                 @if($appPdfOnly)
@@ -278,12 +293,26 @@
                             @endif
                         </div>
                         <div class="card-header">
-                            <div class="d-flex align-items-center">
-                                <div class="">
-                                    <img src="{{asset('assets/images/avatars/avatar-9.jpg')}}" class="rounded-circle" width="40" height="40" alt="">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center">
+                                    <div class="">
+                                        <img src="{{asset('assets/images/avatars/avatar-9.jpg')}}" class="rounded-circle" width="40" height="40" alt="">
+                                    </div>
+                                    <div class="ms-2">
+                                        <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#details"><h6 class="mb-0 font-17">{{$application->applicationBy->name}}</h6></a>
+                                    </div>
                                 </div>
-                                <div class="ms-2">
-                                    <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#details"><h6 class="mb-0 font-17">{{$application->applicationBy->name}}</h6></a>
+                                <div class="d-flex align-items-center gap-2">
+                                    @if($application->inbox_group !== null)
+                                    <span style="font-size:10px; padding:2px 8px; border-radius:50px; background:rgba(13,148,136,0.15); color:var(--etera-teal-light,#4dd0c4); border:1px solid rgba(13,148,136,0.3);">
+                                        Grp {{ $application->inbox_group }}
+                                    </span>
+                                    @endif
+                                    @if($application->filled_parts_count && $application->total_parts_count)
+                                    <span style="font-size:10px; padding:2px 8px; border-radius:50px; background:rgba(251,146,60,0.12); color:#fb923c; border:1px solid rgba(251,146,60,0.3);">
+                                        {{ $application->filled_parts_count }}/{{ $application->total_parts_count }} parts
+                                    </span>
+                                    @endif
                                 </div>
                             </div>
                         </div>
@@ -406,6 +435,9 @@
                 {{-- end @if($appPdfOnly) --}}
                 @endif
                 @endforeach
+                {{-- end @foreach($groupApplications) --}}
+                @endforeach
+                {{-- end @foreach($shopGroups) --}}
             </div>
             
             @endif

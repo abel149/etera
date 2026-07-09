@@ -3,12 +3,16 @@
 namespace App\Http\Controllers;
 
 use App\Models\ApplicationPdf;
+use App\Models\Inbox;
+use App\Models\Partial;
 use App\Models\Proforma;
 use App\Models\ProformaApplication;
 use App\Models\ProformaPartPrice;
 use App\Models\User;
 use App\Notifications\ProformaApplicationReceived;
+use App\Services\ProformaGroupService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 
@@ -183,6 +187,31 @@ class ProformaApplicationController extends Controller
 
                 $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
 
+                // Step 4a: For shop submissions, resolve the actual group number.
+                $groupService = new ProformaGroupService();
+                $isPartialApplication = false;
+
+                if ($role === 'shop' && $requiredShops > 0) {
+                    // Check if shop is responding to a Partial broadcast notification
+                    $ownPartial = Partial::where('proforma_id', $proforma->id)
+                        ->where('user_id', auth()->id())
+                        ->where('active', true)
+                        ->first();
+
+                    if ($ownPartial) {
+                        // Partial mode: use the group from the Partial record
+                        $inboxGroup = $ownPartial->inbox_group;
+                        $isPartialApplication = true;
+                    } elseif ($inboxGroup === null) {
+                        // Null-group (admin-float) or public browse: auto-assign to first empty group
+                        $inboxGroup = $groupService->autoAssignGroup($proforma);
+                        if ($inboxGroup === null) {
+                            return redirect()->back()->with('error', 'All available slots are currently being filled. You may receive a notification if additional pricing is needed.');
+                        }
+                    }
+                    // Insurance-inboxed with real group number: $inboxGroup already set correctly
+                }
+
                 // Step 4b: Create a new application record.
                 $appData = [
                     'application_by'    => auth()->id(),
@@ -204,34 +233,23 @@ class ProformaApplicationController extends Controller
                     ->where('proforma_id', $proforma->id)
                     ->delete();
 
-                // Chereta: when an insurance partner applies, delete others in the same inbox group
-                if ($isInsuranceInboxed) {
-                    $roleUserIds = \App\Models\User::where('role', $role)->pluck('id');
-
-                    if ($inboxGroup !== null) {
-                        // Per-group chereta: wipe all others in the same inbox_group for this role
+                // Chereta (legacy null-group only): when quota of insurance partners applied, clear null-group inboxes.
+                // Per-group chereta is now deferred to after prices are saved (fires on group completion).
+                if ($isInsuranceInboxed && $inboxGroup === null) {
+                    $roleUserIds = User::where('role', $role)->pluck('id');
+                    $partnerApplied = $proforma->applications()
+                        ->where('from', $role)
+                        ->where('application_source', 'partner')
+                        ->count();
+                    $quota = $role === 'shop'
+                        ? (int) ($proforma->insurance_shop_quota ?? 1)
+                        : (int) ($proforma->insurance_garage_quota ?? 1);
+                    if ($partnerApplied >= $quota) {
                         $proforma->inboxes()
                             ->where('source', 'insurance')
-                            ->where('inbox_group', $inboxGroup)
+                            ->whereNull('inbox_group')
                             ->whereIn('user_id', $roleUserIds)
                             ->delete();
-                    } else {
-                        // Legacy (proformas created before inbox_group migration):
-                        // quota-based chereta across all null-group insurance inboxes
-                        $partnerApplied = $proforma->applications()
-                            ->where('from', $role)
-                            ->where('application_source', 'partner')
-                            ->count();
-                        $quota = $role === 'shop'
-                            ? (int) ($proforma->insurance_shop_quota ?? 1)
-                            : (int) ($proforma->insurance_garage_quota ?? 1);
-                        if ($partnerApplied >= $quota) {
-                            $proforma->inboxes()
-                                ->where('source', 'insurance')
-                                ->whereNull('inbox_group')
-                                ->whereIn('user_id', $roleUserIds)
-                                ->delete();
-                        }
                     }
                 }
 
@@ -321,8 +339,21 @@ class ProformaApplicationController extends Controller
                     && !$request->filled('encrypted_total')
                     && empty(array_filter($request->input('total', [])));
 
+                $filledPartsCount = 0;
+                $skippedPartsCount = 0;
+
                 if (auth()->user()->role === 'shop' && !$isPdfOnly) {
                     $partsProcessed = 0;
+                    $totalPartsCount = $proforma->parts()->count();
+
+                    // Pre-fetch already-priced car_part_ids for this group to skip locked parts
+                    $alreadyPricedCarPartIds = ($inboxGroup !== null)
+                        ? ProformaPartPrice::where('proforma_id', $proforma->id)
+                            ->where('inbox_group', $inboxGroup)
+                            ->pluck('car_part_id')
+                            ->toArray()
+                        : [];
+
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
                         $quantity = $part->quantity ?? 1;
                         $resolvedCarPartId = \App\Models\CarPart::firstOrCreate([
@@ -331,10 +362,18 @@ class ProformaApplicationController extends Controller
                             'component' => $part->component ?: 'Mechanical Parts'
                         ])->id;
 
+                        // Skip if this part is already priced in this group (locked)
+                        if (in_array($resolvedCarPartId, $alreadyPricedCarPartIds)) {
+                            $skippedPartsCount++;
+                            continue;
+                        }
+
                         if ($isEncrypted) {
                             $encryptedPrice = $request->encrypted_total[$index] ?? null;
                             $application->prices()->create([
                                 'car_part_id'          => $resolvedCarPartId,
+                                'proforma_id'          => $proforma->id,
+                                'inbox_group'          => $inboxGroup,
                                 'quantity'             => $quantity,
                                 'unit_price'           => 0,
                                 'part_total'           => 0,
@@ -342,31 +381,80 @@ class ProformaApplicationController extends Controller
                                 'encrypted_part_total' => null,
                                 'price_is_encrypted'   => true,
                             ]);
-                            if ($encryptedPrice) $partsProcessed++;
+                            if ($encryptedPrice) { $partsProcessed++; $filledPartsCount++; }
                         } else {
                             $unitPrice = floatval($request->total[$index] ?? 0);
                             $partTotal = $unitPrice * $quantity;
                             $application->prices()->create([
                                 'car_part_id' => $resolvedCarPartId,
+                                'proforma_id' => $proforma->id,
+                                'inbox_group' => $inboxGroup,
                                 'quantity'    => $quantity,
                                 'unit_price'  => $unitPrice,
                                 'part_total'  => $partTotal,
                             ]);
-                            if ($unitPrice > 0) $partsProcessed++;
+                            if ($unitPrice > 0) { $partsProcessed++; $filledPartsCount++; }
                         }
+                    }
+
+                    // Track partial fill stats on the application record
+                    $application->update([
+                        'filled_parts_count' => $filledPartsCount,
+                        'total_parts_count'  => $totalPartsCount,
+                        'is_partial'         => $filledPartsCount < $totalPartsCount,
+                    ]);
+
+                    if ($skippedPartsCount > 0) {
+                        Log::info('Price quote submission: some parts were already priced in this group', [
+                            'proforma_id'        => $proforma->id,
+                            'inbox_group'        => $inboxGroup,
+                            'skipped_parts'      => $skippedPartsCount,
+                            'filled_parts'       => $filledPartsCount,
+                        ]);
+                    }
+
+                    // Per-group chereta: if the group is now complete, delete remaining group inboxes
+                    if ($inboxGroup !== null && $groupService->isGroupComplete($proforma, $inboxGroup)) {
+                        $proforma->inboxes()
+                            ->where('source', 'insurance')
+                            ->where('inbox_group', $inboxGroup)
+                            ->delete();
+                        Partial::deactivateGroup($proforma->id, $inboxGroup);
+
+                        Log::info('Price quote submission: group complete, chereta fired', [
+                            'proforma_id' => $proforma->id,
+                            'inbox_group' => $inboxGroup,
+                        ]);
                     }
                 }
 
+                // Clear any Partial records for this shop on this proforma (one-submission rule)
+                Partial::clearForUser($proforma->id, auth()->id());
+
                 // Step 8: Check if the proforma should be closed.
-                // Re-count after insert (within the lock) to get accurate numbers.
+                // For shop-only insurance proformas: close when all required GROUPS are fully priced.
+                // For garage/etera proformas: use existing application-count logic (unchanged).
                 $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
-                $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
 
                 $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
-                $shopRequirementMet = $requiredShops === 0 || $shopApplicationsCount >= $requiredShops;
+
+                if ($requiredShops > 0 && !$isEteraChereta) {
+                    // New: count groups where all parts are priced
+                    $totalPartsForClose = $proforma->parts()->count();
+                    $completeGroupCount = $totalPartsForClose > 0
+                        ? ProformaPartPrice::where('proforma_id', $proforma->id)
+                            ->select('inbox_group')
+                            ->groupBy('inbox_group')
+                            ->havingRaw('COUNT(DISTINCT car_part_id) >= ?', [$totalPartsForClose])
+                            ->count()
+                        : 0;
+                    $shopRequirementMet = $completeGroupCount >= $requiredShops;
+                } else {
+                    $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
+                    $shopRequirementMet = $requiredShops === 0 || $shopApplicationsCount >= $requiredShops;
+                }
 
                 if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet) {
-                    // Use ProformaClosingService to close properly (sends billing email)
                     $closingService = new \App\Services\ProformaClosingService();
                     $closingService->closeProforma($proforma, auth()->id());
 
@@ -374,6 +462,12 @@ class ProformaApplicationController extends Controller
                         'proforma_id' => $proforma->id,
                         'application_id' => $application->id,
                     ]);
+                }
+
+                // Step 8b: Post-submit partial trigger — check if this group now needs broadcast help.
+                // Runs outside the closing check so partials fire even when the proforma stays open.
+                if ($role === 'shop' && $inboxGroup !== null && !($garageRequirementMet && $shopRequirementMet)) {
+                    $groupService->checkAndTriggerPartials($proforma, $inboxGroup);
                 }
 
                 // Step 9: Redirect with a success message.

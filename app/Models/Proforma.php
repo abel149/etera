@@ -518,6 +518,11 @@ class Proforma extends Model implements HasMedia
         return $this->hasMany(Inbox::class);
     }
 
+    public function partials()
+    {
+        return $this->hasMany(\App\Models\Partial::class);
+    }
+
     public function selections()
     {
         return $this->hasMany(ProformaSelection::class, 'proforma_id');

@@ -2,6 +2,7 @@
 
 namespace App\Livewire;
 
+use App\Models\Partial;
 use App\Models\Proforma;
 use App\Models\ProformaApplication;
 use Livewire\Component;
@@ -87,6 +88,35 @@ if (!empty($acceptedBrandIds)) {
         }
 
         /**
+         * Slot availability: show fresh proformas only when empty slots exist,
+         * OR show if this user has an active Partial record for the proforma.
+         */
+        $query->where(function ($q) use ($userId) {
+            $q->where(function ($freshQ) {
+                // Non-insurance proformas (no required groups) are always visible
+                $freshQ->where(function ($inner) {
+                    $inner->where('required_number_of_shops', 0)
+                          ->orWhereNull('required_number_of_shops');
+                })
+                // Insurance proformas: visible only if at least one empty group remains
+                ->orWhere(function ($inner) {
+                    $inner->where('required_number_of_shops', '>', 0)
+                          ->whereRaw(
+                              '(SELECT COUNT(DISTINCT inbox_group)
+                                FROM proforma_part_prices
+                                WHERE proforma_id = proformas.id
+                                AND inbox_group IS NOT NULL)
+                               < proformas.required_number_of_shops'
+                          );
+                });
+            })
+            // Always show if this user has an active Partial for this proforma
+            ->orWhereHas('partials', fn ($pq) =>
+                $pq->where('user_id', $userId)->where('active', true)
+            );
+        });
+
+        /**
          * Filter: Poster Type
          */
         switch ($this->filters['type']) {
@@ -153,9 +183,17 @@ if (!empty($acceptedBrandIds)) {
             ->orderBy('created_at', $this->sortBy)
             ->paginate(10);
 
+        // Fetch active Partial records for this user, keyed by proforma_id
+        $partialsByProformaId = Partial::where('user_id', $userId)
+            ->where('active', true)
+            ->whereIn('proforma_id', $proformas->pluck('id'))
+            ->get()
+            ->keyBy('proforma_id');
+
         return view('livewire.all-proformas-list', [
-            'proformas'  => $proformas,
-            'components' => ['Both', 'Body Parts', 'Mechanical Parts'],
+            'proformas'            => $proformas,
+            'components'           => ['Both', 'Body Parts', 'Mechanical Parts'],
+            'partialsByProformaId' => $partialsByProformaId,
         ]);
     }
 }

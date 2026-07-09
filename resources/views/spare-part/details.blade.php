@@ -496,6 +496,19 @@
             </div>
 
             <div class="col-xl-8 col-lg-8">
+
+                @if(auth()->check() && auth()->user()->role === 'shop' && isset($lockedDataByPartId) && $lockedDataByPartId->isNotEmpty())
+                <div style="background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.35); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 12px;">
+                    <span style="font-size: 1.4rem; line-height:1;">&#x1F512;</span>
+                    <div>
+                        <strong style="color: #fb923c; font-size: 0.95rem;">Partial Proforma — Group {{ $assignedGroup ?? '' }}</strong>
+                        <p style="margin: 4px 0 0; font-size: 0.85rem; color: rgba(255,255,255,0.65); line-height: 1.5;">
+                            Some parts below have already been priced by another shop. Locked parts are shown in orange — only enter prices for the <strong style="color:#fff;">unlocked</strong> parts you can supply.
+                        </p>
+                    </div>
+                </div>
+                @endif
+
                 <form
                     action="{{ auth()->check() && auth()->user()->role === 'garage' ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
                     method="POST" id="proforma-quote-form" novalidate>
@@ -571,18 +584,45 @@
                                             <input type="hidden" name="part_id[{{ $loop->index }}]" value="{{ $part->id ?? '' }}">
 
                                             @if (auth()->check() && auth()->user()->role == 'shop')
-                                                <td>
-                                                    <input type="number"
-                                                        name="total[{{ $loop->index }}]"
-                                                        class="with-border unit-price-input" placeholder="unit price" value=""
-                                                        step="any" min="1"
-                                                        oninvalid="this.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable')"
-                                                        oninput="this.setCustomValidity('')">
-                                                </td>
-                                                <td>
-                                                    <input type="number" class="with-border part-total" placeholder="Total"
-                                                        value="0" readonly disabled>
-                                                </td>
+                                                @php
+                                                    $lockedData = isset($lockedDataByPartId) ? ($lockedDataByPartId[$part->id] ?? null) : null;
+                                                    $isLocked   = $lockedData !== null;
+                                                    $lockedPrice = $isLocked ? (float) ($lockedData['unit_price'] ?? 0) : 0;
+                                                    $lockedTotal = $isLocked ? $lockedPrice * ($part->quantity ?? 1) : 0;
+                                                @endphp
+                                                @if($isLocked)
+                                                    <td style="background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.25);">
+                                                        <div style="display:flex; align-items:center; gap:5px;">
+                                                            <span style="color:#fb923c; font-size:0.85rem;">&#x1F512;</span>
+                                                            <input type="number"
+                                                                name="total[{{ $loop->index }}]"
+                                                                class="with-border unit-price-input"
+                                                                value="{{ $lockedPrice }}"
+                                                                step="any" min="1"
+                                                                readonly disabled
+                                                                style="background: rgba(251,146,60,0.06); color: rgba(255,255,255,0.45); cursor: not-allowed; border-color: rgba(251,146,60,0.2);">
+                                                            <input type="hidden" name="total[{{ $loop->index }}]" value="{{ $lockedPrice }}">
+                                                        </div>
+                                                    </td>
+                                                    <td style="background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.25);">
+                                                        <input type="number" class="with-border part-total"
+                                                            value="{{ $lockedTotal }}" readonly disabled
+                                                            style="background: rgba(251,146,60,0.06); color: rgba(255,255,255,0.45); cursor: not-allowed; border-color: rgba(251,146,60,0.2);">
+                                                    </td>
+                                                @else
+                                                    <td>
+                                                        <input type="number"
+                                                            name="total[{{ $loop->index }}]"
+                                                            class="with-border unit-price-input" placeholder="unit price" value=""
+                                                            step="any" min="1"
+                                                            oninvalid="this.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable')"
+                                                            oninput="this.setCustomValidity('')">
+                                                    </td>
+                                                    <td>
+                                                        <input type="number" class="with-border part-total" placeholder="Total"
+                                                            value="0" readonly disabled>
+                                                    </td>
+                                                @endif
                                             @endif
                                         </tr>
                                     @endforeach

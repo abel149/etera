@@ -4296,7 +4296,56 @@ Route::prefix('spare-part-shops')
                 return redirect()->back();
             }
 
-            return view('spare-part.details', compact('proforma'));
+            // Resolve group and locked parts for the shop application form
+            $assignedGroup = null;
+            $lockedParts   = collect();
+
+            if (auth()->check() && auth()->user()->role === 'shop') {
+                $groupService = new \App\Services\ProformaGroupService();
+
+                // Check if this shop has an active Partial record for this proforma
+                $partial = \App\Models\Partial::where('proforma_id', $proforma->id)
+                    ->where('user_id', auth()->id())
+                    ->where('active', true)
+                    ->first();
+
+                if ($partial) {
+                    // Partial mode: group comes from the Partial record
+                    $assignedGroup = $partial->inbox_group;
+                    $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                } else {
+                    // Fresh mode: auto-assign to first empty group (preview only, not committed yet)
+                    $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                    if ($ownInbox && $ownInbox->inbox_group !== null) {
+                        $assignedGroup = $ownInbox->inbox_group;
+                        $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                    } else {
+                        $assignedGroup = $groupService->autoAssignGroup($proforma);
+                    }
+                }
+            }
+
+            // Build lockedDataByPartId: proforma_part.id => ['unit_price' => N] for locked parts
+            $lockedDataByPartId = collect();
+            if ($lockedParts->isNotEmpty()) {
+                $parts = $proforma->parts->sortBy('id')->values();
+                $partNames = $parts->mapWithKeys(
+                    fn ($p) => [$p->id => $p->component ?: ($p->number ?: ('Part-' . $p->id))]
+                );
+                $carPartMap = \App\Models\CarPart::whereIn('name', $partNames->values()->toArray())
+                    ->pluck('id', 'name');
+                foreach ($parts as $p) {
+                    $name      = $partNames[$p->id] ?? null;
+                    $carPartId = $name ? ($carPartMap[$name] ?? null) : null;
+                    if ($carPartId && $lockedParts->has($carPartId)) {
+                        $lockedDataByPartId[$p->id] = [
+                            'unit_price' => $lockedParts[$carPartId]->unit_price ?? 0,
+                        ];
+                    }
+                }
+            }
+
+            return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId'));
         })->name('proforma-details');
 
 Route::post('apply/{proforma}', function (

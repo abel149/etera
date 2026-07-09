@@ -127,8 +127,18 @@ class ProformaVerificationService
                 $role = $user->role ?? 'unknown';
                 $amount = 0;
 
-                if ($role === 'garage') $amount = $garagePay;
-                if ($role === 'shop') $amount = $shopPay;
+                if ($role === 'garage') {
+                    $amount = $garagePay;
+                } elseif ($role === 'shop') {
+                    // Pro-rata: scale by parts filled / total parts (collaborative filling)
+                    $totalParts  = (int) ($app->total_parts_count ?? 0);
+                    $filledParts = (int) ($app->filled_parts_count ?? 0);
+                    if ($totalParts > 0 && $filledParts > 0) {
+                        $amount = round($shopPay * ($filledParts / $totalParts), 2);
+                    } else {
+                        $amount = $shopPay; // Legacy record: no partial tracking — full pay
+                    }
+                }
 
                 if ($amount > 0) {
                     $this->createCommissionRecord($user, $amount, $proforma, $app, ucfirst($role) . ' commission');

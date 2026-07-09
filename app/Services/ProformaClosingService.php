@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Models\Partial;
 use App\Models\Proforma;
 use App\Models\User;
 use App\Models\Cost;
@@ -28,6 +29,9 @@ class ProformaClosingService
 
             // Clear inbox records
             $proforma->inboxes()->delete();
+
+            // Clear any open Partial broadcast records for this proforma
+            Partial::where('proforma_id', $proforma->id)->delete();
 
             // Send notification to admin
             $this->sendProformaClosedNotification($proforma);
