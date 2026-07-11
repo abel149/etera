@@ -61,22 +61,6 @@ class AllProformasList extends Component
             });
 
         /**
-         * ✅ Brand filter — ONLY brands accepted by logged-in user
-         */
-        /**
- * Brand filter — uses car_brand_id (correct column)
- */
-$acceptedBrandIds = $user->brands()->pluck('brands.id')->toArray();
-
-if (!empty($acceptedBrandIds)) {
-    $query->whereIn('car_brand_id', $acceptedBrandIds);
-} else {
-    // No brands assigned → return empty result
-    $query->whereRaw('1 = 0');
-}
-
-
-        /**
          * Exclude already applied proformas
          */
         $appliedProformaIds = ProformaApplication::where('application_by', $userId)
@@ -88,11 +72,24 @@ if (!empty($acceptedBrandIds)) {
         }
 
         /**
+         * ✅ Brand filter — ONLY brands accepted by logged-in user
+         * BUT: partial records bypass this filter since shops were explicitly invited
+         */
+        $acceptedBrandIds = $user->brands()->pluck('brands.id')->toArray();
+
+        /**
          * Slot availability: show fresh proformas only when empty slots exist,
          * OR show if this user has an active Partial record for the proforma.
          */
-        $query->where(function ($q) use ($userId) {
-            $q->where(function ($freshQ) {
+        $query->where(function ($q) use ($userId, $acceptedBrandIds) {
+            $q->where(function ($freshQ) use ($acceptedBrandIds) {
+                // Apply brand filter to fresh proformas (non-partial)
+                if (!empty($acceptedBrandIds)) {
+                    $freshQ->whereIn('car_brand_id', $acceptedBrandIds);
+                } else {
+                    $freshQ->whereRaw('1 = 0'); // No brands → no fresh proformas
+                }
+
                 // Non-insurance proformas (no required groups) are always visible
                 $freshQ->where(function ($inner) {
                     $inner->where('required_number_of_shops', 0)
@@ -116,6 +113,7 @@ if (!empty($acceptedBrandIds)) {
                 $iq->where('user_id', $userId)
             )
             // Always show if this user has an active Partial broadcast record
+            // (bypasses brand filter since shop was explicitly invited)
             ->orWhereHas('partials', fn ($pq) =>
                 $pq->where('user_id', $userId)->where('active', true)
             );
