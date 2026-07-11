@@ -165,6 +165,11 @@ class ProformaGroupService
 
         $eligibleShops = User::where('role', 'shop')
             ->whereNotIn('id', $excludeIds)
+            ->when($proforma->car_brand_id, function ($q) use ($proforma) {
+                $q->whereHas('brands', fn ($bq) =>
+                    $bq->where('brands.id', $proforma->car_brand_id)
+                );
+            })
             ->get();
 
         $count = 0;
