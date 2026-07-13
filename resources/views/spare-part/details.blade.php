@@ -513,6 +513,8 @@
                     action="{{ auth()->check() && auth()->user()->role === 'garage' ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
                     method="POST" id="proforma-quote-form" novalidate>
                     @csrf
+                    <input type="hidden" name="application_mode" value="{{ $applicationMode ?? '' }}">
+                    <input type="hidden" name="assigned_group" value="{{ $assignedGroup ?? '' }}">
                     <div id="price-table-section">
                     <div class="table-container">
                         <table class="basic-table">

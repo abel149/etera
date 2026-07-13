@@ -310,7 +310,7 @@
                         @if($hasPartials)
                             {{-- ── PARTIAL PROFORMA CARDS (one per group) ── --}}
                             @foreach($partialRecords as $partialRecord)
-                            <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}"
+                            <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}&mode=partial&group={{ $partialRecord->inbox_group }}"
                                class="job-listing partial-listing">
 
                                 <div class="job-listing-details">
@@ -373,7 +373,7 @@
                                 $hasEmptyGroup = $requiredShops > 0 && $startedGroups < $requiredShops;
                             @endphp
                             @if(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()) && $hasEmptyGroup)
-                            <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}"
+                            <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}&mode=full"
                                class="job-listing">
 
                                 <div class="job-listing-details">

@@ -4288,43 +4288,64 @@ Route::prefix('spare-part-shops')
                 return redirect()->back();
             }
 
-            // Resolve group and locked parts for the shop application form
-            $assignedGroup = null;
-            $lockedParts   = collect();
+            $assignedGroup  = null;
+            $lockedParts    = collect();
+            $applicationMode = $request->query('mode');
 
             if (auth()->check() && auth()->user()->role === 'shop') {
                 $groupService = new \App\Services\ProformaGroupService();
 
-                // Check if this shop has an active Partial record for this proforma
-                $partial = \App\Models\Partial::where('proforma_id', $proforma->id)
-                    ->where('user_id', auth()->id())
-                    ->where('active', true)
-                    ->first();
+                if ($applicationMode === 'full') {
+                    $assignedGroup = $groupService->autoAssignGroup($proforma);
 
-                if ($partial) {
-                    // Partial mode: group comes from the Partial record
+                    if ($assignedGroup === null) {
+                        return redirect('/spare-part-shops/proformas')
+                            ->with('error', 'No empty proforma group is available. Please use one of the partial proforma cards.');
+                    }
+                } elseif ($applicationMode === 'partial') {
+                    $requestedGroup = $request->integer('group');
+                    $partial = \App\Models\Partial::where('proforma_id', $proforma->id)
+                        ->where('user_id', auth()->id())
+                        ->where('inbox_group', $requestedGroup)
+                        ->where('active', true)
+                        ->first();
+
+                    if (! $partial) {
+                        return redirect('/spare-part-shops/proformas')
+                            ->with('error', 'This partial proforma is no longer available.');
+                    }
+
                     $assignedGroup = $partial->inbox_group;
-                    $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                    $lockedParts = $groupService->getLockedParts($proforma->id, $assignedGroup);
                 } else {
-                    $ownInbox        = $proforma->inboxes()->where('user_id', auth()->id())->first();
-                    $isAdminInboxed  = $ownInbox && $ownInbox->source === 'admin';
+                    $partial = \App\Models\Partial::where('proforma_id', $proforma->id)
+                        ->where('user_id', auth()->id())
+                        ->where('active', true)
+                        ->first();
 
-                    if ($ownInbox && $ownInbox->inbox_group !== null) {
-                        // Insurance-inboxed or admin-inboxed with a specific group
-                        $assignedGroup = $ownInbox->inbox_group;
-                        $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                    if ($partial) {
+                        $applicationMode = 'partial';
+                        $assignedGroup = $partial->inbox_group;
+                        $lockedParts = $groupService->getLockedParts($proforma->id, $assignedGroup);
                     } else {
-                        // Null-group (admin-float) or public browse: try empty group first
-                        $assignedGroup = $groupService->autoAssignGroup($proforma);
+                        $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                        $isAdminInboxed = $ownInbox && $ownInbox->source === 'admin';
 
-                        // Admin-floated shops: fall back to the first incomplete group when
-                        // no fully-empty slot is available (all groups partially filled)
-                        if ($assignedGroup === null && $isAdminInboxed) {
-                            $assignedGroup = $groupService->findFirstIncompleteGroup($proforma);
-                        }
-
-                        if ($assignedGroup !== null) {
+                        if ($ownInbox && $ownInbox->inbox_group !== null) {
+                            $assignedGroup = $ownInbox->inbox_group;
                             $lockedParts = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                        } else {
+                            $applicationMode = 'full';
+                            $assignedGroup = $groupService->autoAssignGroup($proforma);
+
+                            if ($assignedGroup === null && $isAdminInboxed) {
+                                $applicationMode = 'partial';
+                                $assignedGroup = $groupService->findFirstIncompleteGroup($proforma);
+                            }
+
+                            if ($applicationMode === 'partial' && $assignedGroup !== null) {
+                                $lockedParts = $groupService->getLockedParts($proforma->id, $assignedGroup);
+                            }
                         }
                     }
                 }
@@ -4348,7 +4369,7 @@ Route::prefix('spare-part-shops')
                 }
             }
 
-            return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId'));
+            return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId', 'applicationMode'));
         })->name('proforma-details');
 
 Route::post('apply/{proforma}', function (

@@ -192,31 +192,51 @@ class ProformaApplicationController extends Controller
                 $isPartialApplication = false;
 
                 if ($role === 'shop' && $requiredShops > 0) {
-                    // Check if shop is responding to a Partial broadcast notification
-                    $ownPartial = Partial::where('proforma_id', $proforma->id)
-                        ->where('user_id', auth()->id())
-                        ->where('active', true)
-                        ->first();
+                    $applicationMode = $request->input('application_mode');
+                    $requestedGroup = $request->integer('assigned_group');
 
-                    if ($ownPartial) {
-                        // Partial mode: use the group from the Partial record
-                        $inboxGroup = $ownPartial->inbox_group;
-                        $isPartialApplication = true;
-                    } elseif ($inboxGroup === null) {
-                        // Null-group (admin-float) or public browse: try empty group first
+                    if ($applicationMode === 'full') {
                         $inboxGroup = $groupService->autoAssignGroup($proforma);
 
-                        // Admin-floated shops: fall back to first incomplete group when all slots
-                        // already have some prices (partial fills)
-                        if ($inboxGroup === null && $isAdminInboxed) {
-                            $inboxGroup = $groupService->findFirstIncompleteGroup($proforma);
+                        if ($inboxGroup === null) {
+                            return redirect('/spare-part-shops/proformas')
+                                ->with('error', 'No empty proforma group is available. Please use one of the partial proforma cards.');
+                        }
+                    } elseif ($applicationMode === 'partial') {
+                        $ownPartial = Partial::where('proforma_id', $proforma->id)
+                            ->where('user_id', auth()->id())
+                            ->where('inbox_group', $requestedGroup)
+                            ->where('active', true)
+                            ->first();
+
+                        if (! $ownPartial) {
+                            return redirect('/spare-part-shops/proformas')
+                                ->with('error', 'This partial proforma is no longer available.');
                         }
 
-                        if ($inboxGroup === null) {
-                            return redirect()->back()->with('error', 'All available slots are currently being filled. You may receive a notification if additional pricing is needed.');
+                        $inboxGroup = $ownPartial->inbox_group;
+                        $isPartialApplication = true;
+                    } else {
+                        $ownPartial = Partial::where('proforma_id', $proforma->id)
+                            ->where('user_id', auth()->id())
+                            ->where('active', true)
+                            ->first();
+
+                        if ($ownPartial) {
+                            $inboxGroup = $ownPartial->inbox_group;
+                            $isPartialApplication = true;
+                        } elseif ($inboxGroup === null) {
+                            $inboxGroup = $groupService->autoAssignGroup($proforma);
+
+                            if ($inboxGroup === null && $isAdminInboxed) {
+                                $inboxGroup = $groupService->findFirstIncompleteGroup($proforma);
+                            }
+
+                            if ($inboxGroup === null) {
+                                return redirect()->back()->with('error', 'All available slots are currently being filled. You may receive a notification if additional pricing is needed.');
+                            }
                         }
                     }
-                    // Insurance-inboxed with real group number: $inboxGroup already set correctly
                 }
 
                 // For non-group proformas (required_number_of_shops = 0), the inbox_group on the
