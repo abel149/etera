@@ -358,17 +358,19 @@
                             </a>
                             @endforeach
 
-                            {{-- ── FULL PROFORMA CARD (only if empty/incomplete groups remain) ── --}}
+                            {{-- ── FULL PROFORMA CARD (only if a truly empty/unclaimed group remains) ── --}}
                             @php
                                 $requiredShops = (int)($proforma->required_number_of_shops ?? 0);
-                                $totalParts = $proforma->parts()->count();
-                                $hasEmptyGroup = $requiredShops > 0 && $totalParts > 0
+                                // Count groups that have been started (any price saved, even partial).
+                                // Full card only makes sense when started groups < required,
+                                // meaning at least one group has no prices at all.
+                                $startedGroups = $requiredShops > 0
                                     ? \App\Models\ProformaPartPrice::where('proforma_id', $proforma->id)
-                                        ->select('inbox_group')
-                                        ->groupBy('inbox_group')
-                                        ->havingRaw('COUNT(DISTINCT car_part_id) >= ?', [$totalParts])
-                                        ->count() < $requiredShops
-                                    : $requiredShops === 0;
+                                        ->whereNotNull('inbox_group')
+                                        ->distinct('inbox_group')
+                                        ->count('inbox_group')
+                                    : 0;
+                                $hasEmptyGroup = $requiredShops > 0 && $startedGroups < $requiredShops;
                             @endphp
                             @if(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()) && $hasEmptyGroup)
                             <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}"
