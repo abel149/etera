@@ -1039,13 +1039,14 @@
                         if (!hasPdfData) {
                             const priceInputs = form.querySelectorAll('.unit-price-input');
                             const hasAtLeastOne = Array.from(priceInputs).some(
-                                inp => inp.value.trim() !== '' && parseFloat(inp.value) > 0
+                                inp => !inp.disabled && inp.value.trim() !== '' && parseFloat(inp.value) > 0
                             );
                             if (!hasAtLeastOne) {
                                 alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
                                 return;
                             }
                             for (const inp of priceInputs) {
+                                if (inp.disabled) continue; // skip locked parts (already priced, stored as 0)
                                 const val = inp.value.trim();
                                 if (val !== '' && parseFloat(val) < 1) {
                                     inp.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable');
@@ -1079,7 +1080,7 @@
 
                     // Check if any prices are actually entered
                     const hasActualPrices = isShopRole
-                        ? Array.from(form.querySelectorAll('.unit-price-input')).some(inp => inp.value.trim() && parseFloat(inp.value) > 0)
+                        ? Array.from(form.querySelectorAll('.unit-price-input')).some(inp => !inp.disabled && inp.value.trim() && parseFloat(inp.value) > 0)
                         : (parseFloat(form.querySelector('#total-amount')?.value || 0) > 0);
 
                     if (isInsuranceProforma && hasActualPrices) {
