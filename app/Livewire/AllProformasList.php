@@ -213,12 +213,13 @@ if (!empty($acceptedBrandIds)) {
             ->orderBy('created_at', $this->sortBy)
             ->paginate(10);
 
-        // Fetch active Partial records for this user, keyed by proforma_id
+        // Fetch active Partial records for this user, grouped by proforma_id
+        // (Multiple Partials may exist for different groups of the same proforma)
         $partialsByProformaId = Partial::where('user_id', $userId)
             ->where('active', true)
             ->whereIn('proforma_id', $proformas->pluck('id'))
             ->get()
-            ->keyBy('proforma_id');
+            ->groupBy('proforma_id');
 
         return view('livewire.all-proformas-list', [
             'proformas'            => $proformas,

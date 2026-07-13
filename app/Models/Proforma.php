@@ -305,6 +305,19 @@ class Proforma extends Model implements HasMedia
             return false;
         }
         if ($this->isFromInsurance()) {
+            // For group-based proformas: a slot is open when fewer groups are fully priced
+            // than required. Using application count is wrong because partial fills produce
+            // extra applications without claiming new groups.
+            $totalParts = $this->parts()->count();
+            if ($totalParts > 0) {
+                $completeGroups = \App\Models\ProformaPartPrice::where('proforma_id', $this->id)
+                    ->whereNotNull('inbox_group')
+                    ->select('inbox_group')
+                    ->groupBy('inbox_group')
+                    ->havingRaw('COUNT(DISTINCT car_part_id) >= ?', [$totalParts])
+                    ->count();
+                return $completeGroups < $this->required_number_of_shops;
+            }
             return ($this->required_number_of_shops - $this->applications()->where('from', 'shop')->count()) > 0;
         }
         return ($this->number_of_proformas - $this->applications()->where('from', 'shop')->count()) > 0;
@@ -355,8 +368,9 @@ class Proforma extends Model implements HasMedia
                 // Admin-designated slot: dedicated to this specific user
                 return true;
             } else {
-                // Public float slot
-                return $this->publicShopApplicationsCount() < $this->floatShopQuota();
+                // Public float slot: open if there is still an empty group to claim
+                $groupService = new \App\Services\ProformaGroupService();
+                return $groupService->autoAssignGroup($this) !== null;
             }
         }
 
@@ -380,7 +394,7 @@ class Proforma extends Model implements HasMedia
             } elseif ($isAdminInboxed) {
                 return true;
             } else {
-                return $this->publicGarageApplicationsCount() < $this->floatGarageQuota();
+                return ($this->required_number_of_garages - $this->applications()->where('from', 'garage')->count()) > 0;
             }
         }
 

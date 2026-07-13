@@ -303,12 +303,13 @@
                         @endif
 
                         @php
-                            $partialRecord = $partialsByProformaId[$proforma->id] ?? null;
-                            $isPartialCard  = $partialRecord !== null;
+                            $partialRecords = $partialsByProformaId[$proforma->id] ?? collect();
+                            $hasPartials    = $partialRecords->isNotEmpty();
                         @endphp
 
-                        @if($isPartialCard)
-                            {{-- ── PARTIAL PROFORMA CARD ── --}}
+                        @if($hasPartials)
+                            {{-- ── PARTIAL PROFORMA CARDS (one per group) ── --}}
+                            @foreach($partialRecords as $partialRecord)
                             <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}"
                                class="job-listing partial-listing">
 
@@ -355,6 +356,62 @@
                                     </span>
                                 </div>
                             </a>
+                            @endforeach
+
+                            {{-- ── FULL PROFORMA CARD (only if empty/incomplete groups remain) ── --}}
+                            @php
+                                $requiredShops = (int)($proforma->required_number_of_shops ?? 0);
+                                $totalParts = $proforma->parts()->count();
+                                $hasEmptyGroup = $requiredShops > 0 && $totalParts > 0
+                                    ? \App\Models\ProformaPartPrice::where('proforma_id', $proforma->id)
+                                        ->select('inbox_group')
+                                        ->groupBy('inbox_group')
+                                        ->havingRaw('COUNT(DISTINCT car_part_id) >= ?', [$totalParts])
+                                        ->count() < $requiredShops
+                                    : $requiredShops === 0;
+                            @endphp
+                            @if(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()) && $hasEmptyGroup)
+                            <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}"
+                               class="job-listing">
+
+                                <div class="job-listing-details">
+                                    <div class="job-listing-company-logo">
+                                        <img src="{{ asset('asset/images/company-logo-01.png') }}" alt="Company Logo">
+                                    </div>
+
+                                    <div class="job-listing-description">
+                                        @if($proforma->poster->role == 'garage')
+                                            <h3 class="job-listing-title h5 mb-2">Garage</h3>
+                                        @elseif($proforma->poster->role == 'insurance')
+                                            <h3 class="job-listing-title h5 mb-2">{{ $proforma->poster->name ?? 'N/A' }}</h3>
+                                        @else
+                                            <h3 class="job-listing-title h5 mb-2">{{ $proforma->file_number ?? 'N/A' }}</h3>
+                                        @endif
+
+                                        <div class="job-listing-footer">
+                                            <ul>
+                                                <li>
+                                                    <i class="icon-material-outline-directions-car"></i>
+                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }} [{{ $proforma->license_plate_number }}]
+                                                </li>
+                                                <li>
+                                                    <i class="icon-material-outline-business"></i>
+                                                    {{ ucfirst($proforma->poster->role ?? 'N/A') }}
+                                                </li>
+                                                <li>
+                                                    <i class="icon-material-outline-access-time"></i>
+                                                    {{ $proforma->created_at->diffForHumans() }}
+                                                </li>
+                                            </ul>
+                                        </div>
+                                    </div>
+
+                                    <span class="list-apply-button radius-30">
+                                        Apply Now
+                                    </span>
+                                </div>
+                            </a>
+                            @endif
 
                         @elseif(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()))
                             {{-- ── FRESH PROFORMA CARD ── --}}
