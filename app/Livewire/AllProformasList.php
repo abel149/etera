@@ -102,7 +102,14 @@ if (!empty($acceptedBrandIds)) {
             ->toArray();
 
         if (!empty($appliedProformaIds)) {
-            $query->whereNotIn('id', $appliedProformaIds);
+            // Exclude applied proformas, UNLESS the user still has an active Partial
+            // record for a different group of the same proforma.
+            $query->where(function ($q) use ($appliedProformaIds, $userId) {
+                $q->whereNotIn('id', $appliedProformaIds)
+                  ->orWhereHas('partials', fn ($pq) =>
+                      $pq->where('user_id', $userId)->where('active', true)
+                  );
+            });
         }
 
         /**

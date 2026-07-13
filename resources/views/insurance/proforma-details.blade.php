@@ -349,10 +349,14 @@
                                         </tr>
                                     </thead>
                                     <tbody>
-                                        @php $shopSubtotal = 0; @endphp
-                                        @foreach($proforma->parts as $part)
+                                        @php $shopSubtotal = 0; $partIdx = 0; @endphp
+                                        @foreach($proforma->parts->sortBy('id')->values() as $part)
                                         @php
-                                            $partPrice     = $application->prices->values()->get($loop->index);
+                                            $carPartId     = $partCarPartIds[$partIdx] ?? null;
+                                            $partPrice     = $carPartId
+                                                ? $application->prices->firstWhere('car_part_id', $carPartId)
+                                                : $application->prices->values()->get($partIdx);
+                                            $partIdx++;
                                             $isEncPart     = $partPrice && !empty($partPrice->price_is_encrypted);
                                             $hasPrice      = $partPrice && !$isEncPart && $partPrice->unit_price > 0;
                                             $unitPrice     = $hasPrice ? (float)$partPrice->unit_price : 0;

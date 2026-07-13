@@ -3168,27 +3168,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'brand',
             ])->findOrFail($request->query('proforma_id'));
 
-            // Shop applications
+            // Shop applications — sort by inbox_group first, then by id.
+            // (Sorting by subtotal is unreliable for encrypted proformas where all amounts are 0.)
             $shopApplications = $proforma->applications
                 ->where('from', 'shop')
-                ->sortBy(function($application) use ($proforma) {
-
-                    $subtotal = 0;
-
-                    foreach ($proforma->parts as $idx => $part) {
-
-                        $price = $application->prices->values()->get($idx);
-
-                        if ($price) {
-                            $subtotal += $price->unit_price * $part->quantity;
-                        }
-                    }
-
-                    $discountPct = (float)($application->discount ?? 0);
-                    $discountAmt = ($subtotal * $discountPct) / 100;
-
-                    return $subtotal - $discountAmt;
-                });
+                ->sortBy(fn($a) => [$a->inbox_group ?? 9999, $a->id]);
 
             // Garage applications
             $garageApplications = $proforma->applications
@@ -3202,11 +3186,13 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
             $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
-            // Shop limit
-            if ($requiredShops > 0) {
-                $shopApplications = $shopApplications->take($requiredShops);
-            } else {
-                $shopApplications = $shopApplications->take(5);
+            // Shop limit: for group-based proformas (inbox_group is used), show ALL applications
+            // because partial-fill completions create more applications than required_number_of_shops.
+            $usesGroups = $shopApplications->filter(fn($a) => $a->inbox_group !== null)->isNotEmpty();
+            if (!$usesGroups) {
+                $shopApplications = $requiredShops > 0
+                    ? $shopApplications->take($requiredShops)
+                    : $shopApplications->take(5);
             }
 
             // Garage limit
@@ -3217,7 +3203,13 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             // Merge collections
             $applications = $shopApplications->concat($garageApplications);
 
-            return view('insurance.proforma-details', compact('proforma', 'applications'));
+            // Build proforma-part → car_part_id map so the view can match prices by car_part_id
+            // instead of by collection index (index-based mapping breaks for partial applications).
+            $partCarPartIds = $proforma->parts->sortBy('id')->values()->map(
+                fn($p) => \App\Models\CarPart::where('name', 'ppart_' . $p->id)->value('id')
+            );
+
+            return view('insurance.proforma-details', compact('proforma', 'applications', 'partCarPartIds'));
 });
         Route::get('/add-parts', function () {
             return view('insurance.parts.add');
