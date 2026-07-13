@@ -181,12 +181,40 @@ if (!empty($acceptedBrandIds)) {
             });
         }
 
+        // ── DIAGNOSTIC LOGGING ──────────────────────────────────────────────
+        $activePartials = Partial::where('user_id', $userId)->where('active', true)->get();
+
+        \Log::info('[AllProformasList] Diagnostic', [
+            'user_id'              => $userId,
+            'accepted_brand_ids'   => $acceptedBrandIds,
+            'active_partial_count' => $activePartials->count(),
+            'partial_proforma_ids' => $activePartials->pluck('proforma_id')->toArray(),
+        ]);
+
+        foreach ($activePartials as $partial) {
+            $pf = \App\Models\Proforma::withoutGlobalScopes()->find($partial->proforma_id);
+            \Log::info('[AllProformasList] Partial proforma check', [
+                'proforma_id'              => $partial->proforma_id,
+                'proforma_status'          => $pf?->status,
+                'proforma_type'            => $pf?->proforma_type,
+                'proforma_car_brand_id'    => $pf?->car_brand_id,
+                'brand_matches'            => in_array($pf?->car_brand_id, $acceptedBrandIds),
+                'applied_by_user'          => in_array($partial->proforma_id, $appliedProformaIds),
+            ]);
+        }
+        // ── END DIAGNOSTIC ───────────────────────────────────────────────────
+
         /**
          * Sort & Paginate
          */
         $proformas = $query
             ->orderBy('created_at', $this->sortBy)
             ->paginate(10);
+
+        \Log::info('[AllProformasList] Query result', [
+            'user_id'       => $userId,
+            'returned_ids'  => $proformas->pluck('id')->toArray(),
+        ]);
 
         // Fetch active Partial records for this user, keyed by proforma_id
         $partialsByProformaId = Partial::where('user_id', $userId)
