@@ -198,6 +198,15 @@ class ProformaApplicationController extends Controller
                         ->where('active', true)
                         ->first();
 
+                    Log::info('Partial check', [
+                        'proforma_id'     => $proforma->id,
+                        'user_id'         => auth()->id(),
+                        'own_partial_id'  => $ownPartial?->id,
+                        'own_partial_group' => $ownPartial?->inbox_group,
+                        'own_partial_active' => $ownPartial?->active,
+                        'inbox_group_before' => $inboxGroup,
+                    ]);
+
                     if ($ownPartial) {
                         // Partial mode: use the group from the Partial record
                         $inboxGroup = $ownPartial->inbox_group;
