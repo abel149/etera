@@ -372,7 +372,7 @@
                                     : 0;
                                 $hasEmptyGroup = $requiredShops > 0 && $startedGroups < $requiredShops;
                             @endphp
-                            @if(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()) && $hasEmptyGroup)
+                            @if(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()) && $hasEmptyGroup && $proforma->status === 'published')
                             <a href="/spare-part-shops/proforma-details?proforma={{ $proforma->id }}&mode=full"
                                class="job-listing">
 
