@@ -219,7 +219,7 @@
                         <div>
                             <h4 class="filter-label">Car Type</h4>
                             <div class="btn-group w-100 flex-wrap" role="group">
-                                @foreach(['All', 'ICE', 'EV', 'Hybrid'] as $type)
+                                @foreach(['All', 'Sedan/S.U.V(GAS)', 'Sedan/S.U.V(EV)', 'Mini Van(GAS)', 'Mini Van(EV)', 'Isuzu/Bus(GAS)', 'Isuzu/Bus(EV)', 'Heavy'] as $type)
                                     <button
                                         wire:click="$set('filters.car_type', '{{ $type }}')"
                                         class="btn btn-xs flex-fill {{ ($filters['car_type'] ?? 'All') === $type ? 'btn-primary' : 'btn-outline-primary' }}">

@@ -131,6 +131,33 @@
                                         @enderror
                                     </div>
 
+                                    <div class="col-12 col-lg-6">
+                                        <label class="form-label">Damage Severity (Optional)</label>
+                                        <div class="d-flex gap-3 mt-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_minor" value="minor" {{ old('damage_severity') == 'minor' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="damage_minor">
+                                                    Minor (Remote Fill) - ቀላል
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_major" value="major" {{ old('damage_severity') == 'major' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="damage_major">
+                                                    Major (Garage Required) - ከባድ
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_severe" value="severe" {{ old('damage_severity') == 'severe' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="damage_severe">
+                                                    Severe (Site Visit) - ከፍተኛ
+                                                </label>
+                                            </div>
+                                        </div>
+                                        @error('damage_severity')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
                                 @php
                                     use App\Models\Brand;
                                     use App\Models\CarPart;
