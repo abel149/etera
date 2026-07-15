@@ -19,14 +19,10 @@ return new class extends Migration
      */
     public function up(): void
     {
-        // Step 1: Convert existing old values to new values
-        DB::statement("UPDATE proformas SET car_type = 'Sedan/S.U.V(GAS)' WHERE car_type = 'ICE'");
-        DB::statement("UPDATE proformas SET car_type = 'Sedan/S.U.V(EV)' WHERE car_type = 'EV'");
-        DB::statement("UPDATE proformas SET car_type = 'Mini Van(GAS)' WHERE car_type = 'Hybrid'");
-        DB::statement("UPDATE proformas SET car_type = 'Heavy' WHERE car_type = 'Others'");
-
-        // Step 2: Change the enum definition
-        DB::statement("ALTER TABLE proformas MODIFY COLUMN car_type ENUM('Sedan/S.U.V(GAS)', 'Sedan/S.U.V(EV)', 'Mini Van(GAS)', 'Mini Van(EV)', 'Isuzu/Bus(GAS)', 'Isuzu/Bus(EV)', 'Heavy') NOT NULL DEFAULT 'Sedan/S.U.V(GAS)'");
+        // Keep old values and add new ones — no data migration needed
+        // Existing records with old values (ICE, EV, Hybrid, Others) stay as-is
+        // New records will use the new values shown in the UI
+        DB::statement("ALTER TABLE proformas MODIFY COLUMN car_type ENUM('ICE', 'EV', 'Hybrid', 'Others', 'Sedan/S.U.V(GAS)', 'Sedan/S.U.V(EV)', 'Mini Van(GAS)', 'Mini Van(EV)', 'Isuzu/Bus(GAS)', 'Isuzu/Bus(EV)', 'Heavy') NOT NULL DEFAULT 'Sedan/S.U.V(GAS)'");
     }
 
     /**
