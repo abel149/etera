@@ -79,6 +79,7 @@ class ProformaApplicationController extends Controller
                         $request->validate([
                             'amount' => 'required|numeric|min:1',
                             'discount' => 'nullable|numeric|min:0|max:100',
+                            'expiry_date' => 'nullable|date|after:today',
                         ], [
                             'amount.required' => 'Price is required.',
                             'amount.numeric' => 'Price must be a valid number.',
@@ -86,6 +87,8 @@ class ProformaApplicationController extends Controller
                             'discount.numeric' => 'Discount must be a valid number.',
                             'discount.min' => 'Discount cannot be negative.',
                             'discount.max' => 'Discount cannot exceed 100%.',
+                            'expiry_date.date' => 'Expiry date must be a valid date.',
+                            'expiry_date.after' => 'Expiry date must be after today.',
                         ]);
                     }
                 } else { // 'shop' role
@@ -101,12 +104,15 @@ class ProformaApplicationController extends Controller
                             'total' => 'nullable|array',
                             'total.*' => 'nullable|numeric|min:1',
                             'discount' => 'nullable|numeric|min:0|max:100',
+                            'expiry_date' => 'nullable|date|after:today',
                         ], [
                             'total.*.numeric' => 'Unit price must be a valid number.',
                             'total.*.min' => 'Unit price must be at least 1. Leave the field blank if you do not carry this part.',
                             'discount.numeric' => 'Discount must be a valid number.',
                             'discount.min' => 'Discount cannot be negative.',
                             'discount.max' => 'Discount cannot exceed 100%.',
+                            'expiry_date.date' => 'Expiry date must be a valid date.',
+                            'expiry_date.after' => 'Expiry date must be after today.',
                         ]);
 
                         $hasAtLeastOnePrice = collect($request->input('total', []))
@@ -254,6 +260,7 @@ class ProformaApplicationController extends Controller
                     'notes'             => $request->filled('notes') ? trim($request->notes) : null,
                     'application_source'=> $applicationSource,
                     'inbox_group'       => $inboxGroup,
+                    'expiry_date'       => $request->filled('expiry_date') ? $request->expiry_date : null,
                 ];
                 if ($isEncrypted && $request->filled('encrypted_amount')) {
                     $appData['encrypted_amount']   = $request->encrypted_amount;

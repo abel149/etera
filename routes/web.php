@@ -3820,6 +3820,10 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $request->validate([
                     'amount'   => 'required|numeric|min:1',
                     'discount' => 'nullable|numeric|min:0|max:100',
+                    'expiry_date' => 'nullable|date|after:today',
+                ], [
+                    'expiry_date.date' => 'Expiry date must be a valid date.',
+                    'expiry_date.after' => 'Expiry date must be after today.',
                 ]);
             }
 
@@ -3855,6 +3859,7 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 'notes'             => $request->filled('notes') ? trim($request->notes) : null,
                 'application_source'=> $applicationSource,
                 'inbox_group'       => $inboxGroup,
+                'expiry_date'       => $request->filled('expiry_date') ? $request->expiry_date : null,
             ];
             if ($isEncrypted && $request->filled('encrypted_amount')) {
                 $appData['encrypted_amount']   = $request->encrypted_amount;

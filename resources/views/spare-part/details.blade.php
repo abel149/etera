@@ -674,8 +674,24 @@
                                         <input type="number" id="discount" name="discount" class="with-border"
                                             placeholder="Enter discount"  min="0" max="100">
                                     </td>
-                                    <input type="hidden" name="final-amount" id="final-amount-hidden" 
+                                    <input type="hidden" name="final-amount" id="final-amount-hidden"
                                         class="with-border">
+                                </tr>
+                                <tr>
+                                    @php
+                                        $expiryColspan = auth()->check() && auth()->user()->role == 'shop' ? 8 : 6;
+                                    @endphp
+                                    <td colspan="{{ $expiryColspan }}"></td>
+                                    <td class="text-align-right" colspan="1">
+                                        Quote Expiry Date
+                                    </td>
+                                    <td colspan="2">
+                                        <input type="date" id="expiry_date" name="expiry_date" class="with-border"
+                                            placeholder="Select expiry date">
+                                        @error('expiry_date')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </td>
                                 </tr>
                                 <tr>
                                     @php
