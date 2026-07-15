@@ -71,6 +71,13 @@
                   <td class="proportional">{{ $proforma->customer_phone_number ?? 'N/A' }}</td>
                 </tr>
                 <tr>
+                  <td class="no-wrap"><b>Agent Phone</b></td>
+                  <td class="proportional">{{ $proforma->agent_phone_number ?? 'N/A' }}</td>
+                  <td class="no-wrap"></td>
+                  <td class="proportional"></td>
+                </tr>
+
+                <tr>
                   <td class="no-wrap"><b>Car</b></td>
                   <td class="proportional">{{ $proforma->car_type ?? 'N/A' }} {{ $proforma->brand->name ?? 'N/A' }}</td>
                   <td class="no-wrap"><b>Needed Parts</b></td>
