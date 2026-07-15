@@ -135,19 +135,19 @@
                                         <label class="form-label">Damage Severity (Optional)</label>
                                         <div class="d-flex gap-3 mt-2">
                                             <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_minor" value="minor" {{ old('damage_severity') == 'minor' ? 'checked' : '' }}>
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_minor" value="minor" {{ old('damage_severity') == 'minor' ? 'checked' : '' }} style="accent-color: #0d6efd; width: 1.2em; height: 1.2em;">
                                                 <label class="form-check-label" for="damage_minor">
                                                     Minor (Remote Fill) - ቀላል
                                                 </label>
                                             </div>
                                             <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_major" value="major" {{ old('damage_severity') == 'major' ? 'checked' : '' }}>
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_major" value="major" {{ old('damage_severity') == 'major' ? 'checked' : '' }} style="accent-color: #0d6efd; width: 1.2em; height: 1.2em;">
                                                 <label class="form-check-label" for="damage_major">
                                                     Major (Garage Required) - ከባድ
                                                 </label>
                                             </div>
                                             <div class="form-check">
-                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_severe" value="severe" {{ old('damage_severity') == 'severe' ? 'checked' : '' }}>
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_severe" value="severe" {{ old('damage_severity') == 'severe' ? 'checked' : '' }} style="accent-color: #0d6efd; width: 1.2em; height: 1.2em;">
                                                 <label class="form-check-label" for="damage_severe">
                                                     Severe (Site Visit) - ከፍተኛ
                                                 </label>
