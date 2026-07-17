@@ -498,9 +498,9 @@
                                 {{-- Group 2 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="2">
                                     <label for="shopExtra1" class="form-label">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -508,9 +508,9 @@
                                 {{-- Group 3 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="3">
                                     <label for="shopExtra2" class="form-label">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -518,9 +518,9 @@
                                 {{-- Group 4 (shown when required ≥ 4) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="4" style="display:none">
                                     <label for="shopExtra3" class="form-label">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -528,9 +528,9 @@
                                 {{-- Group 5 (shown when required = 5) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="5" style="display:none">
                                     <label for="shopExtra4" class="form-label">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -865,7 +865,15 @@ document.addEventListener('DOMContentLoaded', () => {
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = 'none';
+            // Filter shop options to only show shop_garage = 1
+            document.querySelectorAll('.shop-select option').forEach(opt => {
+                opt.style.display = (opt.dataset.shopGarage === '1') ? '' : 'none';
+            });
         } else {
+            // Show all shop options for other types
+            document.querySelectorAll('.shop-select option').forEach(opt => {
+                opt.style.display = '';
+            });
             if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = '';
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';

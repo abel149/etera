@@ -3049,7 +3049,13 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             $spare_part_partners = auth()->user()->sparePartPartners();
             $garage_partners     = auth()->user()->garagePartners();
-            $all_shops           = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+
+            // For insurance_shop_garage type, only show shops with shop_garage = 1
+            if ($proforma->proforma_type === 'insurance_shop_garage') {
+                $all_shops = \App\Models\User::where('role', 'shop')->where('shop_garage', 1)->orderBy('name')->get();
+            } else {
+                $all_shops = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+            }
             $all_garages         = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
 
             return view('insurance.manage-inboxes', compact(
@@ -3334,6 +3340,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $spare_part_partners = auth()->user()->sparePartPartners();
             $garage_partners = auth()->user()->garagePartners();
 
+            // For insurance_shop_garage type, only show shops with shop_garage = 1
+            // Note: This is for the create page, filtering happens on selection in JS
             $all_shops   = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
             $all_garages = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
 
@@ -3480,7 +3488,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'number_of_proformas' => 'nullable|integer|min:-1|max:5',
                 'etera_chereta_hours' => 'nullable|integer|in:4,8,12,24,48,72',
                 'voice_note' => 'nullable|string|max:10485760',
-                'proforma_type' => 'nullable|in:insurance_standard,insurance_shop_only,insurance_garage_only',
+                'proforma_type' => 'nullable|in:insurance_standard,insurance_shop_only,insurance_garage_only,insurance_shop_garage',
                 'number_of_garages' => 'nullable|integer|min:1|max:5'
             ]);
             
