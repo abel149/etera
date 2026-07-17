@@ -772,6 +772,56 @@
                     <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">
                     @endif
 
+                    {{-- Garage application section (embedded in shop form for shop_garage users) --}}
+                    @if (auth()->check() && auth()->user()->shop_garage == 1)
+                    <div class="margin-top-30" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 20px;">
+                        <h6 style="color: #60a5fa; font-weight: 600; margin-bottom: 15px;">
+                            <i class="bx bx-buildings" style="margin-right: 6px;"></i>Garage Service Application
+                        </h6>
+                        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">
+                            Apply as a garage for repair service estimate (single total amount)
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                    Repair Service Estimate (ETB)
+                                </label>
+                                <input type="number" name="garage_amount" class="with-border" min="1" step="any"
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                                @error('garage_amount')
+                                    <span class="text-danger" style="font-size: 0.8rem;">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                    Discount (%)
+                                </label>
+                                <input type="number" name="garage_discount" class="with-border" placeholder="Enter discount" min="0" max="100"
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                Quote Expiry Date
+                            </label>
+                            <input type="date" name="garage_expiry_date" class="with-border" placeholder="Select expiry date"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                            @error('garage_expiry_date')
+                                <span class="text-danger" style="font-size: 0.8rem;">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                <i class="bx bx-message-detail" style="margin-right: 4px;"></i>Additional Notes <span style="font-weight: 400; color: #94a3b8;">(optional)</span>
+                            </label>
+                            <textarea name="garage_notes" rows="3"
+                                class="with-border"
+                                style="width: 100%; resize: vertical; min-height: 72px; max-height: 180px; font-size: 0.9rem; border-radius: 6px; padding: 8px 10px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);"
+                                placeholder="Service details, timeline, warranty, or any other information…"></textarea>
+                        </div>
+                    </div>
+                    @endif
+
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
                         <button type="submit" class="apply-now-button radius-30 margin-top-15" id="submitBtn">
                             <span class="btn-text">Apply Now <i class="icon-material-outline-arrow-right-alt"></i></span>
@@ -781,63 +831,6 @@
                         </button>
                     @endif
                 </form>
-
-                {{-- Second form for garage application (only shown when shop_garage == 1) --}}
-                @if (auth()->check() && auth()->user()->shop_garage == 1 && !$proforma->userAlreadyApplied(auth()->user()->id))
-                <div class="margin-top-30" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 20px;">
-                    <h6 style="color: #60a5fa; font-weight: 600; margin-bottom: 15px;">
-                        <i class="bx bx-buildings" style="margin-right: 6px;"></i>Garage Service Application
-                    </h6>
-                    <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">
-                        Apply as a garage for repair service estimate (single total amount)
-                    </p>
-                    <form action="{{ route('garage.proforma.apply', $proforma->id) }}" method="POST" id="garage-quote-form" novalidate>
-                        @csrf
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-                            <div>
-                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
-                                    Repair Service Estimate (ETB)
-                                </label>
-                                <input type="number" name="amount" class="with-border" required min="1" step="any"
-                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
-                                @error('amount')
-                                    <span class="text-danger" style="font-size: 0.8rem;">{{ $message }}</span>
-                                @enderror
-                            </div>
-                            <div>
-                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
-                                    Discount (%)
-                                </label>
-                                <input type="number" name="discount" class="with-border" placeholder="Enter discount" min="0" max="100"
-                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
-                            </div>
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
-                                Quote Expiry Date
-                            </label>
-                            <input type="date" name="expiry_date" class="with-border" placeholder="Select expiry date"
-                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
-                            @error('expiry_date')
-                                <span class="text-danger" style="font-size: 0.8rem;">{{ $message }}</span>
-                            @enderror
-                        </div>
-                        <div style="margin-bottom: 15px;">
-                            <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
-                                <i class="bx bx-message-detail" style="margin-right: 4px;"></i>Additional Notes <span style="font-weight: 400; color: #94a3b8;">(optional)</span>
-                            </label>
-                            <textarea name="notes" rows="3"
-                                class="with-border"
-                                style="width: 100%; resize: vertical; min-height: 72px; max-height: 180px; font-size: 0.9rem; border-radius: 6px; padding: 8px 10px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);"
-                                placeholder="Service details, timeline, warranty, or any other information…"></textarea>
-                        </div>
-                        <button type="submit" class="apply-now-button radius-30"
-                            style="background: linear-gradient(135deg, #3b82f6, #2563eb); border: none;">
-                            <span class="btn-text">Apply as Garage <i class="icon-material-outline-arrow-right-alt"></i></span>
-                        </button>
-                    </form>
-                </div>
-                @endif
             </div>
         </div>
     </div>
