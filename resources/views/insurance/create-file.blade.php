@@ -229,6 +229,13 @@
                                                     <small class="text-muted d-block">Repair Garages</small>
                                                 </label>
                                             </div>
+                                            <div class="proforma-type-card" data-type="insurance_shop_garage">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopGarage" value="insurance_shop_garage" {{ old('proforma_type') == 'insurance_shop_garage' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="typeShopGarage">
+                                                    <i class="bx bx-building-house me-1"></i> Shop + Garage
+                                                    <small class="text-muted d-block">Dual Service Providers</small>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -829,10 +836,10 @@ document.addEventListener('DOMContentLoaded', () => {
                      || 'insurance_standard';
         const shopCount   = type === 'insurance_shop_only'
             ? (parseInt((document.getElementById('number_of_proformas') || {}).value) || 3)
-            : (type === 'insurance_garage_only' ? 0 : 3);
+            : (type === 'insurance_garage_only' ? 0 : (type === 'insurance_shop_garage' ? 3 : 3));
         const garageCount = type === 'insurance_garage_only'
             ? (parseInt((document.getElementById('number_of_garages') || {}).value) || 3)
-            : (type === 'insurance_shop_only' ? 0 : 3);
+            : (type === 'insurance_shop_only' ? 0 : (type === 'insurance_shop_garage' ? 0 : 3));
 
         document.querySelectorAll('.shop-inbox-group').forEach(el => {
             el.style.display = (parseInt(el.dataset.group) <= shopCount) ? '' : 'none';
@@ -849,6 +856,11 @@ document.addEventListener('DOMContentLoaded', () => {
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = 'none';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = '';
         } else if (type === 'insurance_shop_only') {
+            if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = '';
+            if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
+            if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
+            if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = 'none';
+        } else if (type === 'insurance_shop_garage') {
             if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = '';
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';

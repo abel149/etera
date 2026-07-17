@@ -196,13 +196,33 @@
                         <label for="input10" class="form-label">Confirm Password</label>
                         <input name="password_confirmation" type="password" class="form-control" id="input10" placeholder="Confirm Password">
                     </div>
-                    
+
+                    <!-- Dealer Checkbox -->
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="dealers" id="dealers" value="1" {{ $shop->dealers ?? 0 ? 'checked' : '' }}>
+                            <label class="form-check-label" for="dealers">
+                                Is Dealer
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Dual Service Checkbox -->
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="shop_garage" id="shop_garage" value="1" {{ $shop->shop_garage ?? 0 ? 'checked' : '' }}>
+                            <label class="form-check-label" for="shop_garage">
+                                Dual Service (Shop + Garage)
+                            </label>
+                        </div>
+                    </div>
+
                     <hr/>
 
                     <div class="my-0">
                         <button type="submit" class="btn btn-primary radius-30 px-4">Update</button>
                         &nbsp;
-                        <a href="{{ url('/admin/spare-part-shops') }}" type="button" class="btn btn-outline-secondary radius-30 px-3">Cancel</a>
+                        <a href="{{ url('/marketer/spare-part-shops') }}" type="button" class="btn btn-outline-secondary radius-30 px-3">Cancel</a>
                     </div>
                 </form>
             </div>

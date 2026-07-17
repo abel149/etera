@@ -133,6 +133,11 @@ class Proforma extends Model implements HasMedia
         return $this->proforma_type === 'insurance_shop_only';
     }
 
+    public function isShopGarageInsurance(): bool
+    {
+        return $this->proforma_type === 'insurance_shop_garage';
+    }
+
     public function getRemainingShopsAttribute()
     {
         if ($this->isGarageOnlyInsurance()) {

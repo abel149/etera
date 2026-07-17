@@ -47,6 +47,9 @@ public function store(Request $request)
 
         'license_image' => 'required|file|image',
         'stamp_image' => 'required|file|image',
+
+        'dealers' => 'nullable|boolean',
+        'shop_garage' => 'nullable|boolean',
     ]);
 
     // Default password handling
@@ -79,6 +82,8 @@ public function store(Request $request)
         'license_image' => $licenseImagePath,
         'stamp_image' => $stampImagePath,
         'store_id' => $newStoreId,
+        'dealers' => $request->has('dealers') ? 1 : 0,
+        'shop_garage' => $request->has('shop_garage') ? 1 : 0,
     ]);
 
     // Attach brands
@@ -339,6 +344,8 @@ public function edit(string $id)
         // $shop->business_license_number = $request->business_license_number;
         // $shop->license_expire_date = $request->license_expire_date;
         $shop->tin_number = $request->tin_number;
+        $shop->dealers = $request->has('dealers') ? 1 : 0;
+        $shop->shop_garage = $request->has('shop_garage') ? 1 : 0;
 
 
         // Save the updated shop

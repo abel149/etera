@@ -80,6 +80,24 @@
                                         <label for="input9" class="form-label">Confirm Password</label>
                                         <input type="password" class="form-control" id="input9" placeholder="Confirm Password">
                                     </div>
+                                    <!-- Dealer Checkbox -->
+                                    <div class="col-md-6">
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" name="dealers" id="dealers" value="1" {{ $shop->dealers ?? 0 ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="dealers">
+                                                Is Dealer
+                                            </label>
+                                        </div>
+                                    </div>
+                                    <!-- Dual Service Checkbox -->
+                                    <div class="col-md-6">
+                                        <div class="form-check mt-2">
+                                            <input class="form-check-input" type="checkbox" name="shop_garage" id="shop_garage" value="1" {{ $shop->shop_garage ?? 0 ? 'checked' : '' }}>
+                                            <label class="form-check-label" for="shop_garage">
+                                                Dual Service (Shop + Garage)
+                                            </label>
+                                        </div>
+                                    </div>
                                     <hr/>
                                     <div class="my-0">
                                         <button type="submit" class="btn btn-primary radius-30 px-4" onclick="notification('Spare Part Shop Updated Successfully')"> Update

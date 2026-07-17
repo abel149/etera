@@ -48,7 +48,7 @@ class ProformaApplicationController extends Controller
                 $proforma = Proforma::where('id', $proforma->id)->lockForUpdate()->first();
 
                 if (!$proforma || !in_array($proforma->status, ['pending', 'published', 'opened'])) {
-                    $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
+                    $redirectUrl = (auth()->user()->role === 'garage' || auth()->user()->shop_garage == 1) ? '/garage/proformas' : '/spare-part-shops/proformas';
                     return redirect($redirectUrl)->with('error', 'This proforma is no longer accepting applications.');
                 }
 
@@ -72,7 +72,7 @@ class ProformaApplicationController extends Controller
                 // Step 2: Validate the request data based on the user's role.
                 $isEncrypted = $request->boolean('prices_encrypted', false);
 
-                if (auth()->user()->role === 'garage') {
+                if (auth()->user()->role === 'garage' || auth()->user()->shop_garage == 1) {
                     if ($isEncrypted) {
                         $request->validate(['encrypted_amount' => 'required|string']);
                     } else {
@@ -140,7 +140,7 @@ class ProformaApplicationController extends Controller
                 // Step 2b: Insurance proformas require encrypted submissions — always.
                 // Exception: a PDF-only submission counts as acceptable (PDF is encrypted client-side).
                 if (!$isEncrypted && optional($proforma->poster)->role === 'insurance' && !$hasPdf) {
-                    $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
+                    $redirectUrl = (auth()->user()->role === 'garage' || auth()->user()->shop_garage == 1) ? '/garage/proformas' : '/spare-part-shops/proformas';
                     return redirect($redirectUrl)
                         ->withErrors(['general' => 'Encrypted price submission is required for this proforma. Please contact the insurance.'])
                         ->withInput();
@@ -153,7 +153,7 @@ class ProformaApplicationController extends Controller
                 if ($isEncrypted) {
                     // Encrypted mode: amount is a ciphertext; store 0 as numeric placeholder
                     $finalAmount = 0;
-                } elseif (auth()->user()->role === 'garage') {
+                } elseif (auth()->user()->role === 'garage' || auth()->user()->shop_garage == 1) {
                     $initialPrice = $request->amount;
                     $discountAmount = ($initialPrice * $discount) / 100;
                     $finalAmount = $initialPrice - $discountAmount;
@@ -382,7 +382,7 @@ class ProformaApplicationController extends Controller
                 $filledPartsCount = 0;
                 $skippedPartsCount = 0;
 
-                if (auth()->user()->role === 'shop' && !$isPdfOnly) {
+                if ((auth()->user()->role === 'shop' || auth()->user()->shop_garage == 1) && !$isPdfOnly) {
                     $partsProcessed = 0;
                     $totalPartsCount = $proforma->parts()->count();
 

@@ -167,7 +167,12 @@ class AdminController extends Controller
         $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
 
         // Shops and garages for the send-to-inbox form
-        $shops   = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
+        // For insurance_shop_garage type, only show users with shop_garage = 1
+        if ($proforma->proforma_type === 'insurance_shop_garage') {
+            $shops   = \App\Models\User::where('role', 'shop')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->get();
+        } else {
+            $shops   = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
+        }
         $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
 
         // IDs locked by active applications (cannot be replaced)
@@ -217,6 +222,10 @@ class AdminController extends Controller
         if ($proforma->isGarageOnlyInsurance()) {
             $adminShopSlotCap   = 0;
             $effectiveShopQuota = 0;
+        }
+        if ($proforma->isShopGarageInsurance()) {
+            $adminGarageSlotCap   = 0;
+            $effectiveGarageQuota = 0;
         }
 
         // IDs already inboxed (any source) — excluded from dropdown options
@@ -273,11 +282,18 @@ class AdminController extends Controller
         try {
             $matchingShops = collect();
             if ($proforma->proforma_type !== 'insurance_garage_only') {
-                $matchingShops = User::where('role', 'shop')
+                $shopQuery = User::where('role', 'shop')
                     ->where('approved', true)
                     ->whereHas('brands', function ($q) use ($proforma) {
                         $q->where('brand_id', $proforma->car_brand_id);
-                    })->get();
+                    });
+
+                // For insurance_shop_garage type, only notify users with shop_garage = 1
+                if ($proforma->proforma_type === 'insurance_shop_garage') {
+                    $shopQuery->where('shop_garage', 1);
+                }
+
+                $matchingShops = $shopQuery->get();
 
                 if ($matchingShops->isNotEmpty()) {
                     Notification::send($matchingShops, new ProformaFloatedNotification($proforma));

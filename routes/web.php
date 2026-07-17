@@ -3514,6 +3514,10 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 $requiredShops = max(1, (int) $request->input('number_of_proformas', 3));
                 $requiredGarages = 0;
                 $proformaType = 'insurance_shop_only';
+            } elseif ($request->input('proforma_type') === 'insurance_shop_garage') {
+                $requiredShops = max(1, (int) $request->input('number_of_proformas', 3));
+                $requiredGarages = 0;
+                $proformaType = 'insurance_shop_garage';
             } else {
                 // Standard insurance: fixed 3+3 slots with quota system
                 $requiredShops   = 3;
@@ -3582,14 +3586,23 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             if ($proformaType !== 'insurance_garage_only') {
                 foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3, 4 => $shopGroup4, 5 => $shopGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
-                        $shopGroupsUsed++;
-                        foreach ($ids as $userId) {
-                            Inbox::create([
-                                'proforma_id' => $proforma->id,
-                                'user_id'     => $userId,
-                                'source'      => 'insurance',
-                                'inbox_group' => $grp,
-                            ]);
+                        // Filter users: for insurance_shop_garage type, only include users with shop_garage = 1
+                        if ($proformaType === 'insurance_shop_garage') {
+                            $ids = array_filter($ids, function($userId) {
+                                $user = \App\Models\User::find($userId);
+                                return $user && $user->shop_garage == 1;
+                            });
+                        }
+                        if (!empty($ids)) {
+                            $shopGroupsUsed++;
+                            foreach ($ids as $userId) {
+                                Inbox::create([
+                                    'proforma_id' => $proforma->id,
+                                    'user_id'     => $userId,
+                                    'source'      => 'insurance',
+                                    'inbox_group' => $grp,
+                                ]);
+                            }
                         }
                     }
                 }
@@ -4522,6 +4535,13 @@ Route::post('/proformas', function (Request $request) {
 
         // Add new entries
         foreach (array_diff($desiredShopIds, $currentShopIds) as $desiredUserId) {
+            // Filter users: for insurance_shop_garage type, only include users with shop_garage = 1
+            if ($proforma->proforma_type === 'insurance_shop_garage') {
+                $user = \App\Models\User::find($desiredUserId);
+                if (!$user || $user->shop_garage != 1) {
+                    continue;
+                }
+            }
             $inboxRecord = Inbox::firstOrCreate(
                 ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
             );

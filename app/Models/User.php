@@ -99,6 +99,8 @@ class User extends Authenticatable
         'recovery_encrypted_private_key',
         'recovery_key_iv',
         'recovery_key_salt',
+        'dealers',
+        'shop_garage',
     ];
 
     protected $hidden = [
@@ -116,6 +118,8 @@ class User extends Authenticatable
         'is_new'              => 'boolean',
         'approved'            => 'boolean', // ✅ CRITICAL: Ensures 0/1 becomes false/true
         'has_encryption'      => 'boolean', // ✅ CRITICAL: prevents PDO "0" string being truthy
+        'dealers'             => 'boolean',
+        'shop_garage'         => 'boolean',
         'file_quota'          => 'integer',
         'commission_per_file' => 'decimal:2',
     ];
