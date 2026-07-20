@@ -775,7 +775,6 @@
                     <input type="hidden" name="aes_iv" id="hiddenAesIv">
                     <input type="hidden" name="pdf_data" id="hiddenPdfData">
                     <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">
-                    @endif
 
                     {{-- Garage application section (embedded in shop form for shop_garage users) --}}
                     @if (auth()->check() && auth()->user()->shop_garage == 1 && $proforma->isShopGarageInsurance())
