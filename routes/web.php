@@ -4325,7 +4325,11 @@ Route::prefix('spare-part-shops')
             if (auth()->check() && auth()->user()->role === 'shop') {
                 $groupService = new \App\Services\ProformaGroupService();
 
-                if ($applicationMode === 'full') {
+                if ($proforma->isShopGarageInsurance()) {
+                    $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                    $assignedGroup = $ownInbox?->inbox_group;
+                    $applicationMode = null;
+                } elseif ($applicationMode === 'full') {
                     $assignedGroup = $groupService->autoAssignGroup($proforma);
 
                     if ($assignedGroup === null) {
@@ -4410,81 +4414,13 @@ Route::post('apply/{proforma}', function (
         'amount' => 'required|numeric|min:1',
     ]);
 
-    // Detect inbox source AND group BEFORE deleting inbox (only for insurance_shop_garage type)
-    $isShopGarageProforma = $proforma->proforma_type === 'insurance_shop_garage';
-    $ownInbox           = $isShopGarageProforma ? $proforma->inboxes()->where('user_id', auth()->id())->first() : null;
-    $isInsuranceInboxed = $ownInbox && $ownInbox->source === 'insurance';
-    $isAdminInboxed     = $ownInbox && $ownInbox->source === 'admin';
-    $inboxGroup         = $ownInbox?->inbox_group;
-
-    $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
-
     $application = $proforma->applications()->create([
         'application_by' => auth()->check()
             ? Auth::id()
             : \App\Models\User::Where('role', 'shop')->first()->id,
         'from' => 'shop',
         'amount' => $request->amount,
-        'application_source' => $isShopGarageProforma ? $applicationSource : null,
-        'inbox_group' => $isShopGarageProforma ? $inboxGroup : null,
     ]);
-
-    // ── Inbox cleanup (only for insurance_shop_garage type, same as garage) ─────────
-    if ($isShopGarageProforma) {
-        // Remove own inbox record
-        \App\Models\Inbox::where('user_id', auth()->id())
-            ->where('proforma_id', $proforma->id)
-            ->delete();
-
-        // Chereta: wipe all shop inbox siblings in the same group (per-group cleanup)
-        if ($isInsuranceInboxed) {
-            $shopUserIds = \App\Models\User::where('role', 'shop')->pluck('id');
-
-            if ($inboxGroup !== null) {
-                // Per-group chereta: wipe all others in the same inbox_group
-                $proforma->inboxes()
-                    ->where('source', 'insurance')
-                    ->where('inbox_group', $inboxGroup)
-                    ->whereIn('user_id', $shopUserIds)
-                    ->delete();
-            } else {
-                // Legacy (no inbox_group): quota-based cleanup
-                $shopPartnerApplied = $proforma->applications()
-                    ->where('from', 'shop')
-                    ->where('application_source', 'partner')
-                    ->count();
-                $shopQuota = (int) ($proforma->insurance_shop_quota ?? 1);
-                if ($shopPartnerApplied >= $shopQuota) {
-                    $proforma->inboxes()
-                        ->where('source', 'insurance')
-                        ->whereNull('inbox_group')
-                        ->whereIn('user_id', $shopUserIds)
-                        ->delete();
-                }
-            }
-        }
-    }
-
-    // Handle garage application for shop_garage users
-    $isShopGarageUser = auth()->check() && auth()->user()->shop_garage == 1;
-    if ($isShopGarageUser && $request->filled('garage_amount')) {
-        $garageDiscount = $request->garage_discount ?? 0;
-        $garageFinalAmount = $request->garage_amount - ($request->garage_amount * $garageDiscount / 100);
-        $garageFinalAmount = max($garageFinalAmount, 1);
-
-        $garageAppData = [
-            'application_by' => auth()->id(),
-            'from' => 'garage',
-            'amount' => $garageFinalAmount,
-            'discount' => $garageDiscount,
-            'notes' => $request->filled('garage_notes') ? trim($request->garage_notes) : null,
-            'application_source' => $isShopGarageProforma ? $applicationSource : null,
-            'inbox_group' => $isShopGarageProforma ? $inboxGroup : null,
-            'expiry_date' => $request->filled('garage_expiry_date') ? $request->garage_expiry_date : null,
-        ];
-
-        $proforma->applications()->create($garageAppData);
-    }
 
     // Check if proforma should be closed (both garage and shop requirements met)
     $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();

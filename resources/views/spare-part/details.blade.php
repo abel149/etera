@@ -773,7 +773,7 @@
                     @endif
 
                     {{-- Garage application section (embedded in shop form for shop_garage users) --}}
-                    @if (auth()->check() && auth()->user()->shop_garage == 1)
+                    @if (auth()->check() && auth()->user()->shop_garage == 1 && $proforma->isShopGarageInsurance())
                     <div class="margin-top-30" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 20px;">
                         <h6 style="color: #60a5fa; font-weight: 600; margin-bottom: 15px;">
                             <i class="bx bx-buildings" style="margin-right: 6px;"></i>Garage Service Application
@@ -1102,6 +1102,7 @@
                     e.preventDefault();
 
                     const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+                    const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
 
                     // Check if PDF data was already populated by the capture-phase PDF handler
                     const hasPdfData = !!(document.getElementById('hiddenEncryptedPdf')?.value ||
@@ -1129,6 +1130,15 @@
                                 inp.setCustomValidity('');
                             }
                         }
+                        if (isDualService) {
+                            const garageInput = form.querySelector('input[name="garage_amount"]');
+                            const garageAmount = parseFloat(garageInput?.value || 0);
+                            if (garageAmount < 1) {
+                                alert('Please enter a valid garage service estimate (minimum 1 ETB).');
+                                if (garageInput) garageInput.focus();
+                                return;
+                            }
+                        }
                     } else {
                         // Garage: validate the repair estimate amount
                         const amtInput = form.querySelector('#total-amount');
@@ -1154,6 +1164,7 @@
                     // Check if any prices are actually entered
                     const hasActualPrices = isShopRole
                         ? Array.from(form.querySelectorAll('.unit-price-input')).some(inp => !inp.disabled && inp.value.trim() && parseFloat(inp.value) > 0)
+                            || (isDualService && parseFloat(form.querySelector('input[name="garage_amount"]')?.value || 0) > 0)
                         : (parseFloat(form.querySelector('#total-amount')?.value || 0) > 0);
 
                     if (isInsuranceProforma && hasActualPrices) {
@@ -1206,6 +1217,20 @@
                             }
                             const amtInput = form.querySelector('#total-amount');
                             if (amtInput) amtInput.name = '';
+
+                            if (isDualService) {
+                                const garageInput = form.querySelector('input[name="garage_amount"]');
+                                const garageRaw = garageInput ? garageInput.value.trim() : '';
+                                if (garageRaw) {
+                                    const garageCipher = await E2EEncryption.encryptValue(garageRaw, keyData.public_key);
+                                    const garageHidden = document.createElement('input');
+                                    garageHidden.type = 'hidden';
+                                    garageHidden.name = 'encrypted_amount';
+                                    garageHidden.value = garageCipher;
+                                    form.appendChild(garageHidden);
+                                }
+                                if (garageInput) garageInput.name = '';
+                            }
                         } else {
                             // Garage
                             const amtInput = document.getElementById('total-amount');

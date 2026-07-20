@@ -415,6 +415,21 @@
                                     </tfoot>
                                 </table>
 
+                                @if($proforma->isShopGarageInsurance())
+                                <div style="margin-top:10px; padding:10px 12px; border:1px solid rgba(59,130,246,0.25); border-radius:8px; background:rgba(59,130,246,0.06);">
+                                    <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                                        <strong style="color:#2563eb;">Garage Repair Service Estimate</strong>
+                                        <span class="encrypted-price" data-app-id="{{ $application->id }}">
+                                            @if($application->amount_is_encrypted && $application->encrypted_amount)
+                                                <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                            @else
+                                                {{ number_format((float) $application->amount, 2) }} ETB
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+                                @endif
+
                                 <p style="font-size: 9px; margin-top: 4px;">
                                     <strong class="text-danger">NOTE:</strong> All prices not including VAT
                                 </p>
