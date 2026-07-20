@@ -83,6 +83,14 @@
 										<a href="{{ url('/insurance/proforma/' . $proforma->id . '/manage-inboxes') }}" class="btn btn-sm btn-outline-primary" title="Manage Inboxes">
 											<i class="bx bx-show"></i>
 										</a>
+										@if(in_array($proforma->status, ['published','pending','opened']) && !$proforma->close_request && $proforma->applications()->count() > 0)
+											<form action="{{ route('insurance.proforma.request-close', ['proforma' => $proforma->id]) }}" method="POST" class="d-inline">
+												@csrf
+												<button type="submit" class="btn btn-primary btn-sm">Request Close Proforma</button>
+											</form>
+										@elseif($proforma->close_request && in_array($proforma->status, ['published','pending','opened']))
+											<span class="fw-bold">Close Requested</span>
+										@endif
 									</td>
 								</tr>
 								@endforeach
