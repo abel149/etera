@@ -153,6 +153,10 @@ class ProformaApplicationController extends Controller
 
                 // Resolve $hasPdf for garage role (shop sets it above)
                 $hasPdf = $hasPdf ?? ($request->filled('encrypted_pdf') || $request->filled('pdf_data'));
+                $isPdfOnly = $isShopRole
+                    && $hasPdf
+                    && !$request->filled('encrypted_total')
+                    && empty(array_filter($request->input('total', [])));
 
                 // Step 2b: Insurance proformas require encrypted submissions — always.
                 // Exception: a PDF-only submission counts as acceptable (PDF is encrypted client-side).
@@ -353,6 +357,7 @@ class ProformaApplicationController extends Controller
                         Log::info('Application PDF stored', ['application_id' => $application->id]);
                     } catch (\Exception $e) {
                         Log::error('Failed to store application PDF: ' . $e->getMessage());
+                        throw $e;
                     }
                 }
 
@@ -405,10 +410,6 @@ class ProformaApplicationController extends Controller
                 }
 
                 // Step 7: Save individual part prices for shops.
-                $isPdfOnly = $hasPdf
-                    && !$request->filled('encrypted_total')
-                    && empty(array_filter($request->input('total', [])));
-
                 $filledPartsCount = 0;
                 $skippedPartsCount = 0;
 
@@ -514,6 +515,23 @@ class ProformaApplicationController extends Controller
                     }
                 }
 
+                if ($isPdfOnly && $application->pdf()->exists()) {
+                    $totalPartsCount = $proforma->parts()->count();
+                    $application->update([
+                        'filled_parts_count' => $totalPartsCount,
+                        'total_parts_count'  => $totalPartsCount,
+                        'is_partial'         => false,
+                    ]);
+
+                    if ($inboxGroup !== null) {
+                        $proforma->inboxes()
+                            ->where('source', 'insurance')
+                            ->where('inbox_group', $inboxGroup)
+                            ->delete();
+                        Partial::deactivateGroup($proforma->id, $inboxGroup);
+                    }
+                }
+
                 // Clear any Partial records for this shop on this proforma (one-submission rule)
                 Partial::clearForUser($proforma->id, auth()->id());
 
@@ -527,13 +545,20 @@ class ProformaApplicationController extends Controller
                 if ($requiredShops > 0 && !$isEteraChereta && !$isDualService) {
                     // New: count groups where all parts are priced
                     $totalPartsForClose = $proforma->parts()->count();
-                    $completeGroupCount = $totalPartsForClose > 0
+                    $completePriceGroups = $totalPartsForClose > 0
                         ? ProformaPartPrice::where('proforma_id', $proforma->id)
+                            ->whereNotNull('inbox_group')
                             ->select('inbox_group')
                             ->groupBy('inbox_group')
                             ->havingRaw('COUNT(DISTINCT car_part_id) >= ?', [$totalPartsForClose])
-                            ->count()
-                        : 0;
+                            ->pluck('inbox_group')
+                        : collect();
+                    $pdfGroups = $proforma->applications()
+                        ->where('from', 'shop')
+                        ->whereNotNull('inbox_group')
+                        ->whereHas('pdf')
+                        ->pluck('inbox_group');
+                    $completeGroupCount = $completePriceGroups->merge($pdfGroups)->unique()->count();
                     $shopRequirementMet = $completeGroupCount >= $requiredShops;
                 } else {
                     $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
@@ -552,7 +577,7 @@ class ProformaApplicationController extends Controller
 
                 // Step 8b: Post-submit partial trigger — check if this group now needs broadcast help.
                 // Runs outside the closing check so partials fire even when the proforma stays open.
-                if ($role === 'shop' && !$isDualService && $inboxGroup !== null && !($garageRequirementMet && $shopRequirementMet)) {
+                if ($role === 'shop' && !$isDualService && !$isPdfOnly && $inboxGroup !== null && !($garageRequirementMet && $shopRequirementMet)) {
                     $groupService->checkAndTriggerPartials($proforma, $inboxGroup);
                 }
 

@@ -728,7 +728,7 @@
                     </div>
                     @endif
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && (auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1))
                     {{-- Submission Mode Toggle --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button type="button" id="modePriceBtn" onclick="setSubmissionMode('price')"
@@ -767,6 +767,11 @@
                     {{-- Hidden fields for PDF data (populated by JS) --}}
                     <input type="hidden" name="encrypted_pdf" id="hiddenEncryptedPdf">
                     <input type="hidden" name="encrypted_aes_key" id="hiddenEncryptedAesKey">
+@endif
+@if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->role == 'garage')
+    {{-- Only show price entry for garages --}}
+    <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
+@endif
                     <input type="hidden" name="aes_iv" id="hiddenAesIv">
                     <input type="hidden" name="pdf_data" id="hiddenPdfData">
                     <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">

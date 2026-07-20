@@ -364,12 +364,20 @@
                                 // Count groups that have been started (any price saved, even partial).
                                 // Full card only makes sense when started groups < required,
                                 // meaning at least one group has no prices at all.
-                                $startedGroups = $requiredShops > 0
+                                $startedPriceGroups = $requiredShops > 0
                                     ? \App\Models\ProformaPartPrice::where('proforma_id', $proforma->id)
                                         ->whereNotNull('inbox_group')
-                                        ->distinct('inbox_group')
-                                        ->count('inbox_group')
-                                    : 0;
+                                        ->distinct()
+                                        ->pluck('inbox_group')
+                                    : collect();
+                                $pdfGroups = $requiredShops > 0
+                                    ? $proforma->applications()
+                                        ->where('from', 'shop')
+                                        ->whereNotNull('inbox_group')
+                                        ->whereHas('pdf')
+                                        ->pluck('inbox_group')
+                                    : collect();
+                                $startedGroups = $startedPriceGroups->merge($pdfGroups)->unique()->count();
                                 $hasEmptyGroup = $requiredShops > 0 && $startedGroups < $requiredShops;
                             @endphp
                             @if(!auth()->user()->isInMyInbox($proforma->id) && $proforma->isApplicableBy(auth()->user()) && $hasEmptyGroup && $proforma->status === 'published')

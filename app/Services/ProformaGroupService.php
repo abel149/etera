@@ -42,6 +42,16 @@ class ProformaGroupService
                 continue;
             }
 
+            $hasPdfApplication = ProformaApplication::where('proforma_id', $proforma->id)
+                ->where('from', 'shop')
+                ->where('inbox_group', $g)
+                ->whereHas('pdf')
+                ->exists();
+
+            if ($hasPdfApplication) {
+                continue;
+            }
+
             // Skip if the group already has filled prices (unit_price > 0 or encrypted)
             $pricedCount = ProformaPartPrice::where('proforma_id', $proforma->id)
                 ->where('inbox_group', $g)
