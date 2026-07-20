@@ -140,7 +140,19 @@
                                             <td>{{ $proforma->created_at?->format('d M Y') ?? 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex gap-2">
-                                                    @if(auth()->user()->role === 'operator')
+                                                    @if(auth()->user()->role === 'insurance')
+                                                        @php
+                                                            $myApplicationsCount = $proforma->applications()->count();
+                                                        @endphp
+                                                        @if(in_array($proforma->status, ['published','pending','opened']) && !$proforma->close_request && $myApplicationsCount > 0)
+                                                            <form action="{{ route('garage.proforma.request-close', ['proforma' => $proforma->id]) }}" method="POST" class="d-inline">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-primary btn-sm">Request Close Proforma</button>
+                                                            </form>
+                                                        @elseif($proforma->close_request && in_array($proforma->status, ['published','pending','opened']))
+                                                            <span class="fw-bold">Close Requested</span>
+                                                        @endif
+                                                    @elseif(auth()->user()->role === 'operator')
                                                         <a href="{{ route('operator.proforma.show', $proforma->id) }}" class="btn btn-sm btn-outline-primary">
                                                             <i class="bx bx-show me-0"></i>
                                                         </a>
