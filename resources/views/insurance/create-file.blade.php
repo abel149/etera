@@ -488,9 +488,9 @@
                                 {{-- Group 1: Registered shop partners --}}
                                 <div class="mb-3 shop-inbox-group" data-group="1">
                                     <label for="shopPartners" class="form-label">Shop Partners — Slot 1 <span class="text-secondary small">(your registered partners only)</span></label>
-                                    <select class="form-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
+                                    <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
                                         @foreach($spare_part_partners as $partner)
-                                            <option value="{{ $partner->id }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
+                                            <option value="{{ $partner->id }}" data-shop-garage="{{ $partner->shop_garage ?? 0 }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -834,9 +834,9 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateGroupVisibility() {
         const type = (document.querySelector('input[name="proforma_type"]:checked') || {}).value
                      || 'insurance_standard';
-        const shopCount   = type === 'insurance_shop_only'
+        const shopCount   = ['insurance_shop_only', 'insurance_shop_garage'].includes(type)
             ? (parseInt((document.getElementById('number_of_proformas') || {}).value) || 3)
-            : (type === 'insurance_garage_only' ? 0 : (type === 'insurance_shop_garage' ? 3 : 3));
+            : (type === 'insurance_garage_only' ? 0 : 3);
         const garageCount = type === 'insurance_garage_only'
             ? (parseInt((document.getElementById('number_of_garages') || {}).value) || 3)
             : (type === 'insurance_shop_only' ? 0 : (type === 'insurance_shop_garage' ? 0 : 3));
@@ -865,20 +865,21 @@ document.addEventListener('DOMContentLoaded', () => {
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = 'none';
-            // Filter shop options to only show shop_garage = 1
-            document.querySelectorAll('.shop-select option').forEach(opt => {
-                opt.style.display = (opt.dataset.shopGarage === '1') ? '' : 'none';
-            });
         } else {
-            // Show all shop options for other types
-            document.querySelectorAll('.shop-select option').forEach(opt => {
-                opt.style.display = '';
-            });
             if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = '';
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = '';
         }
+
+        const dualOnly = type === 'insurance_shop_garage';
+        document.querySelectorAll('.shop-select option').forEach(opt => {
+            const available = !dualOnly || opt.dataset.shopGarage === '1';
+            opt.hidden = !available;
+            opt.disabled = !available;
+            if (!available) opt.selected = false;
+        });
+
         updateGroupVisibility();
     }
 

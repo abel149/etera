@@ -34,6 +34,7 @@
                 @foreach($user->myInbox as $proformaInbox)
     @php 
         $proforma = $proformaInbox->proforma;
+        if ($proforma->isShopGarageInsurance() && $user->shop_garage != 1) continue;
         $isInboxedUser = $proforma->inboxes->contains('user_id', $userId);
         $totalApplications = $proforma->applications->count();
         $hasApplied = $proforma->applications->contains('application_by', $userId);

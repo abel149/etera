@@ -61,6 +61,13 @@ class UnifiedProformaList extends Component
                     });
                 });
         }
+
+        if (auth()->user()->shop_garage != 1) {
+            $query->where(function ($q) {
+                $q->whereNull('proforma_type')
+                    ->orWhere('proforma_type', '!=', 'insurance_shop_garage');
+            });
+        }
         
         // Part filtering removed - all requested parts must be displayed
         

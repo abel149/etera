@@ -3074,7 +3074,12 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             }
 
             $appliedUserIds = $proforma->applications()->pluck('application_by')->map(fn($id) => (int)$id)->toArray();
-            $shopUserIds    = \App\Models\User::where('role', 'shop')->pluck('id')->toArray();
+            $allShopUserIds = \App\Models\User::where('role', 'shop')->pluck('id')->toArray();
+            $shopUserQuery  = \App\Models\User::where('role', 'shop');
+            if ($proforma->isShopGarageInsurance()) {
+                $shopUserQuery->where('shop_garage', 1);
+            }
+            $shopUserIds    = $shopUserQuery->pluck('id')->toArray();
             $garageUserIds  = \App\Models\User::where('role', 'garage')->pluck('id')->toArray();
             $shopGroupsUsed   = 0;
             $garageGroupsUsed = 0;
@@ -3088,7 +3093,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 // (chereta cleared them after an application, or insurance never used them)
                 $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
                     ->where('source', 'insurance')->where('inbox_group', $grp)
-                    ->whereIn('user_id', $shopUserIds)
+                    ->whereIn('user_id', $allShopUserIds)
                     ->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
 
                 if (empty($currentIds)) {
@@ -3617,7 +3622,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             }
 
             $garageGroupsUsed = 0;
-            if ($proformaType !== 'insurance_shop_only') {
+            if (!in_array($proformaType, ['insurance_shop_only', 'insurance_shop_garage'], true)) {
                 foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3, 4 => $garageGroup4, 5 => $garageGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
                         $garageGroupsUsed++;

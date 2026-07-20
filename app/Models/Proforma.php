@@ -309,6 +309,9 @@ class Proforma extends Model implements HasMedia
         if ($this->required_number_of_shops == 0) {
             return false;
         }
+        if ($this->isShopGarageInsurance()) {
+            return $this->applications()->where('from', 'shop')->count() < $this->required_number_of_shops;
+        }
         if ($this->isFromInsurance()) {
             // For group-based proformas: a slot is open when fewer groups are fully priced
             // than required. Using application count is wrong because partial fills produce
@@ -353,6 +356,7 @@ class Proforma extends Model implements HasMedia
         }
 
         if ($applicant->role === 'shop') {
+            if ($this->isShopGarageInsurance() && $applicant->shop_garage != 1) return false;
             if (!$this->canBeAppliedByShop()) return false;
 
             $isInsuranceInboxed = $this->inboxes()

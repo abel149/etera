@@ -80,7 +80,7 @@ class GarageProformasList extends Component
             })
             ->where(function ($q) {
                 $q->whereNull('proforma_type')
-                  ->orWhere('proforma_type', '!=', 'insurance_shop_only');
+                  ->orWhereNotIn('proforma_type', ['insurance_shop_only', 'insurance_shop_garage']);
             });
 
         /**

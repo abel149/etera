@@ -302,7 +302,7 @@ class AdminController extends Controller
 
             // Notify garages if proforma is from insurance AND not shop-only
             if ($proforma->poster && $proforma->poster->role === 'insurance'
-                && $proforma->proforma_type !== 'insurance_shop_only') {
+                && !in_array($proforma->proforma_type, ['insurance_shop_only', 'insurance_shop_garage'], true)) {
                 $garages = User::where('role', 'garage')->where('approved', true)->get();
                 if ($garages->isNotEmpty()) {
                     Notification::send($garages, new ProformaFloatedNotification($proforma));
