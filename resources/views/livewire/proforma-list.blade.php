@@ -117,6 +117,9 @@
                                             </td>
                                             <td>{{ $proforma->license_plate_number ?? 'N/A' }}</td>
                                             <td>
+                                                @if($proforma->close_request && in_array($proforma->status, ['published','pending','opened']))
+                                                    <div class="badge rounded-pill bg-danger w-100 mb-1">Close Requested</div>
+                                                @endif
                                                 @if($proforma->status == 'completed')
                                                     <div class="badge rounded-pill bg-secondary w-100">{{ ucfirst($proforma->status) }}</div>
                                                 @elseif($proforma->status == 'published')
@@ -183,7 +186,7 @@
                                                                     @csrf
                                                                     @method('PATCH')
                                                                     <button type="submit" class="btn btn-primary btn-sm"
-                                                                        @if(($proforma->status === 'pending' || $proforma->status === 'opened') && !$allSlotsInboxed) hidden @endif>
+                                                                        @if(!$proforma->close_request && ($proforma->status === 'pending' || $proforma->status === 'opened') && !$allSlotsInboxed) hidden @endif>
                                                                         Close
                                                                     </button>
                                                                 </form>
