@@ -145,7 +145,7 @@
                                                             $myApplicationsCount = $proforma->applications()->count();
                                                         @endphp
                                                         @if(in_array($proforma->status, ['published','pending','opened']) && !$proforma->close_request && $myApplicationsCount > 0)
-                                                            <form action="{{ route('garage.proforma.request-close', ['proforma' => $proforma->id]) }}" method="POST" class="d-inline">
+                                                            <form action="{{ route('insurance.proforma.request-close', ['proforma' => $proforma->id]) }}" method="POST" class="d-inline">
                                                                 @csrf
                                                                 <button type="submit" class="btn btn-primary btn-sm">Request Close Proforma</button>
                                                             </form>

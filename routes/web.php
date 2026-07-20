@@ -3004,6 +3004,16 @@ Route::prefix('insurance')
     ->middleware([\App\Http\Middleware\RoleMiddleware::class])
     ->group(function () {
         Route::get('/', function(){ return view('insurance.index'); });
+
+        Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
+            $proforma = \App\Models\Proforma::find($proformaId);
+            if (!$proforma) {
+                return back()->with('error', 'Proforma not found.');
+            }
+            $proforma->update(['close_request' => true]);
+            return back()->with('success', 'Close request submitted.');
+        })->name('insurance.proforma.request-close');
+
 Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
         Route::get('/received-proformas', function () {
     if (auth()->check()) {
