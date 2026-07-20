@@ -117,15 +117,12 @@
                                             </td>
                                             <td>{{ $proforma->license_plate_number ?? 'N/A' }}</td>
                                             <td>
-                                                @if($proforma->close_request && in_array($proforma->status, ['published','pending','opened']))
-                                                    <div class="badge rounded-pill bg-danger w-100 mb-1">Close Requested</div>
-                                                @endif
                                                 @if($proforma->status == 'completed')
                                                     <div class="badge rounded-pill bg-secondary w-100">{{ ucfirst($proforma->status) }}</div>
                                                 @elseif($proforma->status == 'published')
-                                                    <div class="badge rounded-pill bg-info w-100">{{ ucfirst($proforma->status) }}</div>
+                                                    <div class="badge rounded-pill {{ $proforma->close_request ? 'bg-danger' : 'bg-info' }} w-100">{{ $proforma->close_request ? 'Close Requested' : ucfirst($proforma->status) }}</div>
                                                 @elseif($proforma->status == 'pending' || $proforma->status == 'opened')
-                                                    <div class="badge rounded-pill bg-warning w-100">{{ $proforma->selected() && $proforma->status == 'pending' ? "File Assigned" : ucfirst($proforma->status) }}</div>
+                                                    <div class="badge rounded-pill {{ $proforma->close_request ? 'bg-danger' : 'bg-warning' }} w-100">{{ $proforma->close_request ? 'Close Requested' : ($proforma->selected() && $proforma->status == 'pending' ? 'File Assigned' : ucfirst($proforma->status)) }}</div>
                                                 @elseif($proforma->status == 'closed')
                                                     <div class="badge rounded-pill bg-danger w-100">{{ ucfirst($proforma->status) }}</div>
                                                 @endif
