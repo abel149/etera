@@ -716,7 +716,7 @@
                     </div>
                     </div>{{-- /price-table-section --}}
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->dealer == 1)
                     <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.15); border-radius: 8px; padding: 14px 16px;">
                         <label for="application_notes" style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
                             <i class="bx bx-message-detail" style="margin-right:4px;"></i>Additional Notes <span style="font-weight:400; color:#aaa;">(optional)</span>
