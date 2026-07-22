@@ -4512,9 +4512,21 @@ Route::post('/proformas', function (Request $request) {
         }
 
         // Add new entries
+        $adminGroupService = new \App\Services\ProformaGroupService();
         foreach (array_diff($desiredShopIds, $currentShopIds) as $desiredUserId) {
+            // Delete any existing Partial records for this shop — admin inbox
+            // gives them a dedicated slot, so stale partials must not override it.
+            \App\Models\Partial::where('proforma_id', $proforma->id)
+                ->where('user_id', $desiredUserId)
+                ->delete();
+
+            // Assign a dedicated group so the shop is guaranteed a fresh
+            // empty group regardless of when insurance shops applied.
+            $adminGroup = $adminGroupService->autoAssignGroup($proforma);
+
             $inboxRecord = Inbox::firstOrCreate(
                 ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
+                ['inbox_group' => $adminGroup],
             );
             if ($inboxRecord->wasRecentlyCreated) {
                 try {

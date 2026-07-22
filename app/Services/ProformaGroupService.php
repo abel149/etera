@@ -32,13 +32,13 @@ class ProformaGroupService
         }
 
         for ($g = 1; $g <= $required; $g++) {
-            // Skip if an insurance-inboxed shop is still waiting for this group
-            $insurancePending = Inbox::where('proforma_id', $proforma->id)
-                ->where('source', 'insurance')
+            // Skip if any inboxed shop (insurance or admin) is still waiting for this group
+            $pendingInbox = Inbox::where('proforma_id', $proforma->id)
+                ->whereIn('source', ['insurance', 'admin'])
                 ->where('inbox_group', $g)
                 ->exists();
 
-            if ($insurancePending) {
+            if ($pendingInbox) {
                 continue;
             }
 
@@ -114,13 +114,13 @@ class ProformaGroupService
             return;
         }
 
-        // Condition 3: no insurance-inboxed shop still pending for this group
-        $insurancePending = Inbox::where('proforma_id', $proforma->id)
-            ->where('source', 'insurance')
+        // Condition 3: no inboxed shop (insurance or admin) still pending for this group
+        $pendingInbox = Inbox::where('proforma_id', $proforma->id)
+            ->whereIn('source', ['insurance', 'admin'])
             ->where('inbox_group', $group)
             ->exists();
 
-        if ($insurancePending) {
+        if ($pendingInbox) {
             return;
         }
 
@@ -215,14 +215,14 @@ class ProformaGroupService
         }
 
         for ($g = 1; $g <= $required; $g++) {
-            // Don't take over a group that still has an insurance-inboxed shop waiting —
-            // that shop is expected to complete the remaining parts themselves.
-            $insurancePending = Inbox::where('proforma_id', $proforma->id)
-                ->where('source', 'insurance')
+            // Don't take over a group that still has an inboxed shop (insurance or admin)
+            // waiting — that shop is expected to complete the remaining parts themselves.
+            $pendingInbox = Inbox::where('proforma_id', $proforma->id)
+                ->whereIn('source', ['insurance', 'admin'])
                 ->where('inbox_group', $g)
                 ->exists();
 
-            if ($insurancePending) {
+            if ($pendingInbox) {
                 continue;
             }
 

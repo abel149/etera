@@ -465,7 +465,7 @@ class ProformaApplicationController extends Controller
                     // Per-group chereta: if the group is now complete, delete remaining group inboxes
                     if ($inboxGroup !== null && $groupService->isGroupComplete($proforma, $inboxGroup)) {
                         $proforma->inboxes()
-                            ->where('source', 'insurance')
+                            ->whereIn('source', ['insurance', 'admin'])
                             ->where('inbox_group', $inboxGroup)
                             ->delete();
                         Partial::deactivateGroup($proforma->id, $inboxGroup);
