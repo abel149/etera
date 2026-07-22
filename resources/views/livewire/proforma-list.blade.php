@@ -120,9 +120,9 @@
                                                 @if($proforma->status == 'completed')
                                                     <div class="badge rounded-pill bg-secondary w-100">{{ ucfirst($proforma->status) }}</div>
                                                 @elseif($proforma->status == 'published')
-                                                    <div class="badge rounded-pill bg-info w-100">{{ ucfirst($proforma->status) }}</div>
+                                                    <div class="badge rounded-pill {{ $proforma->close_request ? 'bg-danger' : 'bg-info' }} w-100">{{ $proforma->close_request ? 'Close Requested' : ucfirst($proforma->status) }}</div>
                                                 @elseif($proforma->status == 'pending' || $proforma->status == 'opened')
-                                                    <div class="badge rounded-pill bg-warning w-100">{{ $proforma->selected() && $proforma->status == 'pending' ? "File Assigned" : ucfirst($proforma->status) }}</div>
+                                                    <div class="badge rounded-pill {{ $proforma->close_request ? 'bg-danger' : 'bg-warning' }} w-100">{{ $proforma->close_request ? 'Close Requested' : ($proforma->selected() && $proforma->status == 'pending' ? 'File Assigned' : ucfirst($proforma->status)) }}</div>
                                                 @elseif($proforma->status == 'closed')
                                                     <div class="badge rounded-pill bg-danger w-100">{{ ucfirst($proforma->status) }}</div>
                                                 @endif
@@ -140,7 +140,19 @@
                                             <td>{{ $proforma->created_at?->format('d M Y') ?? 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex gap-2">
-                                                    @if(auth()->user()->role === 'operator')
+                                                    @if(auth()->user()->role === 'insurance')
+                                                        @php
+                                                            $myApplicationsCount = $proforma->applications()->count();
+                                                        @endphp
+                                                        @if(in_array($proforma->status, ['published','pending','opened']) && !$proforma->close_request && $myApplicationsCount > 0)
+                                                            <form action="{{ route('insurance.proforma.request-close', ['proforma' => $proforma->id]) }}" method="POST" class="d-inline">
+                                                                @csrf
+                                                                <button type="submit" class="btn btn-primary btn-sm">Request Close Proforma</button>
+                                                            </form>
+                                                        @elseif($proforma->close_request && in_array($proforma->status, ['published','pending','opened']))
+                                                            <span class="fw-bold">Close Requested</span>
+                                                        @endif
+                                                    @elseif(auth()->user()->role === 'operator')
                                                         <a href="{{ route('operator.proforma.show', $proforma->id) }}" class="btn btn-sm btn-outline-primary">
                                                             <i class="bx bx-show me-0"></i>
                                                         </a>
@@ -171,7 +183,7 @@
                                                                     @csrf
                                                                     @method('PATCH')
                                                                     <button type="submit" class="btn btn-primary btn-sm"
-                                                                        @if(($proforma->status === 'pending' || $proforma->status === 'opened') && !$allSlotsInboxed) hidden @endif>
+                                                                        @if(!$proforma->close_request && ($proforma->status === 'pending' || $proforma->status === 'opened') && !$allSlotsInboxed) hidden @endif>
                                                                         Close
                                                                     </button>
                                                                 </form>

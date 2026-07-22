@@ -406,10 +406,15 @@
                                 <ul>
                                     <li>
                                         <i class="icon-material-outline-directions-car"></i>
+                                        <span>Agent Phone Number</span>
+                                        <h5>{{ $proforma->agent_phone_number ?? 'N/A' }}</h5>
+                                    </li>
+                                    <li>
+                                        <i class="icon-material-outline-directions-car"></i>
                                         <span>{{ $proforma->brand->name ?? 'N/A' }}</span>
                                         <h5>{{ $proforma->model ?? 'N/A' }}</h5>
                                     </li>
-                                    @if (auth()->check() && auth()->user()->role == 'shop')
+                                    @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                         @if ($proforma->isFromOthers())
                                             <li>
                                                 <i class="icon-material-outline-settings"></i>
@@ -520,7 +525,7 @@
                         <table class="basic-table">
                             <thead>
     <tr>
-        <th colspan="{{ auth()->check() && auth()->user()->role == 'shop' ? 10 : 8 }}"
+        <th colspan="{{ auth()->check() && (auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1) ? 10 : 8 }}"
             style="font-weight: bold; text-align: center;">
             Spare Parts that need to be changed
         </th>
@@ -534,7 +539,7 @@
                                     <th>Condition</th>
                                     <th>Country</th>
                                     <th>Qty</th>
-                                    @if (auth()->check() && auth()->user()->role == 'shop')
+                                    @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                         <th style="min-width: 100px;">Unit Price (ETB)</th>
                                         <th style="min-width: 100px;">Total (ETB)</th>
                                     @endif
@@ -585,7 +590,7 @@
                                             {{-- Hidden input for part ID to link quote amount to part --}}
                                             <input type="hidden" name="part_id[{{ $loop->index }}]" value="{{ $part->id ?? '' }}">
 
-                                            @if (auth()->check() && auth()->user()->role == 'shop')
+                                            @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                                 @php
                                                     $lockedData = isset($lockedDataByPartId) ? ($lockedDataByPartId[$part->id] ?? null) : null;
                                                     $isLocked   = $lockedData !== null;
@@ -630,7 +635,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="{{ auth()->check() && auth()->user()->role == 'shop' ? 10 : 8 }}" class="text-center">
+                                        <td colspan="{{ auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 10 : 8 }}" class="text-center">
                                             No parts found for this proforma.
                                         </td>
                                     </tr>
@@ -641,11 +646,11 @@
                                 <tr>
                                     @php
                                         // Calculate colspan based on user role
-                                        $colspan = auth()->check() && auth()->user()->role == 'shop' ? 8 : 6;
+                                        $colspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
                                     @endphp
                                     <td colspan="{{ $colspan }}"></td>
                                     <td class="text-align-right" colspan="1">
-                                        @if (auth()->check() && auth()->user()->role == 'shop')
+                                        @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                             <p style="margin: 0; padding: 0;">TOTAL PARTS PRICE</p>
                                         @else
                                             <p style="margin: 0; padding: 0;">GARAGE REPAIR SERVICE ESTIMATE PRICE</p>
@@ -655,7 +660,7 @@
                                     <td colspan="2">
                                         <input type="number" name="amount" class="with-border" required
                                             id="total-amount" 
-                                            {{ auth()->check() && auth()->user()->role == 'shop' ? 'disabled' : '' }} min="1"
+                                            {{ auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 'disabled' : '' }} min="1"
                                             step="any">
                                         @error('amount')
                                             <span class="text-danger">{{ $message }}</span>
@@ -664,7 +669,7 @@
                                 </tr>
                                 <tr>
                                     @php
-                                        $discountColspan = auth()->check() && auth()->user()->role == 'shop' ? 8 : 6;
+                                        $discountColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
                                     @endphp
                                     <td colspan="{{ $discountColspan }}"></td>
                                     <td class="text-align-right" colspan="1">
@@ -674,12 +679,28 @@
                                         <input type="number" id="discount" name="discount" class="with-border"
                                             placeholder="Enter discount"  min="0" max="100">
                                     </td>
-                                    <input type="hidden" name="final-amount" id="final-amount-hidden" 
+                                    <input type="hidden" name="final-amount" id="final-amount-hidden"
                                         class="with-border">
                                 </tr>
                                 <tr>
                                     @php
-                                        $grandTotalColspan = auth()->check() && auth()->user()->role == 'shop' ? 8 : 6;
+                                        $expiryColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
+                                    @endphp
+                                    <td colspan="{{ $expiryColspan }}"></td>
+                                    <td class="text-align-right" colspan="1">
+                                        Quote Expiry Date
+                                    </td>
+                                    <td colspan="2">
+                                        <input type="date" id="expiry_date" name="expiry_date" class="with-border"
+                                            placeholder="Select expiry date">
+                                        @error('expiry_date')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </td>
+                                </tr>
+                                <tr>
+                                    @php
+                                        $grandTotalColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
                                     @endphp
                                     <td colspan="{{ $grandTotalColspan }}"></td>
                                     <td class="text-align-right" colspan="1">
@@ -695,7 +716,7 @@
                     </div>
                     </div>{{-- /price-table-section --}}
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->dealer == 1)
                     <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.15); border-radius: 8px; padding: 14px 16px;">
                         <label for="application_notes" style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
                             <i class="bx bx-message-detail" style="margin-right:4px;"></i>Additional Notes <span style="font-weight:400; color:#aaa;">(optional)</span>
@@ -707,7 +728,7 @@
                     </div>
                     @endif
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && (auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1))
                     {{-- Submission Mode Toggle --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button type="button" id="modePriceBtn" onclick="setSubmissionMode('price')"
@@ -746,9 +767,63 @@
                     {{-- Hidden fields for PDF data (populated by JS) --}}
                     <input type="hidden" name="encrypted_pdf" id="hiddenEncryptedPdf">
                     <input type="hidden" name="encrypted_aes_key" id="hiddenEncryptedAesKey">
+@endif
+@if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->role == 'garage')
+    {{-- Only show price entry for garages --}}
+    <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
+@endif
                     <input type="hidden" name="aes_iv" id="hiddenAesIv">
                     <input type="hidden" name="pdf_data" id="hiddenPdfData">
                     <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">
+
+                    {{-- Garage application section (embedded in shop form for shop_garage users) --}}
+                    @if (auth()->check() && auth()->user()->shop_garage == 1 && $proforma->isShopGarageInsurance())
+                    <div class="margin-top-30" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 20px;">
+                        <h6 style="color: #60a5fa; font-weight: 600; margin-bottom: 15px;">
+                            <i class="bx bx-buildings" style="margin-right: 6px;"></i>Garage Service Application
+                        </h6>
+                        <p style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 15px;">
+                            Apply as a garage for repair service estimate (single total amount)
+                        </p>
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+                            <div>
+                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                    Repair Service Estimate (ETB)
+                                </label>
+                                <input type="number" name="garage_amount" class="with-border" min="1" step="any"
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                                @error('garage_amount')
+                                    <span class="text-danger" style="font-size: 0.8rem;">{{ $message }}</span>
+                                @enderror
+                            </div>
+                            <div>
+                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                    Discount (%)
+                                </label>
+                                <input type="number" name="garage_discount" class="with-border" placeholder="Enter discount" min="0" max="100"
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                            </div>
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                Quote Expiry Date
+                            </label>
+                            <input type="date" name="garage_expiry_date" class="with-border" placeholder="Select expiry date"
+                                style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                            @error('garage_expiry_date')
+                                <span class="text-danger" style="font-size: 0.8rem;">{{ $message }}</span>
+                            @enderror
+                        </div>
+                        <div style="margin-bottom: 15px;">
+                            <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                <i class="bx bx-message-detail" style="margin-right: 4px;"></i>Additional Notes <span style="font-weight: 400; color: #94a3b8;">(optional)</span>
+                            </label>
+                            <textarea name="garage_notes" rows="3"
+                                class="with-border"
+                                style="width: 100%; resize: vertical; min-height: 72px; max-height: 180px; font-size: 0.9rem; border-radius: 6px; padding: 8px 10px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);"
+                                placeholder="Service details, timeline, warranty, or any other information…"></textarea>
+                        </div>
+                    </div>
                     @endif
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
@@ -1031,6 +1106,7 @@
                     e.preventDefault();
 
                     const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+                    const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
 
                     // Check if PDF data was already populated by the capture-phase PDF handler
                     const hasPdfData = !!(document.getElementById('hiddenEncryptedPdf')?.value ||
@@ -1058,6 +1134,15 @@
                                 inp.setCustomValidity('');
                             }
                         }
+                        if (isDualService) {
+                            const garageInput = form.querySelector('input[name="garage_amount"]');
+                            const garageAmount = parseFloat(garageInput?.value || 0);
+                            if (garageAmount < 1) {
+                                alert('Please enter a valid garage service estimate (minimum 1 ETB).');
+                                if (garageInput) garageInput.focus();
+                                return;
+                            }
+                        }
                     } else {
                         // Garage: validate the repair estimate amount
                         const amtInput = form.querySelector('#total-amount');
@@ -1083,6 +1168,7 @@
                     // Check if any prices are actually entered
                     const hasActualPrices = isShopRole
                         ? Array.from(form.querySelectorAll('.unit-price-input')).some(inp => !inp.disabled && inp.value.trim() && parseFloat(inp.value) > 0)
+                            || (isDualService && parseFloat(form.querySelector('input[name="garage_amount"]')?.value || 0) > 0)
                         : (parseFloat(form.querySelector('#total-amount')?.value || 0) > 0);
 
                     if (isInsuranceProforma && hasActualPrices) {
@@ -1135,6 +1221,20 @@
                             }
                             const amtInput = form.querySelector('#total-amount');
                             if (amtInput) amtInput.name = '';
+
+                            if (isDualService) {
+                                const garageInput = form.querySelector('input[name="garage_amount"]');
+                                const garageRaw = garageInput ? garageInput.value.trim() : '';
+                                if (garageRaw) {
+                                    const garageCipher = await E2EEncryption.encryptValue(garageRaw, keyData.public_key);
+                                    const garageHidden = document.createElement('input');
+                                    garageHidden.type = 'hidden';
+                                    garageHidden.name = 'encrypted_amount';
+                                    garageHidden.value = garageCipher;
+                                    form.appendChild(garageHidden);
+                                }
+                                if (garageInput) garageInput.name = '';
+                            }
                         } else {
                             // Garage
                             const amtInput = document.getElementById('total-amount');

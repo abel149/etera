@@ -102,7 +102,27 @@
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-                    
+
+                    <!-- Dealer Checkbox -->
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="dealers" id="dealers" value="1">
+                            <label class="form-check-label" for="dealers">
+                                Is Dealer
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- Dual Service Checkbox -->
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="shop_garage" id="shop_garage" value="1">
+                            <label class="form-check-label" for="shop_garage">
+                                Dual Service (Shop + Garage)
+                            </label>
+                        </div>
+                    </div>
+
                     <hr/>                    
                     <div class="my-0">
                         <button type="submit" class="btn btn-primary radius-30 px-4"> Add </button>

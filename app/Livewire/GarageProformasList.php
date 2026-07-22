@@ -22,6 +22,7 @@ class GarageProformasList extends Component
         'component' => 'Both',
         'car_type'  => 'All',
         'grade'     => 'All',
+        'damage_severity' => 'All',
     ];
 
     public $sortBy = 'desc';
@@ -46,6 +47,7 @@ class GarageProformasList extends Component
             'component' => 'Both',
             'car_type'  => 'All',
             'grade'     => 'All',
+            'damage_severity' => 'All',
         ];
 
         $this->resetPage();
@@ -78,7 +80,7 @@ class GarageProformasList extends Component
             })
             ->where(function ($q) {
                 $q->whereNull('proforma_type')
-                  ->orWhere('proforma_type', '!=', 'insurance_shop_only');
+                  ->orWhereNotIn('proforma_type', ['insurance_shop_only', 'insurance_shop_garage']);
             });
 
         /**
@@ -130,6 +132,13 @@ class GarageProformasList extends Component
                     ->from('proforma_part')
                     ->where('grade', 'LIKE', '%' . $this->filters['grade'] . '%');
             });
+        }
+
+        /**
+         * Filter: Damage Severity
+         */
+        if ($this->filters['damage_severity'] !== 'All') {
+            $query->where('damage_severity', $this->filters['damage_severity']);
         }
 
         /**

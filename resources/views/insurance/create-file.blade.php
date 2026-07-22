@@ -117,13 +117,43 @@
                                     <div class="col-12 col-lg-6">
                                         <label for="car_type" class="form-label">Car Type</label>
                                         <select name="car_type" id="car_type" class="form-select" required>
-                                            <option value="ICE" {{ old('car_type', 'ICE') == 'ICE' ? 'selected' : '' }}>ICE</option>
-                                            <option value="EV" {{ old('car_type') == 'EV' ? 'selected' : '' }}>EV</option>
-                                            <option value="Hybrid" {{ old('car_type') == 'Hybrid' ? 'selected' : '' }}>Hybrid</option>
-                                            <option value="Others" {{ old('car_type') == 'Others' ? 'selected' : '' }}>Others</option>
+                                            <option value="Sedan/S.U.V(GAS)" {{ old('car_type', 'Sedan/S.U.V(GAS)') == 'Sedan/S.U.V(GAS)' ? 'selected' : '' }}>Sedan/S.U.V(GAS)</option>
+                                            <option value="Sedan/S.U.V(EV)" {{ old('car_type') == 'Sedan/S.U.V(EV)' ? 'selected' : '' }}>Sedan/S.U.V(EV)</option>
+                                            <option value="Mini Van(GAS)" {{ old('car_type') == 'Mini Van(GAS)' ? 'selected' : '' }}>Mini Van(GAS)</option>
+                                            <option value="Mini Van(EV)" {{ old('car_type') == 'Mini Van(EV)' ? 'selected' : '' }}>Mini Van(EV)</option>
+                                            <option value="Isuzu/Bus(GAS)" {{ old('car_type') == 'Isuzu/Bus(GAS)' ? 'selected' : '' }}>Isuzu/Bus(GAS)</option>
+                                            <option value="Isuzu/Bus(EV)" {{ old('car_type') == 'Isuzu/Bus(EV)' ? 'selected' : '' }}>Isuzu/Bus(EV)</option>
+                                            <option value="Heavy" {{ old('car_type') == 'Heavy' ? 'selected' : '' }}>Heavy Duty</option>
                                         </select>
 
                                         @error('car_type')
+                                            <span class="text-danger">{{ $message }}</span>
+                                        @enderror
+                                    </div>
+
+                                    <div class="col-12 col-lg-6">
+                                        <label class="form-label">Damage Severity (Optional)</label>
+                                        <div class="d-flex gap-3 mt-2">
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_minor" value="minor" {{ old('damage_severity') == 'minor' ? 'checked' : '' }} style="accent-color: #0d6efd; width: 1.2em; height: 1.2em;">
+                                                <label class="form-check-label" for="damage_minor">
+                                                    Minor (Remote Fill) - ቀላል
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_major" value="major" {{ old('damage_severity') == 'major' ? 'checked' : '' }} style="accent-color: #0d6efd; width: 1.2em; height: 1.2em;">
+                                                <label class="form-check-label" for="damage_major">
+                                                    Major (Garage Required) - ከባድ
+                                                </label>
+                                            </div>
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="radio" name="damage_severity" id="damage_severe" value="severe" {{ old('damage_severity') == 'severe' ? 'checked' : '' }} style="accent-color: #0d6efd; width: 1.2em; height: 1.2em;">
+                                                <label class="form-check-label" for="damage_severe">
+                                                    Severe (Site Visit) - ከፍተኛ
+                                                </label>
+                                            </div>
+                                        </div>
+                                        @error('damage_severity')
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
@@ -199,6 +229,13 @@
                                                     <small class="text-muted d-block">Repair Garages</small>
                                                 </label>
                                             </div>
+                                            <div class="proforma-type-card" data-type="insurance_shop_garage">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopGarage" value="insurance_shop_garage" {{ old('proforma_type') == 'insurance_shop_garage' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="typeShopGarage">
+                                                    <i class="bx bx-building-house me-1"></i> Shop + Garage
+                                                    <small class="text-muted d-block">Dual Service Providers</small>
+                                                </label>
+                                            </div>
                                         </div>
                                     </div>
 
@@ -250,13 +287,23 @@
                                         @enderror
                                     </div>
                                     <div class="col-12 col-lg-6">
-                                        <label for="InputEmail2" class="form-label">Phone Number</label>
+                                        <label for="InputEmail2" class="form-label">Customer Phone Number</label>
                                         <input type="text" name="customer_phone_number" value="{{old('customer_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder=""
                                         required
                                         oninvalid="this.setCustomValidity('Please enter the Phone number')"
                                         oninput="this.setCustomValidity('')"
                                         >
                                         @error('customer_phone_number')
+                                        <span class="text-danger">{{$message}}</span>
+                                        @enderror
+                                    </div> <div class="col-12 col-lg-6">
+                                        <label for="InputEmail2" class="form-label">Agent Phone Number</label>
+                                        <input type="text" name="Agent_phone_number" value="{{old('Agent_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder=""
+                                        required
+                                        oninvalid="this.setCustomValidity('Please enter the Phone number')"
+                                        oninput="this.setCustomValidity('')"
+                                        >
+                                        @error('Agent_phone_number')
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
                                     </div>                                
@@ -441,9 +488,9 @@
                                 {{-- Group 1: Registered shop partners --}}
                                 <div class="mb-3 shop-inbox-group" data-group="1">
                                     <label for="shopPartners" class="form-label">Shop Partners — Slot 1 <span class="text-secondary small">(your registered partners only)</span></label>
-                                    <select class="form-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
+                                    <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
                                         @foreach($spare_part_partners as $partner)
-                                            <option value="{{ $partner->id }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
+                                            <option value="{{ $partner->id }}" data-shop-garage="{{ $partner->shop_garage ?? 0 }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -451,9 +498,9 @@
                                 {{-- Group 2 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="2">
                                     <label for="shopExtra1" class="form-label">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -461,9 +508,9 @@
                                 {{-- Group 3 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="3">
                                     <label for="shopExtra2" class="form-label">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -471,9 +518,9 @@
                                 {{-- Group 4 (shown when required ≥ 4) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="4" style="display:none">
                                     <label for="shopExtra3" class="form-label">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -481,9 +528,9 @@
                                 {{-- Group 5 (shown when required = 5) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="5" style="display:none">
                                     <label for="shopExtra4" class="form-label">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
+                                    <select class="form-select shop-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -787,12 +834,12 @@ document.addEventListener('DOMContentLoaded', () => {
     function updateGroupVisibility() {
         const type = (document.querySelector('input[name="proforma_type"]:checked') || {}).value
                      || 'insurance_standard';
-        const shopCount   = type === 'insurance_shop_only'
+        const shopCount   = ['insurance_shop_only', 'insurance_shop_garage'].includes(type)
             ? (parseInt((document.getElementById('number_of_proformas') || {}).value) || 3)
             : (type === 'insurance_garage_only' ? 0 : 3);
         const garageCount = type === 'insurance_garage_only'
             ? (parseInt((document.getElementById('number_of_garages') || {}).value) || 3)
-            : (type === 'insurance_shop_only' ? 0 : 3);
+            : (type === 'insurance_shop_only' ? 0 : (type === 'insurance_shop_garage' ? 0 : 3));
 
         document.querySelectorAll('.shop-inbox-group').forEach(el => {
             el.style.display = (parseInt(el.dataset.group) <= shopCount) ? '' : 'none';
@@ -813,12 +860,26 @@ document.addEventListener('DOMContentLoaded', () => {
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = 'none';
+        } else if (type === 'insurance_shop_garage') {
+            if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = '';
+            if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
+            if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
+            if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = 'none';
         } else {
             if (numberOfShopsWrapper)   numberOfShopsWrapper.style.display   = '';
             if (numberOfGaragesWrapper) numberOfGaragesWrapper.style.display = 'none';
             if (shopGroupsWrapper)      shopGroupsWrapper.style.display      = '';
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = '';
         }
+
+        const dualOnly = type === 'insurance_shop_garage';
+        document.querySelectorAll('.shop-select option').forEach(opt => {
+            const available = !dualOnly || opt.dataset.shopGarage === '1';
+            opt.hidden = !available;
+            opt.disabled = !available;
+            if (!available) opt.selected = false;
+        });
+
         updateGroupVisibility();
     }
 

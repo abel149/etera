@@ -83,7 +83,10 @@ class ProformaList extends Component
                 $q->where('file_number', 'like', '%'.$this->search.'%')
                   ->orWhere('customer_name', 'like', '%'.$this->search.'%')
                   ->orWhere('customer_phone_number', 'like', '%'.$this->search.'%')
-                  ->orWhere('license_plate_number', 'like', '%'.$this->search.'%');
+                  ->orWhere('license_plate_number', 'like', '%'.$this->search.'%')
+                  ->orWhereHas('poster', function($pq) {
+                      $pq->where('name', 'like', '%'.$this->search.'%');
+                  });
             });
         }
 

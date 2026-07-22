@@ -282,6 +282,8 @@
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-discount="{{ $application->discount ?? 0 }}"
+                         data-amount="{{ $application->amount ?? 0 }}"
+                         data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
                          data-notes="{{ $application->notes ?? '' }}">
 
                          
@@ -414,6 +416,21 @@
                                         </tr>
                                     </tfoot>
                                 </table>
+
+                                @if($proforma->isShopGarageInsurance())
+                                <div style="margin-top:10px; padding:10px 12px; border:1px solid rgba(59,130,246,0.25); border-radius:8px; background:rgba(59,130,246,0.06);">
+                                    <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                                        <strong style="color:#2563eb;">Garage Repair Service Estimate</strong>
+                                        <span class="{{ $application->amount_is_encrypted && $application->encrypted_amount ? 'encrypted-price' : '' }}" data-app-id="{{ $application->id }}">
+                                            @if($application->amount_is_encrypted && $application->encrypted_amount)
+                                                <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                            @else
+                                                {{ number_format((float) $application->amount, 2) }} ETB
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+                                @endif
 
                                 <p style="font-size: 9px; margin-top: 4px;">
                                     <strong class="text-danger">NOTE:</strong> All prices not including VAT
@@ -698,6 +715,11 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 function openPrintPage(card) {
+    if (card.querySelector('.enc-unit-price, .encrypted-price')) {
+        alert('Decrypt this application before selecting it so all parts and service prices are included.');
+        return;
+    }
+
     // Extract data from the specific card
     const storeId = card.dataset.storeId || "N/A";
     const tinNumber = card.dataset.tinNumber || "N/A";
@@ -706,6 +728,8 @@ function openPrintPage(card) {
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
     const discountPct = parseFloat(card.dataset.discount) || 0;
+    const garageAmount = parseFloat(card.dataset.amount) || 0;
+    const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
     const applicantNotes = card.dataset.notes || "";
     
     // Get proforma data
@@ -742,7 +766,7 @@ function openPrintPage(card) {
     const subtotal = partsData.reduce((sum, p) => sum + parseETB(p.total), 0);
     const discountAmt = (subtotal * discountPct) / 100;
     const netTotal = subtotal - discountAmt;
-    const grandTotal = netTotal;
+    const grandTotal = netTotal + (isDualService ? garageAmount : 0);
     
     const formatETB = (num) => {
         return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ETB";
@@ -876,11 +900,17 @@ function openPrintPage(card) {
                                     <td class="text-end">${formatETB(discountAmt)} (${discountPct}%)</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>NET TOTAL:</strong></td>
+                                    <td colspan="7" class="text-end"><strong>PARTS NET TOTAL:</strong></td>
                                     <td class="text-end">${formatETB(netTotal)}</td>
                                 </tr>
+                                ${isDualService ? `
+                                <tr>
+                                    <td colspan="7" class="text-end"><strong>GARAGE REPAIR SERVICE:</strong></td>
+                                    <td class="text-end">${formatETB(garageAmount)}</td>
+                                </tr>
+                                ` : ''}
                                 <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
-                                    <td colspan="7" class="text-end"><strong>GRAND TOTAL:</strong></td>
+                                    <td colspan="7" class="text-end"><strong>${isDualService ? 'COMBINED GRAND TOTAL' : 'GRAND TOTAL'}:</strong></td>
                                     <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(grandTotal)}</td>
                                 </tr>
                             </tfoot>
@@ -1244,12 +1274,11 @@ async function applyDecryption(privateKey) {
         document.querySelectorAll(`.encrypted-price[data-app-id="${appId}"]`).forEach(el => {
             el.outerHTML = `<span>${fmt(amount)}</span>`;
         });
-        // Update garage card dataset so openPrintPages reads the decrypted value, not 0
-        const garageCard = document.querySelector(`.garage-card[data-application-id="${appId}"]`);
-        if (garageCard) {
-            garageCard.dataset.amount = amount;
-            garageCard.dataset.amountIsEncrypted = '0';
-        }
+        // Update card datasets so selected quotations read the decrypted value, not 0
+        document.querySelectorAll(`[data-application-id="${appId}"]`).forEach(card => {
+            card.dataset.amount = amount;
+            card.dataset.amountIsEncrypted = '0';
+        });
     }
 
     const appSubtotals = {};

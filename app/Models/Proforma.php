@@ -133,6 +133,11 @@ class Proforma extends Model implements HasMedia
         return $this->proforma_type === 'insurance_shop_only';
     }
 
+    public function isShopGarageInsurance(): bool
+    {
+        return $this->proforma_type === 'insurance_shop_garage';
+    }
+
     public function getRemainingShopsAttribute()
     {
         if ($this->isGarageOnlyInsurance()) {
@@ -304,18 +309,27 @@ class Proforma extends Model implements HasMedia
         if ($this->required_number_of_shops == 0) {
             return false;
         }
+        if ($this->isShopGarageInsurance()) {
+            return $this->applications()->where('from', 'shop')->count() < $this->required_number_of_shops;
+        }
         if ($this->isFromInsurance()) {
             // For group-based proformas: a slot is open when fewer groups are fully priced
             // than required. Using application count is wrong because partial fills produce
             // extra applications without claiming new groups.
             $totalParts = $this->parts()->count();
             if ($totalParts > 0) {
-                $completeGroups = \App\Models\ProformaPartPrice::where('proforma_id', $this->id)
+                $completePriceGroups = \App\Models\ProformaPartPrice::where('proforma_id', $this->id)
                     ->whereNotNull('inbox_group')
                     ->select('inbox_group')
                     ->groupBy('inbox_group')
                     ->havingRaw('COUNT(DISTINCT car_part_id) >= ?', [$totalParts])
-                    ->count();
+                    ->pluck('inbox_group');
+                $pdfGroups = $this->applications()
+                    ->where('from', 'shop')
+                    ->whereNotNull('inbox_group')
+                    ->whereHas('pdf')
+                    ->pluck('inbox_group');
+                $completeGroups = $completePriceGroups->merge($pdfGroups)->unique()->count();
                 return $completeGroups < $this->required_number_of_shops;
             }
             return ($this->required_number_of_shops - $this->applications()->where('from', 'shop')->count()) > 0;
@@ -348,6 +362,7 @@ class Proforma extends Model implements HasMedia
         }
 
         if ($applicant->role === 'shop') {
+            if ($this->isShopGarageInsurance() && $applicant->shop_garage != 1) return false;
             if (!$this->canBeAppliedByShop()) return false;
 
             $isInsuranceInboxed = $this->inboxes()

@@ -3004,6 +3004,16 @@ Route::prefix('insurance')
     ->middleware([\App\Http\Middleware\RoleMiddleware::class])
     ->group(function () {
         Route::get('/', function(){ return view('insurance.index'); });
+
+        Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
+            $proforma = \App\Models\Proforma::find($proformaId);
+            if (!$proforma) {
+                return back()->with('error', 'Proforma not found.');
+            }
+            $proforma->update(['close_request' => true]);
+            return back()->with('success', 'Close request submitted.');
+        })->name('insurance.proforma.request-close');
+
 Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
         Route::get('/received-proformas', function () {
     if (auth()->check()) {
@@ -3049,7 +3059,13 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             $spare_part_partners = auth()->user()->sparePartPartners();
             $garage_partners     = auth()->user()->garagePartners();
-            $all_shops           = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+
+            // For insurance_shop_garage type, only show shops with shop_garage = 1
+            if ($proforma->proforma_type === 'insurance_shop_garage') {
+                $all_shops = \App\Models\User::where('role', 'shop')->where('shop_garage', 1)->orderBy('name')->get();
+            } else {
+                $all_shops = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+            }
             $all_garages         = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
 
             return view('insurance.manage-inboxes', compact(
@@ -3068,7 +3084,12 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             }
 
             $appliedUserIds = $proforma->applications()->pluck('application_by')->map(fn($id) => (int)$id)->toArray();
-            $shopUserIds    = \App\Models\User::where('role', 'shop')->pluck('id')->toArray();
+            $allShopUserIds = \App\Models\User::where('role', 'shop')->pluck('id')->toArray();
+            $shopUserQuery  = \App\Models\User::where('role', 'shop');
+            if ($proforma->isShopGarageInsurance()) {
+                $shopUserQuery->where('shop_garage', 1);
+            }
+            $shopUserIds    = $shopUserQuery->pluck('id')->toArray();
             $garageUserIds  = \App\Models\User::where('role', 'garage')->pluck('id')->toArray();
             $shopGroupsUsed   = 0;
             $garageGroupsUsed = 0;
@@ -3082,7 +3103,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 // (chereta cleared them after an application, or insurance never used them)
                 $currentIds = \App\Models\Inbox::where('proforma_id', $proforma->id)
                     ->where('source', 'insurance')->where('inbox_group', $grp)
-                    ->whereIn('user_id', $shopUserIds)
+                    ->whereIn('user_id', $allShopUserIds)
                     ->pluck('user_id')->map(fn($id) => (int)$id)->toArray();
 
                 if (empty($currentIds)) {
@@ -3334,6 +3355,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $spare_part_partners = auth()->user()->sparePartPartners();
             $garage_partners = auth()->user()->garagePartners();
 
+            // For insurance_shop_garage type, only show shops with shop_garage = 1
+            // Note: This is for the create page, filtering happens on selection in JS
             $all_shops   = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
             $all_garages = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
 
@@ -3458,12 +3481,14 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             $validator = Validator::make($request->all(), [
                 'file_number' => 'nullable',
                 'brand_id' => 'required|exists:brands,id',
-                'car_type' => 'nullable|in:ICE,EV,Hybrid,Others',
+                'car_type' => 'nullable|in:Sedan/S.U.V(GAS),Sedan/S.U.V(EV),Mini Van(GAS),Mini Van(EV),Isuzu/Bus(GAS),Isuzu/Bus(EV),Heavy',
+                'damage_severity' => 'nullable|in:minor,major,severe',
                 'model' => 'required',
                 'year' => 'required',
                 'customer_name' => 'required',
                 'insured' => 'nullable|boolean',
                 'customer_phone_number' => 'required|string',
+                'Agent_phone_number' => 'required|string',
                 'customer_email' => 'nullable|string',
                 'chassis_number' => 'nullable',
                 'license_plate_number' => 'required|string',
@@ -3478,7 +3503,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'number_of_proformas' => 'nullable|integer|min:-1|max:5',
                 'etera_chereta_hours' => 'nullable|integer|in:4,8,12,24,48,72',
                 'voice_note' => 'nullable|string|max:10485760',
-                'proforma_type' => 'nullable|in:insurance_standard,insurance_shop_only,insurance_garage_only',
+                'proforma_type' => 'nullable|in:insurance_standard,insurance_shop_only,insurance_garage_only,insurance_shop_garage',
                 'number_of_garages' => 'nullable|integer|min:1|max:5'
             ]);
             
@@ -3512,6 +3537,10 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 $requiredShops = max(1, (int) $request->input('number_of_proformas', 3));
                 $requiredGarages = 0;
                 $proformaType = 'insurance_shop_only';
+            } elseif ($request->input('proforma_type') === 'insurance_shop_garage') {
+                $requiredShops = max(1, (int) $request->input('number_of_proformas', 3));
+                $requiredGarages = 0;
+                $proformaType = 'insurance_shop_garage';
             } else {
                 // Standard insurance: fixed 3+3 slots with quota system
                 $requiredShops   = 3;
@@ -3523,9 +3552,11 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'poster_id' => auth()->user()->id,
                 'file_number' => $request->file_number ?? '#'.auth()->user()->id.'-'.time(),
                 'car_brand_id' => $request->brand_id,
-                'car_type' => $request->input('car_type', 'ICE'),
+                'car_type' => $request->input('car_type', 'Sedan/S.U.V(GAS)'),
+                'damage_severity' => $request->input('damage_severity'),
                 'customer_name' => $request->customer_name,
                 'customer_phone_number' => $request->customer_phone_number,
+                'Agent_phone_number' => $request->Agent_phone_number,
                 'customer_email' => $request->customer_email,
                 'chassis_number' => $request->chassis_number,
                 'license_plate_number' => $request->license_plate_number,
@@ -3578,21 +3609,30 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
             if ($proformaType !== 'insurance_garage_only') {
                 foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3, 4 => $shopGroup4, 5 => $shopGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
-                        $shopGroupsUsed++;
-                        foreach ($ids as $userId) {
-                            Inbox::create([
-                                'proforma_id' => $proforma->id,
-                                'user_id'     => $userId,
-                                'source'      => 'insurance',
-                                'inbox_group' => $grp,
-                            ]);
+                        // Filter users: for insurance_shop_garage type, only include users with shop_garage = 1
+                        if ($proformaType === 'insurance_shop_garage') {
+                            $ids = array_filter($ids, function($userId) {
+                                $user = \App\Models\User::find($userId);
+                                return $user && $user->shop_garage == 1;
+                            });
+                        }
+                        if (!empty($ids)) {
+                            $shopGroupsUsed++;
+                            foreach ($ids as $userId) {
+                                Inbox::create([
+                                    'proforma_id' => $proforma->id,
+                                    'user_id'     => $userId,
+                                    'source'      => 'insurance',
+                                    'inbox_group' => $grp,
+                                ]);
+                            }
                         }
                     }
                 }
             }
 
             $garageGroupsUsed = 0;
-            if ($proformaType !== 'insurance_shop_only') {
+            if (!in_array($proformaType, ['insurance_shop_only', 'insurance_shop_garage'], true)) {
                 foreach ([1 => $garageGroup1, 2 => $garageGroup2, 3 => $garageGroup3, 4 => $garageGroup4, 5 => $garageGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
                         $garageGroupsUsed++;
@@ -3816,6 +3856,10 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $request->validate([
                     'amount'   => 'required|numeric|min:1',
                     'discount' => 'nullable|numeric|min:0|max:100',
+                    'expiry_date' => 'nullable|date|after:today',
+                ], [
+                    'expiry_date.date' => 'Expiry date must be a valid date.',
+                    'expiry_date.after' => 'Expiry date must be after today.',
                 ]);
             }
 
@@ -3851,6 +3895,7 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 'notes'             => $request->filled('notes') ? trim($request->notes) : null,
                 'application_source'=> $applicationSource,
                 'inbox_group'       => $inboxGroup,
+                'expiry_date'       => $request->filled('expiry_date') ? $request->expiry_date : null,
             ];
             if ($isEncrypted && $request->filled('encrypted_amount')) {
                 $appData['encrypted_amount']   = $request->encrypted_amount;
@@ -4048,7 +4093,7 @@ Route::prefix('garage')
                     'number_of_proformas' => ['required', 'integer', 'min:-1', 'max:4'],
                     'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48,72'],
                     'brand_id' => ['required', 'integer', 'exists:brands,id'],
-                    'car_type' => 'required|in:ICE,EV,Hybrid,Others',
+                    'car_type' => 'required|in:Sedan/S.U.V(GAS),Sedan/S.U.V(EV),Mini Van(GAS),Mini Van(EV),Isuzu/Bus(GAS),Isuzu/Bus(EV),Heavy',
                     'model' => ['required', 'string', 'max:255'],
                     'year' => ['required', 'regex:/^(#N\/A|19\d{2}|20\d{2})$/'],
                     'customer_phone_number' => ['required', 'string'],
@@ -4095,7 +4140,7 @@ Route::prefix('garage')
                     'poster_id' => auth()->id(),
                     'file_number' => '#' . auth()->id() . '-' . substr(time(), -4),
                     'car_brand_id' => $request->brand_id,
-                    'car_type' => $request->input('car_type', 'ICE'),
+                    'car_type' => $request->input('car_type', 'Sedan/S.U.V(GAS)'),
                     'customer_name' => auth()->user()->name,
                     'customer_phone_number' => $request->customer_phone_number,
                     'chassis_number' => $request->chassis_number,
@@ -4295,7 +4340,11 @@ Route::prefix('spare-part-shops')
             if (auth()->check() && auth()->user()->role === 'shop') {
                 $groupService = new \App\Services\ProformaGroupService();
 
-                if ($applicationMode === 'full') {
+                if ($proforma->isShopGarageInsurance()) {
+                    $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                    $assignedGroup = $ownInbox?->inbox_group;
+                    $applicationMode = null;
+                } elseif ($applicationMode === 'full') {
                     $assignedGroup = $groupService->autoAssignGroup($proforma);
 
                     if ($assignedGroup === null) {
@@ -4379,6 +4428,7 @@ Route::post('apply/{proforma}', function (
     $request->validate([
         'amount' => 'required|numeric|min:1',
     ]);
+
     $application = $proforma->applications()->create([
         'application_by' => auth()->check()
             ? Auth::id()
@@ -4514,6 +4564,7 @@ Route::post('/proformas', function (Request $request) {
         // Add new entries
         $adminGroupService = new \App\Services\ProformaGroupService();
         foreach (array_diff($desiredShopIds, $currentShopIds) as $desiredUserId) {
+
             // Delete any existing Partial records for this shop — admin inbox
             // gives them a dedicated slot, so stale partials must not override it.
             \App\Models\Partial::where('proforma_id', $proforma->id)
@@ -4523,6 +4574,14 @@ Route::post('/proformas', function (Request $request) {
             // Assign a dedicated group so the shop is guaranteed a fresh
             // empty group regardless of when insurance shops applied.
             $adminGroup = $adminGroupService->autoAssignGroup($proforma);
+
+            // Filter users: for insurance_shop_garage type, only include users with shop_garage = 1
+            if ($proforma->proforma_type === 'insurance_shop_garage') {
+                $user = \App\Models\User::find($desiredUserId);
+                if (!$user || $user->shop_garage != 1) {
+                    continue;
+                }
+            }
 
             $inboxRecord = Inbox::firstOrCreate(
                 ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
@@ -4901,7 +4960,7 @@ Route::prefix('business-owner')
                     'number_of_proformas' => ['required', 'integer', 'min:-1', 'max:4'],
                     'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48,72'],
                     'brand_id' => ['required', 'integer', 'exists:brands,id'],
-                    'car_type' => 'required|in:ICE,EV,Hybrid,Others',
+                    'car_type' => 'required|in:Sedan/S.U.V(GAS),Sedan/S.U.V(EV),Mini Van(GAS),Mini Van(EV),Isuzu/Bus(GAS),Isuzu/Bus(EV),Heavy',
 
                     'model' => ['required', 'string', 'max:255'],
                     'year' => ['required', 'regex:/^(#N\/A|19\d{2}|20\d{2})$/'],
@@ -4950,7 +5009,7 @@ Route::prefix('business-owner')
                     'poster_id' => auth()->id(),
                     'file_number' => '#' . auth()->id() . '-' . substr(time(), -4),
                     'car_brand_id' => $request->brand_id,
-                    'car_type' => $request->input('car_type', 'ICE'),
+                    'car_type' => $request->input('car_type', 'Sedan/S.U.V(GAS)'),
 
                     'customer_name' => auth()->user()->name,
                     'customer_phone_number' => $request->customer_phone_number,

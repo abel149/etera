@@ -64,6 +64,12 @@ class AllProformasList extends Component
          * Base Query
          */
         $query = Proforma::query()
+            ->when($user->shop_garage != 1, fn ($q) =>
+                $q->where(fn ($typeQ) =>
+                    $typeQ->whereNull('proforma_type')
+                        ->orWhere('proforma_type', '!=', 'insurance_shop_garage')
+                )
+            )
             ->where(function ($q) use ($partialProformaIds) {
                 // Normal proformas: must be published
                 $q->where('status', 'published')

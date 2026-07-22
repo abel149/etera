@@ -238,6 +238,7 @@
                                  data-proforma-parts='@json($proforma->parts)'
                                  data-application-prices='@json($application->prices)'
                                  data-notes="{{ $application->notes ?? '' }}"
+                                 data-expiry-date="{{ $application->expiry_date ? \Carbon\Carbon::parse($application->expiry_date)->format('F j, Y') : '' }}"
                                  data-stamp-image-url="{{ $application->applicationBy->stamp_image ? asset('storage/' . ($application->applicationBy->stamp_image)) : asset('assets/images/stamp.png') }}"
                             >
                                 {{-- Stamp overlay --}}
@@ -361,6 +362,14 @@
                                         <p style="font-size:0.9rem; margin:0; white-space:pre-wrap; color:#1f2937;">{{ $application->notes }}</p>
                                     </div>
                                     @endif
+                                    @if($application->expiry_date)
+                                    <div style="margin-top:12px; background:#fef3c7; border-left:3px solid #f59e0b; border-radius:0 6px 6px 0; padding:9px 14px;">
+                                        <p style="font-size:0.78rem; font-weight:700; color:#b45309; margin-bottom:4px;">
+                                            <i class="bx bx-calendar me-1"></i>Quote Expiry Date
+                                        </p>
+                                        <p style="font-size:0.9rem; margin:0; color:#1f2937;">{{ \Carbon\Carbon::parse($application->expiry_date)->format('F j, Y') }}</p>
+                                    </div>
+                                    @endif
                                     <div class="text-end mt-3">
                                         <button class="button radius-30 rounded-pill px-4" onclick="openPrintPage(this)">Print</button>
                                     </div>
@@ -455,6 +464,7 @@ function showMoreApplications() {
 			let stampImage = card.dataset.stampImageUrl || "{{ asset('assets/images/stamp.png') }}";
             let discountPct = parseFloat(card.dataset.discount) || 0;
             let applicantNotes = card.dataset.notes || "";
+            let expiryDate = card.dataset.expiryDate || "";
 
 
 			let table = card.querySelector("table");
@@ -606,6 +616,7 @@ function showMoreApplications() {
 
 							<p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
 						${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
+						${expiryDate ? `<div style="margin-top:16px;background:#fef3c7;border-left:4px solid #f59e0b;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#b45309;margin-bottom:4px;">&#128197; Quote Expiry Date</p><p style="font-size:0.9rem;margin:0;color:#1f2937;">${expiryDate}</p></div>` : ''}
 						</main>
 
 						<footer class="text-center mt-4">

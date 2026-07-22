@@ -38,7 +38,7 @@ class SendProformaPublishedEmail
         $subject = 'Proforma #' . $proforma->file_number . ' Published';
 
         // ── Notify shops (brand-filtered + is_test matched) ──────────────────
-        $shopUsers = \App\Models\User::where('role', 'shop')
+        $shopQuery = \App\Models\User::where('role', 'shop')
             ->where(function ($q) use ($isTest) {
                 if ($isTest) {
                     $q->where('is_test', true);
@@ -48,9 +48,14 @@ class SendProformaPublishedEmail
             })
             ->whereHas('brands', function ($q) use ($proforma) {
                 $q->where('brand_id', $proforma->car_brand_id);
-            })
-            ->distinct()
-            ->get();
+            });
+
+        // For insurance_shop_garage type, only notify users with shop_garage = 1
+        if ($proforma->proforma_type === 'insurance_shop_garage') {
+            $shopQuery->where('shop_garage', 1);
+        }
+
+        $shopUsers = $shopQuery->distinct()->get();
 
         foreach ($shopUsers as $user) {
             if ($emailEnabled && !empty($user->email)) {
@@ -72,7 +77,9 @@ class SendProformaPublishedEmail
         }
 
         // ── Notify garages (is_test matched, treat null as false) ────────────
-        $garageUsers = \App\Models\User::where('role', 'garage')
+        $garageUsers = in_array($proforma->proforma_type, ['insurance_shop_only', 'insurance_shop_garage'], true)
+            ? collect()
+            : \App\Models\User::where('role', 'garage')
             ->where(function ($q) use ($isTest) {
                 if ($isTest) {
                     $q->where('is_test', true);
