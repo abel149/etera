@@ -73,8 +73,8 @@
                 <tr>
                   <td class="no-wrap"><b>Agent Phone</b></td>
                   <td class="proportional">{{ $proforma->agent_phone_number ?? 'N/A' }}</td>
-                  <td class="no-wrap"></td>
-                  <td class="proportional"></td>
+                  <td class="no-wrap"><b>Poster Phone</b></td>
+                  <td class="proportional">{{ $proforma->poster->phone_number ?? 'N/A' }}</td>
                 </tr>
 
                 <tr>
