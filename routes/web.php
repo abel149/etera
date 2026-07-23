@@ -40,6 +40,7 @@ use App\Services\AudioService;
 use App\Services\ImageService;
 use App\Services\TelegramService;
 use App\Services\VideoService;
+use App\Services\ProformaGroupService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -3123,6 +3124,9 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                     \App\Models\Inbox::where('proforma_id', $proforma->id)
                         ->where('source', 'insurance')->where('inbox_group', $grp)
                         ->whereIn('user_id', $toRemove)->delete();
+
+                    // If the group is partially filled and now has no pending inbox, broadcast the rest.
+                    (new ProformaGroupService())->checkAndTriggerPartials($proforma, $grp);
                 }
                 // Add newly desired entries (skip if already inboxed elsewhere on this proforma)
                 foreach (array_diff($desiredIds, $currentIds) as $userId) {
@@ -3778,7 +3782,53 @@ Route::get('proforma-details', function (Request $request) {
         return redirect()->back();
     }
 
-    return view('spare-part.details', compact('proforma'));
+    $assignedGroup   = null;
+    $lockedParts     = collect();
+    $applicationMode = null;
+
+    if (auth()->check() && auth()->user()->role === 'shop' && !$proforma->isShopGarageInsurance()) {
+        $groupService = new \App\Services\ProformaGroupService();
+
+        $partial = \App\Models\Partial::where('proforma_id', $proforma->id)
+            ->where('user_id', auth()->id())
+            ->where('active', true)
+            ->first();
+
+        if ($partial) {
+            $applicationMode = 'partial';
+            $assignedGroup   = $partial->inbox_group;
+            $lockedParts     = $groupService->getLockedParts($proforma->id, $assignedGroup);
+        } else {
+            $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
+
+            if ($ownInbox && $ownInbox->inbox_group !== null) {
+                // Shop is inboxed into a slot shared with other shops — lock any parts
+                // already priced by another shop in the same group.
+                $assignedGroup = $ownInbox->inbox_group;
+                $lockedParts   = $groupService->getLockedParts($proforma->id, $assignedGroup);
+            }
+        }
+    }
+
+    // Build lockedDataByPartId: proforma_part.id => ['unit_price' => N]
+    // CarParts are stored as 'ppart_{proforma_part.id}' — match on that name.
+    $lockedDataByPartId = collect();
+    if ($lockedParts->isNotEmpty()) {
+        $parts      = $proforma->parts->sortBy('id')->values();
+        $ppartNames = $parts->map(fn ($p) => 'ppart_' . $p->id)->values()->all();
+        $carPartMap = \App\Models\CarPart::whereIn('name', $ppartNames)
+            ->pluck('id', 'name');
+        foreach ($parts as $p) {
+            $carPartId = $carPartMap['ppart_' . $p->id] ?? null;
+            if ($carPartId && $lockedParts->has($carPartId)) {
+                $lockedDataByPartId[$p->id] = [
+                    'unit_price' => $lockedParts[$carPartId]->unit_price ?? 0,
+                ];
+            }
+        }
+    }
+
+    return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId', 'applicationMode'));
 })->name('proforma-details');
 
 Route::prefix('garage')
