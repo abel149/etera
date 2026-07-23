@@ -1407,54 +1407,64 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // ── PDF Viewer ────────────────────────────────────────────────────────────────
 let _pdfBlobUrl = null;
+let _mergedPdfUrl = null;
 let _cachedPrivateKey = null;
 
 function closePdfViewer() {
     const iframe = document.getElementById('pdfViewerIframe');
     if (iframe) iframe.src = '';
     if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
+    if (_mergedPdfUrl) { URL.revokeObjectURL(_mergedPdfUrl); _mergedPdfUrl = null; }
 }
 
-async function buildStampedPdfUrl(pdfBlobUrl, stampSrc) {
-    const { PDFDocument, degrees } = PDFLib;
-    const pdfBytes = await fetch(pdfBlobUrl).then(r => r.arrayBuffer());
-    const pdfDoc  = await PDFDocument.load(pdfBytes);
+async function buildCoverMergedPdfUrl(card, originalPdfBytes, privateKey) {
+    const { PDFDocument } = PDFLib;
 
-    if (stampSrc) {
-        try {
-            const stampResp  = await fetch(stampSrc);
-            const stampBytes = await stampResp.arrayBuffer();
-            const mime = stampResp.headers.get('content-type') || '';
-            const cleanSrc = stampSrc.split('?')[0].toLowerCase();
-            const isJpeg = mime.includes('jpeg') || mime.includes('jpg') || cleanSrc.endsWith('.jpg') || cleanSrc.endsWith('.jpeg');
-            const isPng  = mime.includes('png')  || cleanSrc.endsWith('.png');
-            if (!isJpeg && !isPng) throw new Error('Unsupported stamp image format (need JPEG or PNG)');
-            const stampImg = isJpeg ? await pdfDoc.embedJpg(stampBytes) : await pdfDoc.embedPng(stampBytes);
-            for (const page of pdfDoc.getPages()) {
-                const { width, height } = page.getSize();
-                const sz = Math.min(width, height) * 0.15;
-                page.drawImage(stampImg, {
-                    x: width - sz - 24,
-                    y: 20,
-                    width: sz,
-                    height: sz,
-                    rotate: degrees(10),
-                    opacity: 0.72,
-                });
-            }
-        } catch(e) {
-            console.warn('Stamp embedding skipped:', e.message);
-        }
+    // If we have the private key, decrypt any encrypted amounts on the card first
+    // so the cover page shows the real garage price.
+    if (privateKey && typeof applyDecryption === 'function') {
+        try { await applyDecryption(privateKey); } catch(e) { /* already decrypted or failed */ }
     }
 
-    const stamped = await pdfDoc.save();
-    return URL.createObjectURL(new Blob([stamped], { type: 'application/pdf' }));
+    // Capture the rendered cover card as an image (exclude the PDF attachment row/button)
+    const canvas = await html2canvas(card, {
+        scale: 2,
+        useCORS: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        onclone: (clonedDoc) => {
+            const clonedCard = clonedDoc.querySelector('.pdf-application-card');
+            if (clonedCard) {
+                clonedCard.querySelectorAll('.d-flex.align-items-center.gap-2').forEach(el => el.style.display = 'none');
+                clonedCard.querySelectorAll('button').forEach(el => el.style.display = 'none');
+            }
+        }
+    });
+
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    const b64 = dataUrl.split(',')[1];
+    const coverBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
+
+    const originalDoc = await PDFDocument.load(originalPdfBytes);
+    const mergedDoc = await PDFDocument.create();
+
+    const coverImg = await mergedDoc.embedJpg(coverBytes);
+    const coverPage = mergedDoc.addPage([coverImg.width, coverImg.height]);
+    coverPage.drawImage(coverImg, { x: 0, y: 0, width: coverImg.width, height: coverImg.height });
+
+    const copiedPages = await mergedDoc.copyPages(originalDoc, originalDoc.getPageIndices());
+    copiedPages.forEach(page => mergedDoc.addPage(page));
+
+    const mergedBytes = await mergedDoc.save();
+    if (_mergedPdfUrl) URL.revokeObjectURL(_mergedPdfUrl);
+    _mergedPdfUrl = URL.createObjectURL(new Blob([mergedBytes], { type: 'application/pdf' }));
+    return _mergedPdfUrl;
 }
 
 async function printPdfViewer() {
     const iframe = document.getElementById('pdfViewerIframe');
     if (!iframe || !iframe.src) return;
-    // No stamp is applied to the PDF — print the original document as-is.
+    // Print the merged cover + original PDF shown in the viewer.
     try {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
@@ -1466,7 +1476,7 @@ async function printPdfViewer() {
 async function downloadPdfViewer() {
     const iframe = document.getElementById('pdfViewerIframe');
     if (!iframe || !iframe.src) return;
-    // No stamp is applied to the PDF — download the original document as-is.
+    // Download the merged cover + original PDF shown in the viewer.
     const a = document.createElement('a');
     a.href = iframe.src; a.download = 'quotation.pdf';
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
@@ -1475,6 +1485,8 @@ async function downloadPdfViewer() {
 async function openPdfViewer(btn) {
     const isEncrypted  = btn.dataset.encrypted === '1';
     const encryptedUrl = btn.dataset.encryptedUrl || '';
+    const serveUrl     = btn.dataset.serveUrl || '';
+    const card         = btn.closest('.pdf-application-card');
 
     const modal       = new bootstrap.Modal(document.getElementById('pdfViewerModal'));
     const loading     = document.getElementById('pdfViewerLoading');
@@ -1496,7 +1508,7 @@ async function openPdfViewer(btn) {
             if (!resp.ok) throw new Error('Could not fetch PDF data.');
             const data = await resp.json();
 
-            // Helper: decrypt PDF bytes and show in iframe
+            // Helper: decrypt PDF bytes, build cover page, and show merged document
             const decryptAndShow = async (privateKey) => {
                 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
                 const rawAesKey = await crypto.subtle.decrypt(
@@ -1511,7 +1523,10 @@ async function openPdfViewer(btn) {
                 const blob = new Blob([pdfBytes], { type: 'application/pdf' });
                 if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
                 _pdfBlobUrl = URL.createObjectURL(blob);
-                iframe.src = _pdfBlobUrl;
+
+                loadingMsg.textContent = 'Building cover page…';
+                const mergedUrl = await buildCoverMergedPdfUrl(card, pdfBytes, privateKey);
+                iframe.src = mergedUrl;
                 loading.style.display = 'none';
             };
 
@@ -1556,8 +1571,18 @@ async function openPdfViewer(btn) {
                 });
             }
         } else {
-            // Plain PDF — load directly
-            iframe.src = btn.dataset.serveUrl || '';
+            // Plain PDF — fetch bytes and prepend cover page
+            loadingMsg.textContent = 'Loading PDF…';
+            const resp = await fetch(serveUrl);
+            if (!resp.ok) throw new Error('Could not fetch PDF.');
+            const pdfBytes = await resp.arrayBuffer();
+            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+            if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+            _pdfBlobUrl = URL.createObjectURL(blob);
+
+            loadingMsg.textContent = 'Building cover page…';
+            const mergedUrl = await buildCoverMergedPdfUrl(card, pdfBytes, _cachedPrivateKey);
+            iframe.src = mergedUrl;
             loading.style.display = 'none';
         }
     } catch(err) {
