@@ -245,6 +245,57 @@
                                 <div class="col-6"><span><b class="font-17">Tin #: </b><span class="text-secondary font-16">{{ $application->applicationBy->tin_number }}</span></span></div>
                                 <div class="col-12"><span><b class="font-17">Location: </b><span class="text-secondary font-16">{{ $application->applicationBy->location }}</span></span></div>
                             </div>
+
+                            {{-- Cover page: proforma invoice details + parts requested. Prices live inside the attached (encrypted) PDF. --}}
+                            <div class="invoice mb-3" style="overflow-y: hidden; overflow-x: auto; white-space: nowrap;">
+                                <div style="font-size:11px; font-weight:600; color:#4dd0c4; margin-bottom:4px;">
+                                    <i class="bx bx-list-ul" style="margin-right:3px;"></i>Parts Requested
+                                </div>
+                                <table style="font-size: 10px; border-collapse: collapse; width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: left; padding: 4px;">No</th>
+                                            <th style="text-align: left; padding: 4px;">Part Name and Number</th>
+                                            <th style="text-align: left; padding: 4px;">Condition</th>
+                                            <th style="text-align: left; padding: 4px;">Grade</th>
+                                            <th style="text-align: left; padding: 4px;">Country</th>
+                                            <th style="text-align: left; padding: 4px;">Qty</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($proforma->parts->sortBy('id')->values() as $part)
+                                        <tr>
+                                            <td style="padding: 4px;">{{ $loop->index + 1 }}</td>
+                                            <td style="padding: 4px;">{{ $part->number }}</td>
+                                            <td style="padding: 4px;">{{ $part->condition ?? 'N/A' }}</td>
+                                            <td style="padding: 4px;">{{ $part->grade }}</td>
+                                            <td style="padding: 4px;">{{ $part->country }}</td>
+                                            <td style="padding: 4px;">{{ $part->quantity }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+
+                                @if($proforma->isShopGarageInsurance())
+                                <div style="margin-top:10px; padding:10px 12px; border:1px solid rgba(59,130,246,0.25); border-radius:8px; background:rgba(59,130,246,0.06);">
+                                    <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
+                                        <strong style="color:#2563eb;">Garage Repair Service Estimate</strong>
+                                        <span class="{{ $application->amount_is_encrypted && $application->encrypted_amount ? 'encrypted-price' : '' }}" data-app-id="{{ $application->id }}">
+                                            @if($application->amount_is_encrypted && $application->encrypted_amount)
+                                                <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                            @else
+                                                {{ number_format((float) $application->amount, 2) }} ETB
+                                            @endif
+                                        </span>
+                                    </div>
+                                </div>
+                                @endif
+
+                                <p style="font-size: 9px; margin-top: 4px;">
+                                    <strong class="text-danger">NOTE:</strong> Part prices are contained in the attached PDF quotation below.
+                                </p>
+                            </div>
+
                             <div class="d-flex align-items-center gap-2 py-2 px-3" style="background:rgba(13,148,136,0.08);border:1px solid rgba(13,148,136,0.2);border-radius:8px;">
                                 <i class="bx bxs-file-pdf fs-4" style="color:#ef4444;"></i>
                                 <div class="flex-grow-1">
@@ -646,13 +697,9 @@
                 <div id="pdfViewerError" style="display:none;position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:20px;">
                     <div class="alert alert-danger mb-0" id="pdfViewerErrorMsg"></div>
                 </div>
-                <!-- PDF iframe + stamp overlay -->
+                <!-- PDF iframe (no stamp overlaid — stamp lives on the cover card) -->
                 <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
                     <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
-                    <!-- Shop stamp overlaid on the PDF -->
-                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:120px;height:120px;opacity:0.75;pointer-events:none;z-index:5;transform:rotate(10deg);">
-                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #ccc;">
-                    </div>
                 </div>
             </div>
             <div class="modal-footer d-print-none">
@@ -1405,48 +1452,28 @@ async function buildStampedPdfUrl(pdfBlobUrl, stampSrc) {
 }
 
 async function printPdfViewer() {
-    const iframe   = document.getElementById('pdfViewerIframe');
-    const stampImg = document.getElementById('pdfStampImg');
+    const iframe = document.getElementById('pdfViewerIframe');
     if (!iframe || !iframe.src) return;
-    const btn = document.querySelector('button[onclick="printPdfViewer()"]');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>'; }
+    // No stamp is applied to the PDF — print the original document as-is.
     try {
-        const stampSrc   = (stampImg && stampImg.src && !stampImg.src.endsWith('/')) ? stampImg.src : '';
-        const stampedUrl = await buildStampedPdfUrl(iframe.src, stampSrc);
-        const pw = window.open(stampedUrl, '_blank');
-        setTimeout(() => { if (pw) { pw.focus(); pw.print(); } }, 1500);
-        setTimeout(() => URL.revokeObjectURL(stampedUrl), 120000);
-    } catch(e) {
-        try { iframe.contentWindow.focus(); iframe.contentWindow.print(); } catch(ex) { window.open(iframe.src, '_blank'); }
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bx bx-printer"></i> Print'; }
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+    } catch(ex) {
+        window.open(iframe.src, '_blank');
     }
 }
 
 async function downloadPdfViewer() {
-    const iframe   = document.getElementById('pdfViewerIframe');
-    const stampImg = document.getElementById('pdfStampImg');
+    const iframe = document.getElementById('pdfViewerIframe');
     if (!iframe || !iframe.src) return;
-    const btn = document.getElementById('pdfDownloadBtn');
-    if (btn) { btn.disabled = true; btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>'; }
-    try {
-        const stampSrc   = (stampImg && stampImg.src && !stampImg.src.endsWith('/')) ? stampImg.src : '';
-        const stampedUrl = await buildStampedPdfUrl(iframe.src, stampSrc);
-        const a = document.createElement('a');
-        a.href = stampedUrl; a.download = 'quotation.pdf';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(stampedUrl), 60000);
-    } catch(e) {
-        const a = document.createElement('a');
-        a.href = iframe.src; a.download = 'quotation.pdf'; a.click();
-    } finally {
-        if (btn) { btn.disabled = false; btn.innerHTML = '<i class="bx bx-download"></i> Download'; }
-    }
+    // No stamp is applied to the PDF — download the original document as-is.
+    const a = document.createElement('a');
+    a.href = iframe.src; a.download = 'quotation.pdf';
+    document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
 async function openPdfViewer(btn) {
     const isEncrypted  = btn.dataset.encrypted === '1';
-    const stampSrc     = btn.dataset.stamp || '';
     const encryptedUrl = btn.dataset.encryptedUrl || '';
 
     const modal       = new bootstrap.Modal(document.getElementById('pdfViewerModal'));
@@ -1455,12 +1482,10 @@ async function openPdfViewer(btn) {
     const errBox      = document.getElementById('pdfViewerError');
     const errMsg      = document.getElementById('pdfViewerErrorMsg');
     const iframe      = document.getElementById('pdfViewerIframe');
-    const stampImg    = document.getElementById('pdfStampImg');
 
     errBox.style.display = 'none';
     loading.style.display = 'flex';
     iframe.src = '';
-    if (stampImg) stampImg.src = stampSrc;
 
     modal.show();
 
