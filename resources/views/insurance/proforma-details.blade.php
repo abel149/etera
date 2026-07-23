@@ -217,7 +217,18 @@
                          style="position:relative; overflow:hidden;"
                          data-application-id="{{ $application->id }}"
                          data-shop-name="{{ $application->applicationBy->name }}"
+                         data-store-id="{{ $application->applicationBy->store_id }}"
+                         data-tin-number="{{ $application->applicationBy->tin_number }}"
+                         data-location="{{ $application->applicationBy->location }}"
+                         data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                         data-notes='@json($application->notes ?? '')'
+                         data-customer-name="{{ $proforma->customer_name ?? 'N/A' }}"
+                         data-customer-phone="{{ $proforma->customer_phone_number ?? 'N/A' }}"
+                         data-brand="{{ $proforma->brand->name ?? 'N/A' }}"
+                         data-year="{{ $proforma->year ?? 'N/A' }}"
+                         data-plate="{{ $proforma->license_plate_number ?? 'N/A' }}"
+                         data-is-shop-garage="{{ $proforma->isShopGarageInsurance() ? '1' : '0' }}"
                          data-pdf-app-id="{{ $application->id }}"
                          data-pdf-encrypted="{{ $application->pdf->isEncrypted() ? '1' : '0' }}"
                          data-pdf-filename="{{ $application->pdf->original_filename }}"
@@ -1417,6 +1428,108 @@ function closePdfViewer() {
     if (_mergedPdfUrl) { URL.revokeObjectURL(_mergedPdfUrl); _mergedPdfUrl = null; }
 }
 
+async function buildPdfOnlyCover(card) {
+const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const formatETB = (n) => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
+
+const shopName = card.dataset.shopName || 'N/A';
+const storeId = card.dataset.storeId || 'N/A';
+const tin = card.dataset.tinNumber || 'N/A';
+const location = card.dataset.location || 'N/A';
+const phone = card.dataset.phone || 'N/A';
+const stamp = card.dataset.stampImage || '';
+const customerName = card.dataset.customerName || 'N/A';
+const customerPhone = card.dataset.customerPhone || 'N/A';
+const brand = card.dataset.brand || 'N/A';
+const year = card.dataset.year || 'N/A';
+const plate = card.dataset.plate || 'N/A';
+const isDualService = card.dataset.isShopGarage === '1';
+const garageAmount = parseFloat(card.dataset.amount) || 0;
+const rawNotes = card.dataset.notes || 'null';
+let notes = '';
+try { notes = JSON.parse(rawNotes) || ''; } catch(e) { notes = ''; }
+
+const table = card.querySelector('.invoice table');
+const rows = table ? table.querySelectorAll('tbody tr') : [];
+let partRows = '';
+rows.forEach((tr) => {
+  const cells = tr.querySelectorAll('td');
+  if (cells.length >= 6) {
+    partRows += '<tr>' +
+      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[0].textContent.trim()) + '</td>' +
+      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[1].textContent.trim()) + '</td>' +
+      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[2].textContent.trim()) + '</td>' +
+      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[3].textContent.trim()) + '</td>' +
+      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[4].textContent.trim()) + '</td>' +
+      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[5].textContent.trim()) + '</td>' +
+      '</tr>';
+  }
+});
+
+const garageBlock = isDualService ? '<div style=\'display:flex;justify-content:flex-end;margin-top:16px;\'>' +
+  '<table style=\'width:320px;border-collapse:collapse;\'><tbody>' +
+  '<tr style=\'background:#e3f2fd;font-weight:bold;border-top:2px solid #1976d2;\'>' +
+  '<td style=\'border:1px solid #ddd;padding:8px;\'><strong>Garage Repair Service:</strong></td>' +
+  '<td style=\'border:1px solid #ddd;padding:8px;text-align:right;\'>' + formatETB(garageAmount) + '</td>' +
+  '</tr></tbody></table></div>' : '';
+
+const notesBlock = notes ? '<div style=\'margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;\'>' +
+  '<p style=\'font-size:12px;font-weight:700;color:#0f766e;margin-bottom:4px;\'>Applicant Notes</p>' +
+  '<p class=\'pdf-cover-notes\' style=\'font-size:13px;margin:0;white-space:pre-wrap;color:#1f2937;\'></p></div>' : '';
+
+let coverHtml = '<div class=\'pdf-only-cover\' style=\'width:794px;min-height:1123px;padding:48px;background:#fff;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#333;position:relative;\'>' +
+  '<header style=\'border-bottom:2px solid #1976d2;padding-bottom:16px;margin-bottom:24px;\'>' +
+  '<div style=\'display:flex;justify-content:space-between;align-items:center;\'>' +
+  '<h2 style=\'color:#1976d2;margin:0;font-size:28px;\'>Proforma Invoice</h2>' +
+  '<h4 style=\'margin:0;font-size:18px;\'>Shop: ' + escapeHtml(shopName) + '</h4>' +
+  '</div></header>' +
+  '<main>' +
+  '<div style=\'display:flex;justify-content:space-between;margin-bottom:24px;font-size:14px;line-height:1.6;\'>' +
+  '<div>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Date:</strong> ' + new Date().toLocaleDateString() + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Store ID:</strong> ' + escapeHtml(storeId) + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Shop Name:</strong> ' + escapeHtml(shopName) + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Tin #:</strong> ' + escapeHtml(tin) + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Location:</strong> ' + escapeHtml(location) + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Phone:</strong> ' + escapeHtml(phone) + '</p>' +
+  '</div>' +
+  '<div style=\'text-align:right;\'>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Customer:</strong> ' + escapeHtml(customerName) + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Customer Phone:</strong> ' + escapeHtml(customerPhone) + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Car:</strong> ' + escapeHtml(year) + ' ' + escapeHtml(brand) + ' [' + escapeHtml(plate) + ']</p>' +
+  '</div></div>' +
+  '<table style=\'width:100%;border-collapse:collapse;font-size:13px;\'>' +
+  '<thead><tr style=\'background:#f5f5f5;\'>' +
+  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>No</th>' +
+  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Part Name & Number</th>' +
+  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Condition</th>' +
+  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Grade</th>' +
+  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Country</th>' +
+  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Qty</th>' +
+  '</tr></thead><tbody>' + partRows + '</tbody></table>' +
+  garageBlock +
+  '<p style=\'color:#d32f2f;font-size:12px;margin-top:24px;\'><strong>NOTE:</strong> Part prices are contained in the attached PDF quotation.</p>' +
+  notesBlock +
+  '<div style=\'position:absolute;top:3rem;left:5rem;opacity:0.3;z-index:5;\'>' +
+  '<img src=\'' + escapeHtml(stamp) + '\' style=\'width:200px;height:200px;border-radius:50%;object-fit:cover;border:2px solid #ccc;\' crossorigin=\'anonymous\' />' +
+  '</div></main></div>';
+
+const container = document.createElement('div');
+container.style.position = 'fixed';
+container.style.left = '-9999px';
+container.style.top = '0';
+container.innerHTML = coverHtml;
+document.body.appendChild(container);
+
+const notesEl = container.querySelector('.pdf-cover-notes');
+if (notesEl && notes) notesEl.textContent = notes;
+
+const target = container.querySelector('.pdf-only-cover');
+const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+document.body.removeChild(container);
+return canvas.toDataURL('image/jpeg', 0.9);
+}
+
 async function buildCoverMergedPdfUrl(card, originalPdfBytes, privateKey) {
     const { PDFDocument } = PDFLib;
 
@@ -1426,22 +1539,8 @@ async function buildCoverMergedPdfUrl(card, originalPdfBytes, privateKey) {
         try { await applyDecryption(privateKey); } catch(e) { /* already decrypted or failed */ }
     }
 
-    // Capture the rendered cover card as an image (exclude the PDF attachment row/button)
-    const canvas = await html2canvas(card, {
-        scale: 2,
-        useCORS: true,
-        backgroundColor: '#ffffff',
-        logging: false,
-        onclone: (clonedDoc) => {
-            const clonedCard = clonedDoc.querySelector('.pdf-application-card');
-            if (clonedCard) {
-                clonedCard.querySelectorAll('.d-flex.align-items-center.gap-2').forEach(el => el.style.display = 'none');
-                clonedCard.querySelectorAll('button').forEach(el => el.style.display = 'none');
-            }
-        }
-    });
-
-    const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
+    // Build a full-page invoice-style cover from the card data
+    const dataUrl = await buildPdfOnlyCover(card);
     const b64 = dataUrl.split(',')[1];
     const coverBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
 
@@ -1449,8 +1548,10 @@ async function buildCoverMergedPdfUrl(card, originalPdfBytes, privateKey) {
     const mergedDoc = await PDFDocument.create();
 
     const coverImg = await mergedDoc.embedJpg(coverBytes);
-    const coverPage = mergedDoc.addPage([coverImg.width, coverImg.height]);
-    coverPage.drawImage(coverImg, { x: 0, y: 0, width: coverImg.width, height: coverImg.height });
+    const pageWidth = 595;
+    const pageHeight = coverImg.height * pageWidth / coverImg.width;
+    const coverPage = mergedDoc.addPage([pageWidth, pageHeight]);
+    coverPage.drawImage(coverImg, { x: 0, y: 0, width: pageWidth, height: pageHeight });
 
     const copiedPages = await mergedDoc.copyPages(originalDoc, originalDoc.getPageIndices());
     copiedPages.forEach(page => mergedDoc.addPage(page));
