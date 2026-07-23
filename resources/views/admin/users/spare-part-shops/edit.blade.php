@@ -289,6 +289,22 @@
                             @endforeach
                         </select>
                     </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="dealers" id="dealers" value="1" {{ old('dealers', $shop->dealers ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="dealers">
+                                Is Dealer
+                            </label>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="shop_garage" id="shop_garage" value="1" {{ old('shop_garage', $shop->shop_garage ?? 0) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="shop_garage">
+                                Dual Service (Shop + Garage)
+                            </label>
+                        </div>
+                    </div>
 
 
 
