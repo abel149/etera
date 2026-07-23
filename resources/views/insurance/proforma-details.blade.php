@@ -1438,6 +1438,27 @@ const tin = card.dataset.tinNumber || 'N/A';
 const location = card.dataset.location || 'N/A';
 const phone = card.dataset.phone || 'N/A';
 const stamp = card.dataset.stampImage || '';
+
+async function loadStampAsDataUrl(url) {
+  return new Promise((resolve) => {
+    if (!url) return resolve(url);
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const c = document.createElement('canvas');
+      c.width = img.naturalWidth || 200;
+      c.height = img.naturalHeight || 200;
+      const ctx = c.getContext('2d');
+      ctx.drawImage(img, 0, 0);
+      try { resolve(c.toDataURL('image/png')); } catch(e) { resolve(url); }
+    };
+    img.onerror = () => resolve(url);
+    img.src = url;
+  });
+}
+
+const stampDataUrl = await loadStampAsDataUrl(stamp);
+
 const customerName = card.dataset.customerName || 'N/A';
 const customerPhone = card.dataset.customerPhone || 'N/A';
 const brand = card.dataset.brand || 'N/A';
@@ -1511,7 +1532,7 @@ let coverHtml = '<div class=\'pdf-only-cover\' style=\'width:794px;min-height:11
   '<p style=\'color:#d32f2f;font-size:12px;margin-top:24px;\'><strong>NOTE:</strong> Part prices are contained in the attached PDF quotation.</p>' +
   notesBlock +
   '<div style=\'position:absolute;top:3rem;left:5rem;opacity:0.3;z-index:5;\'>' +
-  '<img src=\'' + escapeHtml(stamp) + '\' style=\'width:200px;height:200px;border-radius:50%;object-fit:cover;border:2px solid #ccc;\' crossorigin=\'anonymous\' />' +
+  '<img src=\'' + stampDataUrl + '\' style=\'width:200px;height:200px;border-radius:50%;object-fit:cover;border:2px solid #ccc;\' />' +
   '</div></main></div>';
 
 const container = document.createElement('div');
