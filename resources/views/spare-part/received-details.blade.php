@@ -418,8 +418,8 @@
                 </div>
                 <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
                     <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
-                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:120px;height:120px;opacity:0.6;pointer-events:none;z-index:5;transform:rotate(10deg);">
-                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #ccc;">
+                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:150px;height:150px;opacity:0.55;pointer-events:none;z-index:5;transform:rotate(10deg);mix-blend-mode:multiply;">
+                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;object-fit:contain;">
                     </div>
                 </div>
             </div>
@@ -517,8 +517,8 @@ function showMoreApplications() {
 						.stamp-image { width: 200px; height: 200px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; }
 						.invoice-container { position: relative; }
 						.info-row-wrapper { position: relative; }
-						.print-stamp-between { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 5; pointer-events: none; }
-						.print-stamp-between .stamp-image { width: 120px; height: 120px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; opacity: 0.5; }
+						.print-stamp-col { display: flex; align-items: center; justify-content: center; }
+						.print-stamp-col .stamp-image { width: 110px; height: 110px; border-radius: 50%; object-fit: cover; border: 2px solid #ccc; opacity: 0.85; }
 					</style>
 				</head>
 				<body>
@@ -543,18 +543,18 @@ function showMoreApplications() {
 							<hr>
 
 							<div class="info-row-wrapper">
-								<div class="print-stamp-between">
-									<img class="stamp-image" src="${stampImage}" alt="Stamp" />
-								</div>
-								<div class="row gy-3 align-items-start">
-									<div class="col-sm-6">
+								<div class="row gy-3 align-items-center">
+									<div class="col-sm-5">
 										<p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
 										<p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
 										<p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
 										<p class="mb-1"><strong>Location:</strong> ${location}</p>
 										<p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
 									</div>
-									<div class="col-sm-6 text-sm-end">
+									<div class="col-sm-2 print-stamp-col">
+										<img class="stamp-image" src="${stampImage}" alt="Stamp" />
+									</div>
+									<div class="col-sm-5 text-sm-end">
 										<strong>Author:</strong>
 										<address>
 											etera<br />

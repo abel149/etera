@@ -623,8 +623,8 @@
                 </div>
                 <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
                     <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
-                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:120px;height:120px;opacity:0.6;pointer-events:none;z-index:5;transform:rotate(10deg);">
-                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;border-radius:50%;object-fit:cover;border:2px solid #ccc;">
+                    <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:150px;height:150px;opacity:0.55;pointer-events:none;z-index:5;transform:rotate(10deg);mix-blend-mode:multiply;">
+                        <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;object-fit:contain;">
                     </div>
                 </div>
             </div>
