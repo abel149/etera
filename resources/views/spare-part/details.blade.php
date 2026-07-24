@@ -514,6 +514,10 @@
                 </div>
                 @endif
 
+                @if(optional($proforma->poster)->role === 'insurance')
+                    @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'header'])
+                @endif
+
                 <form
                     action="{{ auth()->check() && auth()->user()->role === 'garage' ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
                     method="POST" id="proforma-quote-form" novalidate>
@@ -835,6 +839,10 @@
                         </button>
                     @endif
                 </form>
+
+                @if(optional($proforma->poster)->role === 'insurance')
+                    @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'footer'])
+                @endif
             </div>
         </div>
     </div>
