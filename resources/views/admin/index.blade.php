@@ -140,7 +140,7 @@
 								<div class="d-flex align-items-center justify-content-between">
 									<div>
 										<p class="mb-0">Total Customers</p>
-										<h5 class="mb-0">{{\App\Models\User::where('role','others')->count()}}</h5>
+										<h5 class="mb-0">{{\App\Models\User::where('role', \App\Models\User::ROLE_BUSINESS_OWNER)->count()}}</h5>
 									</div>
 									<div id="chart1"></div>
 								</div>

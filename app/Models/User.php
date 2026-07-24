@@ -21,7 +21,7 @@ class User extends Authenticatable
     public const ROLE_ADMIN          = 'admin';
     public const ROLE_MANAGER        = 'manager';
     public const ROLE_OPERATOR       = 'operator';
-    public const ROLE_BUSINESS_OWNER = 'others';
+    public const ROLE_BUSINESS_OWNER = 'business_owner';
     public const ROLE_INSURANCE       = 'insurance';
     public const ROLE_INSURANCE_AGENT  = 'insurance_agent';
     public const ROLE_SHOP           = 'shop';
