@@ -1,7 +1,7 @@
 <div class="insurance-letterhead-footer africa-insurance-footer">
     <hr class="ail-footer-rule">
     <div class="ail-footer-row">
-        <span class="ail-footer-amharic">የቃታና ጥራት ያለው አገልግሎት መስጠት ቃል ኪዳናችን ነው!</span>
+        <span class="ail-footer-amharic">የላቀና ጥራት ያለው አገልግሎት መስጠት ቃል ኪዳናችን ነው!</span>
         <span class="ail-footer-english">Committed to Excellence &amp; Quality Service!</span>
     </div>
 </div>
