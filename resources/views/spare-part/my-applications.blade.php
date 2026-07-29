@@ -52,12 +52,26 @@ class="current"
     {{-- Applications Table --}}
     <div class="card radius-10 shadow-sm">
         <div class="card-body">
+            {{-- Search --}}
+            <div class="row mb-3">
+                <div class="col-md-5 col-12">
+                    <div class="input-group">
+                        <span class="input-group-text"><i class='bx bx-search'></i></span>
+                        <input type="text" id="applicationSearch" class="form-control"
+                               placeholder="Search by license plate or file number...">
+                        <button type="button" id="clearApplicationSearch" class="btn btn-outline-secondary" style="display:none;">
+                            <i class='bx bx-x'></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
             <div class="table-responsive">
-                <table class="table table-hover table-bordered align-middle mb-0">
+                <table class="table table-hover table-bordered align-middle mb-0" id="applicationsTable">
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
                             <th>Proforma #</th>
+                            <th>License Plate</th>
                             <th>Brand</th>
                             <th>Type</th>
                             <th>Amount</th>
@@ -101,7 +115,9 @@ class="current"
                                 $finalAmount = $application->amount ?? 0;
                             }
                         @endphp
-                        <tr>
+                        <tr class="application-row"
+                            data-file-number="{{ strtolower($proforma->file_number ?? '') }}"
+                            data-license-plate="{{ strtolower($proforma->license_plate_number ?? '') }}">
                             <td>{{ $index + 1 }}</td>
                             <td>
                                 @if($proforma)
@@ -110,6 +126,7 @@ class="current"
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
+                            <td>{{ $proforma->license_plate_number ?? '-' }}</td>
                             <td>{{ $proforma->brand->name ?? '-' }}</td>
                             <td>
                                 <span class="badge {{ $application->from === 'shop' ? 'bg-info' : 'bg-secondary' }}">
@@ -149,12 +166,18 @@ class="current"
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="9" class="text-center text-muted py-5">
+                            <td colspan="10" class="text-center text-muted py-5">
                                 <i class='bx bx-file bx-lg d-block mb-2'></i>
                                 You haven't applied on any proformas yet.
                             </td>
                         </tr>
                         @endforelse
+                        <tr id="noSearchResults" style="display:none;">
+                            <td colspan="10" class="text-center text-muted py-4">
+                                <i class='bx bx-search-alt bx-md d-block mb-2'></i>
+                                No applications match your search.
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
@@ -327,4 +350,45 @@ class="current"
 @endforeach
 
 <div class="margin-top-45 margin-bottom-45"></div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const searchInput = document.getElementById('applicationSearch');
+    const clearBtn = document.getElementById('clearApplicationSearch');
+    const rows = document.querySelectorAll('#applicationsTable tbody tr.application-row');
+    const noResultsRow = document.getElementById('noSearchResults');
+
+    if (!searchInput) return;
+
+    function filterRows() {
+        const term = searchInput.value.trim().toLowerCase();
+        let visibleCount = 0;
+
+        rows.forEach(function (row) {
+            const fileNumber = row.getAttribute('data-file-number') || '';
+            const licensePlate = row.getAttribute('data-license-plate') || '';
+            const match = term === '' || fileNumber.includes(term) || licensePlate.includes(term);
+            row.style.display = match ? '' : 'none';
+            if (match) visibleCount++;
+        });
+
+        if (noResultsRow) {
+            noResultsRow.style.display = (term !== '' && visibleCount === 0) ? '' : 'none';
+        }
+        if (clearBtn) {
+            clearBtn.style.display = term !== '' ? '' : 'none';
+        }
+    }
+
+    searchInput.addEventListener('input', filterRows);
+
+    if (clearBtn) {
+        clearBtn.addEventListener('click', function () {
+            searchInput.value = '';
+            filterRows();
+            searchInput.focus();
+        });
+    }
+});
+</script>
 @endsection
