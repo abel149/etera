@@ -1907,9 +1907,37 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
-                $amount = $user->role === 'garage'
-                    ? ($commissions->garagePay ?? 0)
-                    : ($commissions->shopPay ?? 0);
+            if (!$user) continue;
+
+            if ($user->role === 'garage') {
+                $amount = (float) ($commissions->garagePay ?? 0);
+            } else {
+                // Pro-rata for shops: scale by parts filled / total parts
+                $shopPay     = (float) ($commissions->shopPay ?? 0);
+                $totalParts  = (int) ($application->total_parts_count ?? 0);
+                $filledParts = (int) ($application->filled_parts_count ?? 0);
+
+                // Fall back to actual data if the tracked counters are missing (0)
+                if ($totalParts <= 0) {
+                    $totalParts = $proforma->parts()->count();
+                }
+                if ($filledParts <= 0 && $totalParts > 0) {
+                    $filledParts = $application->prices()
+                        ->where(function ($q) {
+                            $q->where('unit_price', '>', 0)
+                              ->orWhere('price_is_encrypted', true);
+                        })
+                        ->count();
+                }
+
+                if ($totalParts > 0 && $filledParts > 0) {
+                    $amount = round($shopPay * ($filledParts / $totalParts), 2);
+                } elseif ($totalParts > 0) {
+                    $amount = 0; // No actual part prices recorded — no commission
+                } else {
+                    $amount = $shopPay; // Legacy record: no parts data — full pay
+                }
+            }
 
             if ($amount > 0) {
                 addCommissionRecord(
@@ -2029,6 +2057,26 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 function addCommissionRecord($user, $proformaId, $applicationId, $amount)
 {
     $role = $user->role; // 'shop', 'garage', or 'insurance'
+
+    // 0. Idempotency guard: never create the same commission twice
+    // (re-verification would otherwise inflate balances and analytics).
+    $alreadyExists = PaidUser::where('user_id', $user->id)
+        ->where('proforma_id', $proformaId)
+        ->when(
+            $applicationId,
+            fn($q) => $q->where('application_id', $applicationId),
+            fn($q) => $q->whereNull('application_id')
+        )
+        ->exists();
+
+    if ($alreadyExists) {
+        Log::info('Skipped duplicate commission record', [
+            'user_id' => $user->id,
+            'proforma_id' => $proformaId,
+            'application_id' => $applicationId,
+        ]);
+        return null;
+    }
 
     // 1. Create PaidUser record (Legacy/Work Log)
     $record = PaidUser::create([
