@@ -95,7 +95,14 @@
                                                 <div class="d-flex align-items-center">
                                                     <img src="{{ asset('assets/images/avatars/avatar-9.jpg') }}" class="rounded-circle" width="40" height="40" alt="">
                                                     <div class="ms-2">
-                                                        <h6 class="mb-0 font-14">{{ $proforma->poster?->name ?? 'Unknown' }} - {{ ucfirst($proforma->poster?->role) }}</h6>
+                                                        <h6 class="mb-0 font-14">
+                                                            {{ $proforma->poster?->name ?? 'Unknown' }}
+                                                            @if($proforma->poster?->role === 'insurance_agent')
+                                                                - {{ $proforma->poster?->parentInsurance?->name ?? 'Unknown Insurance' }} (Agent)
+                                                            @else
+                                                                - {{ ucfirst($proforma->poster?->role) }}
+                                                            @endif
+                                                        </h6>
                                                     </div>
                                                 </div>
                                             </td>

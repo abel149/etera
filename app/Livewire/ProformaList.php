@@ -99,7 +99,7 @@ class ProformaList extends Component
 
         return view('livewire.proforma-list', [
             'proformas' => $query
-                ->with(['poster', 'brand'])
+                ->with(['poster.parentInsurance', 'brand'])
                 ->withCount([
                     'inboxes as shop_inboxes_count' => function ($q) {
                         $q->whereHas('user', function ($u) {
