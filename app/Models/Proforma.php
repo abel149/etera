@@ -285,12 +285,12 @@ class Proforma extends Model implements HasMedia
 
     public function isFromInsurance()
     {
-        return $this->poster->role == 'insurance';
+        return in_array($this->poster->role, ['insurance', 'insurance_agent']);
     }
 
     public function isFromOthers()
     {
-        return $this->poster->role != 'insurance';
+        return !in_array($this->poster->role, ['insurance', 'insurance_agent']);
     }
 
     public function applications()
@@ -461,14 +461,14 @@ class Proforma extends Model implements HasMedia
             $brands = auth()->user()->brands()->pluck('brand_id')->toArray();
     
             return $query->whereHas('poster', function ($query) {
-                $query->where('role', 'insurance');
+                $query->whereIn('role', ['insurance', 'insurance_agent']);
             })->when(!empty($brands), function ($q) use ($brands) {
                 return $q->whereIn('car_brand_id', $brands);
             });
         }
     
         return $query->whereHas('poster', function ($query) {
-            $query->where('role', 'insurance');
+            $query->whereIn('role', ['insurance', 'insurance_agent']);
         });
     }
     
