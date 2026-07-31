@@ -13,7 +13,9 @@
     with header.blade.php and footer.blade.php, then add a rule below.
 --}}
 @php
-    $posterName = strtolower(trim($poster->name ?? ''));
+    // For insurance agents, use the parent insurance company's name for matching
+    $matchUser = ($poster->role ?? '') === 'insurance_agent' ? $poster->parentInsurance : $poster;
+    $posterName = strtolower(trim($matchUser->name ?? $poster->name ?? ''));
 
     $template = 'default';
 

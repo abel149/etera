@@ -514,7 +514,7 @@
                 </div>
                 @endif
 
-                @if(optional($proforma->poster)->role === 'insurance')
+                @if(in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']))
                     @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'header'])
                 @endif
 
@@ -842,7 +842,7 @@
                     @endif
                 </form>
 
-                @if(optional($proforma->poster)->role === 'insurance')
+                @if(in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']))
                     @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'footer'])
                 @endif
             </div>
