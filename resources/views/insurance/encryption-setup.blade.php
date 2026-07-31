@@ -1,5 +1,22 @@
 @extends('layouts.insurance')
 @section('content')
+<style>
+.pin-wrap { position: relative; }
+.pin-toggle {
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #6c757d;
+    padding: 0;
+    font-size: 1.1rem;
+    z-index: 4;
+}
+.pin-toggle:hover { color: #0d6efd; }
+</style>
 
 <div class="row justify-content-center">
     <div class="col-12 col-lg-7">
@@ -36,15 +53,24 @@
                 <div class="row g-3 mb-3">
                     <div class="col-12 col-md-4">
                         <label class="form-label">Current PIN</label>
-                        <input type="password" id="cpOldPin" class="form-control" placeholder="Your current PIN">
+                        <div class="pin-wrap">
+                            <input type="password" id="cpOldPin" class="form-control pe-4" placeholder="Your current PIN">
+                            <button type="button" class="pin-toggle" data-target="cpOldPin"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label">New PIN</label>
-                        <input type="password" id="cpNewPin" class="form-control" placeholder="Min 8 characters" minlength="8">
+                        <div class="pin-wrap">
+                            <input type="password" id="cpNewPin" class="form-control pe-4" placeholder="Min 8 characters" minlength="8">
+                            <button type="button" class="pin-toggle" data-target="cpNewPin"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                     <div class="col-12 col-md-4">
                         <label class="form-label">Confirm New PIN</label>
-                        <input type="password" id="cpNewPinConfirm" class="form-control" placeholder="Repeat new PIN">
+                        <div class="pin-wrap">
+                            <input type="password" id="cpNewPinConfirm" class="form-control pe-4" placeholder="Repeat new PIN">
+                            <button type="button" class="pin-toggle" data-target="cpNewPinConfirm"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                 </div>
                 <button id="btnChangePin" class="btn btn-primary radius-30 px-4">
@@ -83,15 +109,24 @@
                 <div class="row g-3 mb-3">
                     <div class="col-12">
                         <label class="form-label">Recovery Code</label>
-                        <input type="password" id="rcCode" class="form-control font-monospace" placeholder="Paste your 48-character recovery code here">
+                        <div class="pin-wrap">
+                            <input type="password" id="rcCode" class="form-control font-monospace pe-4" placeholder="Paste your 48-character recovery code here">
+                            <button type="button" class="pin-toggle" data-target="rcCode"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label">New PIN</label>
-                        <input type="password" id="rcNewPin" class="form-control" placeholder="Min 8 characters" minlength="8">
+                        <div class="pin-wrap">
+                            <input type="password" id="rcNewPin" class="form-control pe-4" placeholder="Min 8 characters" minlength="8">
+                            <button type="button" class="pin-toggle" data-target="rcNewPin"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label">Confirm New PIN</label>
-                        <input type="password" id="rcNewPinConfirm" class="form-control" placeholder="Repeat new PIN">
+                        <div class="pin-wrap">
+                            <input type="password" id="rcNewPinConfirm" class="form-control pe-4" placeholder="Repeat new PIN">
+                            <button type="button" class="pin-toggle" data-target="rcNewPinConfirm"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                 </div>
                 <button id="btnRecoverPin" class="btn btn-warning radius-30 px-4">
@@ -133,11 +168,17 @@
                     <div class="row g-3 mb-3">
                         <div class="col-12 col-md-6">
                             <label class="form-label">New PIN</label>
-                            <input type="password" id="encPin" class="form-control" placeholder="Minimum 8 characters" minlength="8">
+                            <div class="pin-wrap">
+                                <input type="password" id="encPin" class="form-control pe-4" placeholder="Minimum 8 characters" minlength="8">
+                                <button type="button" class="pin-toggle" data-target="encPin"><i class='bx bx-show'></i></button>
+                            </div>
                         </div>
                         <div class="col-12 col-md-6">
                             <label class="form-label">Confirm New PIN</label>
-                            <input type="password" id="encPinConfirm" class="form-control" placeholder="Repeat PIN">
+                            <div class="pin-wrap">
+                                <input type="password" id="encPinConfirm" class="form-control pe-4" placeholder="Repeat PIN">
+                                <button type="button" class="pin-toggle" data-target="encPinConfirm"><i class='bx bx-show'></i></button>
+                            </div>
                         </div>
                     </div>
                     <button id="btnGenerate" class="btn btn-danger radius-30 px-4">
@@ -173,11 +214,17 @@
                 <div class="row g-3 mb-3">
                     <div class="col-12 col-md-6">
                         <label class="form-label">Encryption PIN</label>
-                        <input type="password" id="encPin" class="form-control" placeholder="Minimum 8 characters" minlength="8">
+                        <div class="pin-wrap">
+                            <input type="password" id="encPin" class="form-control pe-4" placeholder="Minimum 8 characters" minlength="8">
+                            <button type="button" class="pin-toggle" data-target="encPin"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                     <div class="col-12 col-md-6">
                         <label class="form-label">Confirm PIN</label>
-                        <input type="password" id="encPinConfirm" class="form-control" placeholder="Repeat PIN">
+                        <div class="pin-wrap">
+                            <input type="password" id="encPinConfirm" class="form-control pe-4" placeholder="Repeat PIN">
+                            <button type="button" class="pin-toggle" data-target="encPinConfirm"><i class='bx bx-show'></i></button>
+                        </div>
                     </div>
                 </div>
                 <button id="btnGenerate" class="btn btn-primary radius-30 px-4">
@@ -488,6 +535,21 @@ if (btnRecoverPin) {
         }
     });
 }
+// ── PIN show/hide toggle ──────────────────────────────────────
+document.querySelectorAll('.pin-toggle').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const input = document.getElementById(this.dataset.target);
+        if (!input) return;
+        const icon = this.querySelector('i');
+        if (input.type === 'password') {
+            input.type = 'text';
+            icon.classList.replace('bx-show', 'bx-hide');
+        } else {
+            input.type = 'password';
+            icon.classList.replace('bx-hide', 'bx-show');
+        }
+    });
+});
 </script>
 
 @endsection
