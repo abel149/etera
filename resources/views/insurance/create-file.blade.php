@@ -297,7 +297,7 @@
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
                                     </div> <div class="col-12 col-lg-6">
-                                        <label for="InputEmail2" class="form-label">Agent Phone Number</label>
+                                        <label for="InputEmail2" class="form-label">Operator Phone Number</label>
                                         <input type="text" name="Agent_phone_number" value="{{old('Agent_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder=""
                                         required
                                         oninvalid="this.setCustomValidity('Please enter the Phone number')"
@@ -434,7 +434,7 @@
                                                 </div>
                                                 <div class="col-12 col-lg-3">
                                                     <label for="inputName1" class="form-label">Country Part is Manufactured</label>
-                                                    <input name="parts[0][country]" type="text" class="form-control" id="inputName1" placeholder="" data-name="name" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
+                                                    <input name="parts[0][country]" type="text" class="form-control required-field" id="inputName1" placeholder="" data-name="name" required oninvalid="this.setCustomValidity('Please enter the country')" oninput="this.setCustomValidity('')">
                                                     @error('parts.0.country')
                                                         <span class="text-danger small">{{ $message }}</span>
                                                     @enderror
@@ -993,12 +993,22 @@ console.log(1);
             const template = repeaterContainer.querySelector('.repeater-item');
             const clone = template.cloneNode(true);
             
-            // Clear inputs in the clone
+            // Clear inputs in the clone (but restore quantity default)
             const inputs = clone.querySelectorAll('input');
-            inputs.forEach(input => input.value = '');
-            
+            inputs.forEach(input => {
+                input.value = '';
+                input.classList.remove('is-invalid');
+            });
+
+            // Restore quantity default to 1
+            const qtyInput = clone.querySelector('input[name*="[quantity]"]');
+            if (qtyInput) qtyInput.value = 1;
+
             const selects = clone.querySelectorAll('select');
-            selects.forEach(select => select.selectedIndex = 0);
+            selects.forEach(select => {
+                select.selectedIndex = 0;
+                select.classList.remove('is-invalid');
+            });
 
             // Update the part number label
             const itemCount = repeaterContainer.querySelectorAll('.repeater-item').length; // 0-indexed count for name, but display is +1
