@@ -32,10 +32,13 @@ class ProformaGroupService
         }
 
         for ($g = 1; $g <= $required; $g++) {
-            // Skip if any inboxed shop (insurance or admin) is still waiting for this group
+            // Skip if any inboxed SHOP (insurance or admin) is still waiting for this group.
+            // Only count shop inboxes — garage inboxes share the same group numbers in
+            // standard proformas but must not block shop group assignment.
             $pendingInbox = Inbox::where('proforma_id', $proforma->id)
                 ->whereIn('source', ['insurance', 'admin'])
                 ->where('inbox_group', $g)
+                ->whereHas('user', fn ($q) => $q->where('role', 'shop'))
                 ->exists();
 
             if ($pendingInbox) {
@@ -124,10 +127,13 @@ class ProformaGroupService
             return;
         }
 
-        // Condition 3: no inboxed shop (insurance or admin) still pending for this group
+        // Condition 3: no inboxed SHOP (insurance or admin) still pending for this group.
+        // Only count shop inboxes — in standard proformas, garage inboxes share the same
+        // group numbers but must not block partial re-publish for shops.
         $pendingInbox = Inbox::where('proforma_id', $proforma->id)
             ->whereIn('source', ['insurance', 'admin'])
             ->where('inbox_group', $group)
+            ->whereHas('user', fn ($q) => $q->where('role', 'shop'))
             ->exists();
 
         if ($pendingInbox) {
@@ -225,11 +231,13 @@ class ProformaGroupService
         }
 
         for ($g = 1; $g <= $required; $g++) {
-            // Don't take over a group that still has an inboxed shop (insurance or admin)
+            // Don't take over a group that still has an inboxed SHOP (insurance or admin)
             // waiting — that shop is expected to complete the remaining parts themselves.
+            // Only count shop inboxes — garage inboxes must not block shop group fallback.
             $pendingInbox = Inbox::where('proforma_id', $proforma->id)
                 ->whereIn('source', ['insurance', 'admin'])
                 ->where('inbox_group', $g)
+                ->whereHas('user', fn ($q) => $q->where('role', 'shop'))
                 ->exists();
 
             if ($pendingInbox) {
