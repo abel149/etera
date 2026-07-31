@@ -406,7 +406,7 @@
                                 <ul>
                                     <li>
                                         <i class="icon-material-outline-directions-car"></i>
-                                        <span>Agent Phone Number</span>
+                                        <span>Operator Phone Number</span>
                                         <h5>{{ $proforma->agent_phone_number ?? 'N/A' }}</h5>
                                     </li>
                                     <li>
@@ -659,7 +659,7 @@
                                         @else
                                             <p style="margin: 0; padding: 0;">GARAGE REPAIR SERVICE ESTIMATE PRICE</p>
                                         @endif
-                                        <small style="color: #f5365c;">(Price not including VAT)</small>
+                                        <small style="color: #f5365c;">(Price including VAT)</small>
                                     </td>
                                     <td colspan="2">
                                         <input type="number" name="amount" class="with-border" required
@@ -720,7 +720,7 @@
                     </div>
                     </div>{{-- /price-table-section --}}
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->dealer == 1)
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->dealers)
                     <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px solid rgba(13,148,136,0.15); border-radius: 8px; padding: 14px 16px;">
                         <label for="application_notes" style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
                             <i class="bx bx-message-detail" style="margin-right:4px;"></i>Additional Notes <span style="font-weight:400; color:#aaa;">(optional)</span>
@@ -739,10 +739,12 @@
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(13,148,136,0.5); background:rgba(13,148,136,0.18); color:var(--etera-teal-light,#4dd0c4); transition:all .2s;">
                             <i class="bx bx-list-ul"></i> Enter Prices
                         </button>
+                        @if (auth()->user()->dealers)
                         <button type="button" id="modePdfBtn" onclick="setSubmissionMode('pdf')"
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(255,255,255,0.12); background:transparent; color:#aaa; transition:all .2s;">
                             <i class="bx bxs-file-pdf"></i> Upload PDF Quotation
                         </button>
+                        @endif
                     </div>
                     <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
 
@@ -1280,7 +1282,7 @@
             const inactiveStyle = { border:'2px solid rgba(255,255,255,0.12)', background:'transparent', color:'#aaa' };
 
             if (mode === 'pdf') {
-                Object.assign(pdfBtn.style,   activeStyle);
+                if (pdfBtn) Object.assign(pdfBtn.style,   activeStyle);
                 Object.assign(priceBtn.style, inactiveStyle);
                 if (pdfSection)  pdfSection.style.display  = 'block';
                 if (priceTable)  priceTable.style.display  = 'none';
@@ -1292,7 +1294,7 @@
                 calculateAmounts();
             } else {
                 Object.assign(priceBtn.style, activeStyle);
-                Object.assign(pdfBtn.style,   inactiveStyle);
+                if (pdfBtn) Object.assign(pdfBtn.style,   inactiveStyle);
                 if (pdfSection) pdfSection.style.display  = 'none';
                 if (priceTable) priceTable.style.display  = '';
                 if (modeInput)  modeInput.value = 'price';

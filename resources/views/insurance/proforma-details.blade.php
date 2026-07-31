@@ -495,7 +495,7 @@
                                 @endif
 
                                 <p style="font-size: 9px; margin-top: 4px;">
-                                    <strong class="text-danger">NOTE:</strong> All prices not including VAT
+                                    <strong class="text-danger">NOTE:</strong> All prices including VAT
                                 </p>
 
                                 <div style="font-size: 10px; margin-top: 2px;">
@@ -652,7 +652,7 @@
                                     </tfoot>
                                 </table>
                                 <p style="font-size: 9px; margin-top: 4px;">
-                                    <strong class="text-danger">NOTE:</strong> All prices not including VAT
+                                    <strong class="text-danger">NOTE:</strong> All prices including VAT
                                 </p>
                             </div>
                             @if($application->notes)
@@ -975,7 +975,7 @@ function openPrintPage(card) {
                         </table>
                     </div>
 
-                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
+                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
                     ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 
                     <div class="card-stamp">
@@ -984,7 +984,7 @@ function openPrintPage(card) {
                 </main>
 
                 <footer class="text-center mt-4">
-                    <p><strong>NOTE:</strong> Price is NOT including 15% VAT.</p>
+                    <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
                     <div class="btn-group btn-group-sm d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
                             <i class="fa fa-print"></i> Print & Download
@@ -1152,7 +1152,7 @@ function openPrintPages(card) {
                         </table>
                     </div>
 
-                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
+                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
                     ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 
                     <div class="card-stamp">
@@ -1161,7 +1161,7 @@ function openPrintPages(card) {
                 </main>
 
                 <footer class="text-center mt-4">
-                    <p><strong>NOTE:</strong> Price is NOT including 15% VAT.</p>
+                    <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
                     <div class="btn-group btn-group-sm d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
                             <i class="fa fa-print"></i> Print & Download

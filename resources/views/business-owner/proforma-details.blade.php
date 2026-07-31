@@ -558,7 +558,7 @@
                                     </tfoot>
                                 </table>
                                 <div class="vat-note">
-                                    <i class="bx bx-info-circle"></i> All prices not including VAT
+                                    <i class="bx bx-info-circle"></i> All prices including VAT
                                 </div>
                             </div>
 
@@ -915,7 +915,7 @@
 								</table>
 							</div>
 
-							<p class="text-danger mt-4"><strong>NOTE:</strong> All prices not including VAT</p>
+							<p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
 
 							<div class="card-stamp">
 								<img class="stamp-image" src="${stampImage}" alt="Stamp" />
@@ -923,7 +923,7 @@
 						</main>
 
 						<footer class="text-center mt-4">
-							<p><strong>NOTE:</strong> Price is NOT including 15% VAT.</p>
+							<p><strong>NOTE:</strong> Price is including 15% VAT.</p>
 							<div class="btn-group btn-group-sm d-print-none">
 								<a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
 									<i class="fa fa-print"></i> Print & Download
