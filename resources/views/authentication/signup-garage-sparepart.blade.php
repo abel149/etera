@@ -259,7 +259,6 @@
                 <div class="etera-input-group">
                     <label>Car Brands To Serve</label>
                     <select name="brands[]" id="brands-select" multiple>
-                        <option value="all">Select All</option>
                         @foreach($brands as $brand)
                             <option value="{{ $brand->id }}">{{ $brand->name }}</option>
                         @endforeach
@@ -630,15 +629,6 @@ document.addEventListener('DOMContentLoaded', function() {
 $(document).ready(function () {
     const $select = $('#brands-select');
     $select.select2({ placeholder: "Select car brands", closeOnSelect: false, width: '100%' });
-    $select.on('change', function () {
-        let values = $select.val() || [];
-        if (values.includes('all')) {
-            values = values.filter(v => v !== 'all');
-            const allVals = $select.find('option').not('[value="all"]').map(function(){ return this.value; }).get();
-            if (values.length === allVals.length) $select.val([]).trigger('change.select2');
-            else $select.val(allVals).trigger('change.select2');
-        }
-    });
 });
 </script>
 

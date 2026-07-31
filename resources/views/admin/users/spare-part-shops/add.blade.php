@@ -51,7 +51,7 @@
                     <div class="col-md-6">
                         <label class="form-label">Car Brands To Serve</label>
                         <select name="brands[]" id="brands-select" class="form-select" multiple required>
-                            <option value="all">Select All</option>
+
                             @foreach($brands as $brand)
                                 <option value="{{ $brand->id }}">{{ $brand->name }}</option>
                             @endforeach
@@ -152,35 +152,6 @@ $(document).ready(function () {
         placeholder: "Select car brands",
         closeOnSelect: false,
         width: '100%'
-    });
-
-    /**
-     * ✅ HANDLE SELECT ALL RELIABLY
-     */
-    $select.on('change', function () {
-        let values = $select.val() || [];
-
-        // If "Select All" was chosen
-        if (values.includes('all')) {
-
-            // Remove "all" immediately
-            values = values.filter(v => v !== 'all');
-
-            const allBrandValues = $select.find('option')
-                .not('[value="all"]')
-                .map(function () {
-                    return this.value;
-                }).get();
-
-            // 🔁 TOGGLE LOGIC
-            if (values.length === allBrandValues.length) {
-                // 🔴 All selected → CLEAR
-                $select.val([]).trigger('change.select2');
-            } else {
-                // 🟢 Select ALL
-                $select.val(allBrandValues).trigger('change.select2');
-            }
-        }
     });
 
     // Initialize FilePond with upload progress
