@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 class InsuranceController extends Controller
 {
     /**
@@ -46,11 +47,15 @@ return redirect()->to('/admin/insurances');
                 'name' => 'required',
                 'email' => 'nullable|email|unique:users,email',
                 'phone_number' => 'required|unique:users,phone_number',
-                'password' => 'nullable|min:6' // password can be null
+                'password' => 'nullable|min:6', // password can be null
+                'stamp_image' => 'required|file|image|max:10240',
             ]);
 
             // If password is null, default to 123456
             $password = $request->password ?: '123456';
+
+            // Upload stamp image
+            $stampImagePath = $request->file('stamp_image')->store('public/stamps');
 
             $user = User::create([
                 'name' => $request->name,
@@ -58,7 +63,8 @@ return redirect()->to('/admin/insurances');
                 'phone_number' => $request->phone_number,
                 'password' => bcrypt($password),
                 'role' => 'insurance',
-                'registered_by' => auth()->user()->id
+                'registered_by' => auth()->user()->id,
+                'stamp_image' => $stampImagePath,
             ]);
 
             if (auth()->user()->role === 'admin') {
@@ -130,15 +136,34 @@ return redirect()->to('/admin/insurances');
     {
         $insurance = User::findOrFail($id);
         $user = User::findOrFail($id);
-        $insurance->update([
+
+        $request->validate([
+            'name' => 'required',
+            'email' => 'nullable|email|unique:users,email,' . $id,
+            'phone_number' => 'required|unique:users,phone_number,' . $id,
+            'stamp_image' => 'nullable|file|image|max:10240',
+        ]);
+
+        $updateData = [
             'name' => $request->name,
             'email' => $request->email,
             'phone_number' => $request->phone_number,
-        ]);
-    
+        ];
+
+        // Upload new stamp image if provided
+        if ($request->hasFile('stamp_image')) {
+            // Delete old stamp image if exists
+            if ($insurance->stamp_image) {
+                Storage::delete($insurance->stamp_image);
+            }
+            $updateData['stamp_image'] = $request->file('stamp_image')->store('public/stamps');
+        }
+
+        $insurance->update($updateData);
+
         // return redirect()->to('admin/insurances');
 
-   
+
         if (auth()->user()->role === 'admin') {
             return redirect()->to('admin/insurances')->with(['user' => $user]);
         } elseif (auth()->user()->role === 'marketer') {
