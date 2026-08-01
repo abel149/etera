@@ -843,6 +843,14 @@
                 </form>
 
                 @if(in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']))
+                    @php
+                        $insuranceForStamp = $proforma->poster->role === 'insurance_agent' ? $proforma->poster->parentInsurance : $proforma->poster;
+                    @endphp
+                    @if($insuranceForStamp && $insuranceForStamp->stamp_image)
+                        <div class="insurance-stamp-container" style="display:flex;justify-content:flex-end;margin-bottom:6px;">
+                            <img src="{{ asset('storage/' . $insuranceForStamp->stamp_image) }}" alt="Insurance Stamp" style="max-width:90px;max-height:90px;opacity:0.85;object-fit:contain;" />
+                        </div>
+                    @endif
                     @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'footer'])
                 @endif
             </div>
