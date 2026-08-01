@@ -69,7 +69,7 @@ class GarageProformasList extends Component
         $query = Proforma::query()
             ->where('status', 'published')
             ->whereHas('poster', function ($q) use ($isTest) {
-                $q->where('role', 'insurance')
+                $q->whereIn('role', ['insurance', 'insurance_agent'])
                   ->where(function ($q2) use ($isTest) {
                       if ($isTest) {
                           $q2->where('is_test', true);

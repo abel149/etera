@@ -501,11 +501,14 @@ class ProformaApplicationController extends Controller
                         ]);
                     }
 
-                    // Per-group chereta: if the group is now complete, delete remaining group inboxes
+                    // Per-group chereta: if the group is now complete, delete remaining group inboxes.
+                    // Only SHOP inboxes — garage inboxes share the same group numbers on standard
+                    // proformas and must NOT be removed when a shop group completes.
                     if (!$isDualService && $inboxGroup !== null && $groupService->isGroupComplete($proforma, $inboxGroup)) {
                         $proforma->inboxes()
                             ->whereIn('source', ['insurance', 'admin'])
                             ->where('inbox_group', $inboxGroup)
+                            ->whereHas('user', fn ($q) => $q->where('role', 'shop'))
                             ->delete();
                         Partial::deactivateGroup($proforma->id, $inboxGroup);
 
@@ -528,6 +531,7 @@ class ProformaApplicationController extends Controller
                         $proforma->inboxes()
                             ->where('source', 'insurance')
                             ->where('inbox_group', $inboxGroup)
+                            ->whereHas('user', fn ($q) => $q->where('role', 'shop'))
                             ->delete();
                         Partial::deactivateGroup($proforma->id, $inboxGroup);
                     }
