@@ -208,15 +208,16 @@
                                     <div class="col-12">
                                         <label class="form-label fw-semibold">Proforma Type</label>
                                         <div class="d-flex flex-wrap gap-3" id="proformaTypeOptions">
-                                            <div class="proforma-type-card active" data-type="insurance_standard">
-                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeStandard" value="insurance_standard" {{ old('proforma_type', 'insurance_standard') == 'insurance_standard' ? 'checked' : '' }}>
+                                            {{-- Standard type hidden for now — existing insurance_standard proformas still work via the route fallback --}}
+                                            <div class="proforma-type-card d-none" data-type="insurance_standard">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeStandard" value="insurance_standard" {{ old('proforma_type') == 'insurance_standard' ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="typeStandard">
                                                     <i class="bx bx-buildings me-1"></i> Standard
                                                     <small class="text-muted d-block">Shops + Garages</small>
                                                 </label>
                                             </div>
-                                            <div class="proforma-type-card" data-type="insurance_shop_only">
-                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopOnly" value="insurance_shop_only" {{ old('proforma_type') == 'insurance_shop_only' ? 'checked' : '' }}>
+                                            <div class="proforma-type-card active" data-type="insurance_shop_only">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopOnly" value="insurance_shop_only" {{ old('proforma_type', 'insurance_shop_only') == 'insurance_shop_only' ? 'checked' : '' }}>
                                                 <label class="form-check-label" for="typeShopOnly">
                                                     <i class="bx bx-store me-1"></i> Shop Only
                                                     <small class="text-muted d-block">Spare Part Shops</small>
@@ -833,7 +834,7 @@ document.addEventListener('DOMContentLoaded', () => {
     // ── Group visibility: show exactly N inbox slots for each side ────────────
     function updateGroupVisibility() {
         const type = (document.querySelector('input[name="proforma_type"]:checked') || {}).value
-                     || 'insurance_standard';
+                     || 'insurance_shop_only';
         const shopCount   = ['insurance_shop_only', 'insurance_shop_garage'].includes(type)
             ? (parseInt((document.getElementById('number_of_proformas') || {}).value) || 3)
             : (type === 'insurance_garage_only' ? 0 : 3);
