@@ -529,6 +529,11 @@
                     <input type="hidden" name="application_mode" value="{{ $applicationMode ?? '' }}">
                     <input type="hidden" name="assigned_group" value="{{ $assignedGroup ?? '' }}">
                     <div id="price-table-section" style="position:relative;">
+                    @if($stampPath)
+                        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(10deg);width:200px;height:200px;opacity:0.7;pointer-events:none;z-index:5;">
+                            <img src="{{ asset('storage/' . $stampPath) }}" alt="Insurance Stamp" style="width:100%;height:100%;object-fit:contain;border-radius:50%;" />
+                        </div>
+                    @endif
                     <div class="table-container">
                         <table class="basic-table">
                             <thead>
@@ -656,13 +661,7 @@
                                         // Calculate colspan based on user role
                                         $colspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
                                     @endphp
-                                    <td colspan="{{ $colspan }}" style="position:relative;">
-                                        @if($stampPath)
-                                            <div style="display:flex;align-items:center;justify-content:flex-start;gap:10px;">
-                                                <img src="{{ asset('storage/' . $stampPath) }}" alt="Insurance Stamp" style="max-width:100px;max-height:100px;opacity:0.75;object-fit:contain;transform:rotate(-8deg);" />
-                                            </div>
-                                        @endif
-                                    </td>
+                                    <td colspan="{{ $colspan }}"></td>
                                     <td class="text-align-right" colspan="1">
                                         @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                             <p style="margin: 0; padding: 0;">TOTAL PARTS PRICE</p>
