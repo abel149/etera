@@ -516,6 +516,10 @@
 
                 @if(in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']))
                     @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'header'])
+                    @php
+                        $insuranceForStamp = $proforma->poster->role === 'insurance_agent' ? $proforma->poster->parentInsurance : $proforma->poster;
+                        $stampPath = $insuranceForStamp?->stamp_image ? preg_replace('#^public/#', '', $insuranceForStamp->stamp_image) : null;
+                    @endphp
                 @endif
 
                 <form
@@ -524,7 +528,7 @@
                     @csrf
                     <input type="hidden" name="application_mode" value="{{ $applicationMode ?? '' }}">
                     <input type="hidden" name="assigned_group" value="{{ $assignedGroup ?? '' }}">
-                    <div id="price-table-section">
+                    <div id="price-table-section" style="position:relative;">
                     <div class="table-container">
                         <table class="basic-table">
                             <thead>
@@ -652,7 +656,13 @@
                                         // Calculate colspan based on user role
                                         $colspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
                                     @endphp
-                                    <td colspan="{{ $colspan }}"></td>
+                                    <td colspan="{{ $colspan }}" style="position:relative;">
+                                        @if($stampPath)
+                                            <div style="display:flex;align-items:center;justify-content:flex-start;gap:10px;">
+                                                <img src="{{ asset('storage/' . $stampPath) }}" alt="Insurance Stamp" style="max-width:100px;max-height:100px;opacity:0.75;object-fit:contain;transform:rotate(-8deg);" />
+                                            </div>
+                                        @endif
+                                    </td>
                                     <td class="text-align-right" colspan="1">
                                         @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                             <p style="margin: 0; padding: 0;">TOTAL PARTS PRICE</p>
@@ -843,14 +853,6 @@
                 </form>
 
                 @if(in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']))
-                    @php
-                        $insuranceForStamp = $proforma->poster->role === 'insurance_agent' ? $proforma->poster->parentInsurance : $proforma->poster;
-                    @endphp
-                    @if($insuranceForStamp && $insuranceForStamp->stamp_image)
-                        <div class="insurance-stamp-container" style="display:flex;justify-content:flex-end;margin-bottom:6px;">
-                            <img src="{{ asset('storage/' . $insuranceForStamp->stamp_image) }}" alt="Insurance Stamp" style="max-width:90px;max-height:90px;opacity:0.85;object-fit:contain;" />
-                        </div>
-                    @endif
                     @include('components.insurance-letterhead', ['poster' => $proforma->poster, 'section' => 'footer'])
                 @endif
             </div>
