@@ -1182,7 +1182,7 @@
                     if (btnLoad) { btnLoad.style.display = 'inline-flex'; btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…'; }
 
                     // ── E2E Encryption (insurance proformas only) ────────────
-                    const isInsuranceProforma = {{ $proforma->poster?->role === 'insurance' ? 'true' : 'false' }};
+                    const isInsuranceProforma = {{ in_array($proforma->poster?->role, ['insurance', 'insurance_agent']) ? 'true' : 'false' }};
 
                     // Check if any prices are actually entered
                     const hasActualPrices = isShopRole
@@ -1206,10 +1206,10 @@
                         }
 
                         if (!keyData.has_encryption || !keyData.public_key) {
-                            if (submitBtn) submitBtn.disabled = false;
-                            if (btnText)   btnText.style.display = '';
-                            if (btnLoad)   btnLoad.style.display = 'none';
-                            alert('This proforma requires encrypted price submission.\nThe insurance company has not set up their encryption keys yet.\nPlease contact the insurance or try again later.');
+                            // Poster has not set up encryption — submit prices as-is (plain).
+                            if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…';
+                            await new Promise(r => setTimeout(r, 0));
+                            form.submit();
                             return;
                         }
 
@@ -1395,7 +1395,7 @@
                 if (proc) proc.style.display = 'block';
 
                 try {
-                    const isInsurance = {{ $proforma->poster?->role === 'insurance' ? 'true' : 'false' }};
+                    const isInsurance = {{ in_array($proforma->poster?->role, ['insurance', 'insurance_agent']) ? 'true' : 'false' }};
                     const setProgress = p => { const pb = document.getElementById('pdfProgressBar'); if (pb) pb.style.width = p + '%'; };
                     const setMsg = m => { const el = document.getElementById('pdfProcessingMsg'); if (el) el.textContent = m; };
 

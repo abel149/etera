@@ -158,9 +158,10 @@ class ProformaApplicationController extends Controller
                     && !$request->filled('encrypted_total')
                     && empty(array_filter($request->input('total', [])));
 
-                // Step 2b: Insurance proformas require encrypted submissions — always.
+                // Step 2b: Insurance proformas require encrypted submissions — when the poster
+                // has encryption set up. Posters without keys accept plain submissions.
                 // Exception: a PDF-only submission counts as acceptable (PDF is encrypted client-side).
-                if (!$isEncrypted && optional($proforma->poster)->role === 'insurance' && !$hasPdf) {
+                if (!$isEncrypted && in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']) && optional($proforma->poster)->has_encryption && !$hasPdf) {
                     $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
                     return redirect($redirectUrl)
                         ->withErrors(['general' => 'Encrypted price submission is required for this proforma. Please contact the insurance.'])

@@ -3961,8 +3961,9 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 ]);
             }
 
-            // Insurance proformas require encrypted submissions — always.
-            if (!$isEncrypted && optional($proforma->poster)->role === 'insurance') {
+            // Insurance proformas require encrypted submissions — when the poster
+            // has encryption set up. Posters without keys accept plain submissions.
+            if (!$isEncrypted && in_array(optional($proforma->poster)->role, ['insurance', 'insurance_agent']) && optional($proforma->poster)->has_encryption) {
                 return redirect()->back()
                     ->withErrors(['general' => 'Encrypted price submission is required for this proforma. Please contact the insurance.'])
                     ->withInput();
