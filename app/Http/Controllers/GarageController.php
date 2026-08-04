@@ -5,6 +5,13 @@ namespace App\Http\Controllers;
 use Illuminate\Http\Request;
 use App\Models\User;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\DB;
+use App\Models\ProformaApplication;
+use App\Models\Proforma;
+use App\Models\Inbox;
+use App\Models\Partial;
+use App\Models\PaidUser;
+use App\Models\BrandUser;
 
 class GarageController extends Controller
 {
@@ -153,10 +160,29 @@ class GarageController extends Controller
 
     public function destroy($id)
     {
-        $garage = User::findOrFail($id); // Get the insurance by ID
-        $garage->delete(); // Delete the insurance record
+        $garage = User::findOrFail($id);
 
-        return redirect()->to('admin/garages');    
+        DB::beginTransaction();
+        try {
+            // Clean up related records that lack ON DELETE CASCADE
+            ProformaApplication::where('application_by', $garage->id)->delete();
+            Proforma::where('poster_id', $garage->id)->delete();
+
+            // Records with cascade will be auto-deleted, but clean explicitly to be safe
+            Inbox::where('user_id', $garage->id)->delete();
+            Partial::where('user_id', $garage->id)->delete();
+            PaidUser::where('user_id', $garage->id)->delete();
+            BrandUser::where('user_id', $garage->id)->delete();
+
+            $garage->delete();
+
+            DB::commit();
+        } catch (\Throwable $e) {
+            DB::rollBack();
+            return redirect()->back()->with('error', 'Failed to delete garage: ' . $e->getMessage());
+        }
+
+        return redirect()->to('admin/garages')->with('success', 'Garage deleted successfully.');
     }
 
 
