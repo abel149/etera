@@ -529,12 +529,12 @@
                     <input type="hidden" name="application_mode" value="{{ $applicationMode ?? '' }}">
                     <input type="hidden" name="assigned_group" value="{{ $assignedGroup ?? '' }}">
                     <div id="price-table-section" style="position:relative;">
-                    @if($stampPath)
-                        <div style="position:absolute;bottom:10px;left:10px;width:200px;height:200px;opacity:0.7;transform:rotate(10deg);pointer-events:none;z-index:5;">
-                            <img src="{{ asset('storage/' . $stampPath) }}" alt="Insurance Stamp" style="width:200px;height:200px;border-radius:50%;object-fit:cover;border:2px solid #ccc;" />
-                        </div>
-                    @endif
-                    <div class="table-container">
+                    <div class="table-container" style="position:relative;">
+                        @if($stampPath)
+                            <div style="position:absolute;bottom:10px;left:10px;width:200px;height:200px;opacity:0.7;transform:rotate(10deg);pointer-events:none;z-index:5;">
+                                <img src="{{ asset('storage/' . $stampPath) }}" alt="Insurance Stamp" style="width:200px;height:200px;border-radius:50%;object-fit:cover;" />
+                            </div>
+                        @endif
                         <table class="basic-table">
                             <thead>
     <tr>

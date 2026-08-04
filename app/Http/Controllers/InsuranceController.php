@@ -54,8 +54,8 @@ return redirect()->to('/admin/insurances');
             // If password is null, default to 123456
             $password = $request->password ?: '123456';
 
-            // Upload stamp image
-            $stampImagePath = $request->file('stamp_image')->store('public/stamps');
+            // Upload stamp image (use 'public' disk for consistent path format)
+            $stampImagePath = $request->file('stamp_image')->store('stamps', 'public');
 
             $user = User::create([
                 'name' => $request->name,
@@ -154,9 +154,10 @@ return redirect()->to('/admin/insurances');
         if ($request->hasFile('stamp_image')) {
             // Delete old stamp image if exists
             if ($insurance->stamp_image) {
-                Storage::delete($insurance->stamp_image);
+                $oldPath = preg_replace('#^public/#', '', $insurance->stamp_image);
+                Storage::disk('public')->delete($oldPath);
             }
-            $updateData['stamp_image'] = $request->file('stamp_image')->store('public/stamps');
+            $updateData['stamp_image'] = $request->file('stamp_image')->store('stamps', 'public');
         }
 
         $insurance->update($updateData);
