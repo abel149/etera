@@ -3594,10 +3594,10 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 $requiredGarages = 0;
                 $proformaType = 'insurance_shop_garage';
             } else {
-                // Standard insurance: fixed 3+3 slots with quota system
-                $requiredShops   = 3;
-                $requiredGarages = 3;
-                $proformaType = 'insurance_standard';
+                // Fallback: insurance_shop_only (standard type is hidden from UI)
+                $requiredShops   = max(1, (int) $request->input('number_of_proformas', 3));
+                $requiredGarages = 0;
+                $proformaType = 'insurance_shop_only';
             }
 
             $proforma = \App\Models\Proforma::create([
