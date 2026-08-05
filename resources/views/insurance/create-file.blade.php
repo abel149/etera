@@ -90,7 +90,7 @@
 
                                 <div class="row g-3">
                                     <div class="col-12 col-lg-6">
-                                        <label for="FisrtName" class="form-label">File Number</label>
+                                        <label for="FisrtName" class="form-label">Claim Number</label>
                                         <input type="text" name="file_number" value="{{old('file_number')}}" class="form-control required-field" id="FisrtName" 
                                         placeholder="" 
                                         required

@@ -194,7 +194,7 @@
                             <h4 class="filter-label">Search by License Plate</h4>
                             <div class="input-with-icon mb-2">
                                 <input
-                                    wire:model.live="filters.license"
+                                    wire:model.live.debounce.300ms="filters.license"
                                     type="text"
                                     class="form-control form-control-sm"
                                     placeholder="Enter license plate">
