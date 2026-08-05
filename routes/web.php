@@ -1739,15 +1739,30 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
         */
         elseif ($type === 'insurance') {
 
-            $insuranceTotal = (float) (
+            // Count distinct groups that received at least one application
+            // (price submission or PDF upload) — this is the number of "proformas filled"
+            $filledGroups = ProformaApplication::where('proforma_id', $proforma->id)
+                ->whereNotNull('inbox_group')
+                ->distinct()
+                ->pluck('inbox_group')
+                ->count();
+
+            // Fallback: if no grouped applications, count all applications
+            if ($filledGroups <= 0) {
+                $filledGroups = ProformaApplication::where('proforma_id', $proforma->id)->count();
+            }
+
+            $perProformaCost = (float) (
                 $proforma->insured
                     ? ($latestCost->insured_cost ?? 0)
                     : ($latestCost->insurance_proforma ?? 0)
             );
 
-            if ($insuranceTotal <= 0) {
+            if ($perProformaCost <= 0) {
                 throw new Exception('Invalid insurance cost');
             }
+
+            $insuranceTotal = $perProformaCost * $filledGroups;
 
             $unitPrice = $insuranceTotal / (1 + $vatRate);
             $vatAmount = $insuranceTotal - $unitPrice;
@@ -1755,7 +1770,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             $rows[] = [
                 'proforma_id'     => $proforma->id,
                 'type'            => 'insurance',
-                'requested_count' => ($requiredShops + $requiredGarages) ?: 6,
+                'requested_count' => $filledGroups,
                 'unit_price'      => $unitPrice,
                 'vat_rate'        => $vatRate * 100,
                 'vat_amount'      => $vatAmount,
