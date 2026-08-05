@@ -90,7 +90,7 @@
 							<tr>
 								<td>#{{$proforma->file_number}}</td>
 								<td>{{$proforma->customer_name}}</td>
-								<td>{{$proforma->brand->name}}</td>
+								<td>{{$proforma->brand->name ?? 'N/A'}}</td>
 								<td>{{$proforma->model}}</td>
 								<td>{{$proforma->year}}</td>
 								<td class="plate">{{$proforma->license_plate_number}}</td>
