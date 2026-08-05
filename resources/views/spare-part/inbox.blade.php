@@ -32,8 +32,9 @@
                 @endphp
 
                 @foreach($user->myInbox as $proformaInbox)
-    @php 
+    @php
         $proforma = $proformaInbox->proforma;
+        if (!$proforma || !$proforma->poster) continue;
         if ($proforma->isShopGarageInsurance() && $user->shop_garage != 1) continue;
         $isInboxedUser = $proforma->inboxes->contains('user_id', $userId);
         $totalApplications = $proforma->applications->count();
@@ -48,13 +49,13 @@
             </div>
 
             <div class="job-listing-description">
-                <h3 class="job-listing-title">{{ $proforma->poster->name }}</h3>
+                <h3 class="job-listing-title">{{ $proforma->poster->name ?? 'Unknown' }}</h3>
 
                 <div class="job-listing-footer">
                     <ul>
                         <li>
                             <i class="icon-material-outline-directions-car"></i> 
-                            {{ $proforma->brand->name }}, {{ $proforma->model }}
+                            {{ $proforma->brand->name ?? 'N/A' }}, {{ $proforma->model ?? 'N/A' }}
                         </li>
                         <li>
                             <i class="icon-material-outline-access-time"></i> 

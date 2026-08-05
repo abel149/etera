@@ -55,7 +55,7 @@
 								<tr>
 									<td>{{ $proforma->file_number }}</td>
 									<td><h6 class="mb-0 font-14">{{ $proforma->customer_name }}</h6></td>
-									<td>{{ $proforma->brand->name }}</td>
+									<td>{{ $proforma->brand->name ?? 'N/A' }}</td>
 									<td>{{ $proforma->model }}</td>
 									<td>{{ $proforma->year }}</td>
 									<td>{{ $proforma->license_plate_number }}</td>
