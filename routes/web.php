@@ -256,41 +256,8 @@ Route::post('/login', function (Request $request) {
 
         $user = Auth::user();
 
-        // ⭐ Check if user has an active session on another device (spare-part shops only)
-        if ($user->role === 'shop' && $user->session_id && $user->session_id !== Session::getId()) {
-            $storedSession = DB::table('sessions')
-                ->where('id', $user->session_id)
-                ->where('user_id', $user->id)
-                ->first();
-
-            if ($storedSession) {
-                // Check if the old session is from the SAME browser (user cleared cache)
-                $currentUserAgent = $request->header('User-Agent', '');
-                $oldUserAgent = $storedSession->user_agent ?? '';
-                $isSameBrowser = ($currentUserAgent === $oldUserAgent);
-
-                // Check if the old session has expired
-                $sessionLifetime = config('session.lifetime', 120) * 60; // in seconds
-                $isExpired = (time() - $storedSession->last_activity) > $sessionLifetime;
-
-                if ($isSameBrowser || $isExpired) {
-                    // Same browser (cleared cache) or expired session — clean up and allow login
-                    DB::table('sessions')->where('id', $user->session_id)->delete();
-                    $user->session_id = null;
-                    $user->save();
-                } else {
-                    // Truly different device/browser with an active session — block
-                    Auth::logout();
-                    return back()->withErrors([
-                        'email_or_phone' => 'You are already logged in on another device or browser.'
-                    ])->with('session_blocked', true)->withInput();
-                }
-            } else {
-                // The stored session no longer exists — allow login
-                $user->session_id = null;
-                $user->save();
-            }
-        }
+        // Concurrent sessions allowed — multiple employees can use the same account.
+        // The "already applied" guard prevents duplicate applications from concurrent sessions.
 
 
         // Role access & approval
@@ -347,10 +314,6 @@ Route::post('/login', function (Request $request) {
             return back()->withErrors(['email_or_phone' => 'Your account is pending approval. Please wait for admin approval.'])->withInput();
         }
 
-        // ⭐ Store current session ID
-        $user->session_id = Session::getId();
-        $user->save();
-		
         Session::put('last_activity', time());
 
         // Redirect ALL roles to telegram-connect if not connected
@@ -3984,6 +3947,15 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                     ->withInput();
             }
 
+            // Guard: prevent duplicate applications from the same user (concurrent session safety)
+            $alreadyApplied = \App\Models\ProformaApplication::where('proforma_id', $proforma->id)
+                ->where('application_by', auth()->id())
+                ->exists();
+            if ($alreadyApplied) {
+                return redirect('/garage/proformas')
+                    ->with('error', 'You have already applied to this proforma.');
+            }
+
             $discount     = $request->discount ?? 0;
             $finalAmount  = 0;
 
@@ -4542,6 +4514,20 @@ Route::post('apply/{proforma}', function (
     $request->validate([
         'amount' => 'required|numeric|min:1',
     ]);
+
+    // Guard: prevent duplicate applications from the same user (concurrent session safety)
+    // Exception: if the user has an active Partial record, they may apply to a different group.
+    $alreadyApplied = \App\Models\ProformaApplication::where('proforma_id', $proforma->id)
+        ->where('application_by', auth()->id())
+        ->exists();
+    $hasActivePartial = \App\Models\Partial::where('proforma_id', $proforma->id)
+        ->where('user_id', auth()->id())
+        ->where('active', true)
+        ->exists();
+    if ($alreadyApplied && !$hasActivePartial) {
+        return redirect('/role/proformas')
+            ->with('error', 'You have already applied to this proforma.');
+    }
 
     $application = $proforma->applications()->create([
         'application_by' => auth()->check()

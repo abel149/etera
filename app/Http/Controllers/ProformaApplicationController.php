@@ -52,6 +52,20 @@ class ProformaApplicationController extends Controller
                     return redirect($redirectUrl)->with('error', 'This proforma is no longer accepting applications.');
                 }
 
+                // Guard: prevent duplicate applications from the same user (concurrent session safety)
+                // Exception: if the user has an active Partial record, they may apply to a different group.
+                $alreadyApplied = ProformaApplication::where('proforma_id', $proforma->id)
+                    ->where('application_by', auth()->id())
+                    ->exists();
+                $hasActivePartial = \App\Models\Partial::where('proforma_id', $proforma->id)
+                    ->where('user_id', auth()->id())
+                    ->where('active', true)
+                    ->exists();
+                if ($alreadyApplied && !$hasActivePartial) {
+                    $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
+                    return redirect($redirectUrl)->with('error', 'You have already applied to this proforma.');
+                }
+
                 // Step 1: Determine proforma type
                 $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
                 $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);

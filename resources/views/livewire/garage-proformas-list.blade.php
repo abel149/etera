@@ -1,4 +1,4 @@
-<div>
+<div wire:poll.30s>
     <style>
     /* Layout */
     .sidebar-container {
