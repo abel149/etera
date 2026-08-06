@@ -308,13 +308,7 @@
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
                                     </div>                                
-                                    <div class="col-12 col-lg-6">
-                                        <label for="InputEmail3" class="form-label">Email (optional)</label>
-                                        <input type="text" name="customer_email" value="{{old('customer_email')}}" class="form-control" id="InputEmail3" placeholder="">
-                                        @error('customer_email')
-                                        <span class="text-danger">{{$message}}</span>
-                                        @enderror
-                                    </div>
+                          
                                     
                                     <div class="col-12 col-lg-6">
 <label class="form-label">
