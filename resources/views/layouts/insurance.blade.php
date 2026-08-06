@@ -146,13 +146,6 @@
 				</a>
 
 				</li>
-				<li>
-					<a href="/insurance/partners">
-						<div class="parent-icon"><i class="bx bx-user"></i>
-						</div>
-						<div class="menu-title">Partners</div>
-					</a>
-				</li>
 				@if(auth()->user()->role === 'insurance')
 				<li>
 					<a href="{{ route('insurance.agents') }}">

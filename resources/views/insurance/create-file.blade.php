@@ -486,12 +486,12 @@
                                 <div id="shopGroupsWrapper">
                                 <h6 class="mt-3 mb-2 text-muted fw-semibold">Shops</h6>
 
-                                {{-- Group 1: Registered shop partners --}}
+                                {{-- Group 1: All shops (same as other slots) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="1">
-                                    <label for="shopPartners" class="form-label">Shop Partners — Slot 1 <span class="text-secondary small">(your registered partners only)</span></label>
+                                    <label for="shopPartners" class="form-label">Shops — Slot 1 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
-                                        @foreach($spare_part_partners as $partner)
-                                            <option value="{{ $partner->id }}" data-shop-garage="{{ $partner->shop_garage ?? 0 }}" {{ in_array($partner->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
+                                        @foreach($all_shops as $shop)
+                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -542,12 +542,12 @@
                                 <div id="garageGroupsWrapper">
                                 <h6 class="mt-3 mb-2 text-muted fw-semibold">Garages</h6>
 
-                                {{-- Group 1: Registered garage partners --}}
+                                {{-- Group 1: All garages (same as other slots) --}}
                                 <div class="mb-3 garage-inbox-group" data-group="1">
-                                    <label for="garagePartners" class="form-label">Garage Partners — Slot 1 <span class="text-secondary small">(your registered partners only)</span></label>
+                                    <label for="garagePartners" class="form-label">Garages — Slot 1 <span class="text-secondary small">(all garages)</span></label>
                                     <select class="form-select" name="garage_partners[]" id="garagePartners" multiple size="4">
-                                        @foreach($garage_partners as $partner)
-                                            <option value="{{ $partner->id }}" {{ in_array($partner->id, old('garage_partners', [])) ? 'selected' : '' }}>{{ $partner->name }}</option>
+                                        @foreach($all_garages as $garage)
+                                            <option value="{{ $garage->id }}" {{ in_array($garage->id, old('garage_partners', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                         @endforeach
                                     </select>
                                 </div>
@@ -1263,8 +1263,8 @@ $(document).ready(function () {
         updateAll(null);
     }
 
-    syncMutualExclusion(['shopExtra1', 'shopExtra2', 'shopExtra3', 'shopExtra4']);
-    syncMutualExclusion(['garageExtra1', 'garageExtra2', 'garageExtra3', 'garageExtra4']);
+    syncMutualExclusion(['shopPartners', 'shopExtra1', 'shopExtra2', 'shopExtra3', 'shopExtra4']);
+    syncMutualExclusion(['garagePartners', 'garageExtra1', 'garageExtra2', 'garageExtra3', 'garageExtra4']);
 });
 </script>
 
