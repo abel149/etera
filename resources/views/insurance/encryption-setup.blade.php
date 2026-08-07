@@ -390,6 +390,10 @@ function showRecoveryCodeModal(code) {
     });
     document.getElementById('rcCloseBtn').addEventListener('click', function() {
         modal.remove();
+        // Redirect to dashboard after first-time setup (cpOldPin only exists when encryption was already active)
+        if (!document.getElementById('cpOldPin')) {
+            window.location.href = '/insurance';
+        }
     });
 }
 
