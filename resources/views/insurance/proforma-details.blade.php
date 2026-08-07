@@ -176,7 +176,7 @@
         <div class="d-flex flex-wrap gap-2 align-items-center">
             <div class="input-group input-group-sm" style="max-width:220px;">
                 <input type="password" id="decryptPin" class="form-control form-control-sm"
-                       placeholder="Encryption PIN">
+                       placeholder="Encryption PIN" autocomplete="new-password">
                 <span class="input-group-text" style="cursor:pointer;" onclick="togglePinVisibility('decryptPin', this)">
                     <i class="bx bx-show"></i>
                 </span>
@@ -1681,7 +1681,7 @@ async function openPdfViewer(btn) {
                     <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:20px;max-width:320px;margin:auto;">
                         <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this PDF:</p>
                         <div class="input-group mb-2">
-                            <input type="password" id="pdfDecryptPin" class="form-control" placeholder="Encryption PIN" autocomplete="off">
+                            <input type="password" id="pdfDecryptPin" class="form-control" placeholder="Encryption PIN" autocomplete="new-password">
                             <span class="input-group-text" style="cursor:pointer;" onclick="togglePinVisibility('pdfDecryptPin', this)">
                                 <i class="bx bx-show"></i>
                             </span>
