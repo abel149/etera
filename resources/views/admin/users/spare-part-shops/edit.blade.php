@@ -345,8 +345,19 @@
                     <div class="col-md-6">
                         <label class="form-label">Business License Image</label>
                         @if($shop->license_image)
+                            @php $licenseUrl = asset('storage/' . (str_starts_with($shop->license_image, 'public/') ? substr($shop->license_image, 7) : $shop->license_image)); @endphp
                             <div class="mb-2">
-                                <img src="{{ asset('storage/' . (str_starts_with($shop->license_image, 'public/') ? substr($shop->license_image, 7) : $shop->license_image)) }}" alt="Current License" class="img-thumbnail" style="max-height: 120px;">
+                                <a href="{{ $licenseUrl }}" target="_blank">
+                                    <img src="{{ $licenseUrl }}" alt="Current License" class="img-thumbnail" style="max-height: 120px;">
+                                </a>
+                                <div class="mt-1 d-flex gap-2">
+                                    <a href="{{ $licenseUrl }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bx bx-show"></i> View
+                                    </a>
+                                    <a href="{{ $licenseUrl }}" download class="btn btn-sm btn-outline-secondary">
+                                        <i class="bx bx-download"></i> Download
+                                    </a>
+                                </div>
                                 <small class="d-block text-muted mt-1">Current image (upload new to replace)</small>
                             </div>
                         @endif
@@ -360,8 +371,19 @@
                     <div class="col-md-6">
                         <label class="form-label">Stamp Image</label>
                         @if($shop->stamp_image)
+                            @php $stampUrl = asset('storage/' . (str_starts_with($shop->stamp_image, 'public/') ? substr($shop->stamp_image, 7) : $shop->stamp_image)); @endphp
                             <div class="mb-2">
-                                <img src="{{ asset('storage/' . (str_starts_with($shop->stamp_image, 'public/') ? substr($shop->stamp_image, 7) : $shop->stamp_image)) }}" alt="Current Stamp" class="img-thumbnail" style="max-height: 120px;">
+                                <a href="{{ $stampUrl }}" target="_blank">
+                                    <img src="{{ $stampUrl }}" alt="Current Stamp" class="img-thumbnail" style="max-height: 120px;">
+                                </a>
+                                <div class="mt-1 d-flex gap-2">
+                                    <a href="{{ $stampUrl }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bx bx-show"></i> View
+                                    </a>
+                                    <a href="{{ $stampUrl }}" download class="btn btn-sm btn-outline-secondary">
+                                        <i class="bx bx-download"></i> Download
+                                    </a>
+                                </div>
                                 <small class="d-block text-muted mt-1">Current image (upload new to replace)</small>
                             </div>
                         @endif
