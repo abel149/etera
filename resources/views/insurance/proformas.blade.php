@@ -40,7 +40,7 @@
 							<div class="row row-cols-lg-2 row-cols-xl-auto g-2">
 								<div class="col">
 									<div class="position-relative">
-										<input id="searchInput" type="text" class="form-control ps-5 radius-30" placeholder="Search License Plate or Phone...">
+										<input id="searchInput" type="text" class="form-control ps-5 radius-30" placeholder="Search File #, License Plate or Phone...">
 										<span class="position-absolute top-50 product-show translate-middle-y">
 											<i class="bx bx-search"></i>
 										</span>
@@ -74,7 +74,7 @@
 					<table id="proformaTable" class="table mb-0 align-middle">
 						<thead class="table-light">
 							<tr>
-								<th>File #</th>
+								<th>Claim #</th>
 								<th>Customer Name</th>
 								<th>Car Brand</th>
 								<th>Model</th>
@@ -88,7 +88,7 @@
 						<tbody>
 						@foreach($proformas as $proforma)
 							<tr>
-								<td>#{{$proforma->file_number}}</td>
+								<td class="file-number">#{{$proforma->file_number}}</td>
 								<td>{{$proforma->customer_name}}</td>
 								<td>{{$proforma->brand->name ?? 'N/A'}}</td>
 								<td>{{$proforma->model}}</td>
@@ -122,10 +122,11 @@
 		let rows = document.querySelectorAll("#proformaTable tbody tr");
 		
 		rows.forEach(row => {
+			let fileNum = row.querySelector(".file-number").textContent.toLowerCase();
 			let plate = row.querySelector(".plate").textContent.toLowerCase();
 			let phone = row.querySelector(".phone").textContent.toLowerCase();
 
-			if (plate.includes(filter) || phone.includes(filter)) {
+			if (fileNum.includes(filter) || plate.includes(filter) || phone.includes(filter)) {
 				row.style.display = "";
 			} else {
 				row.style.display = "none";
