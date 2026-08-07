@@ -174,8 +174,13 @@
     <div class="flex-grow-1">
         <div class="fw-semibold mb-1">Prices are encrypted &mdash; enter your Encryption PIN to view them.</div>
         <div class="d-flex flex-wrap gap-2 align-items-center">
-            <input type="password" id="decryptPin" class="form-control form-control-sm"
-                   placeholder="Encryption PIN" style="max-width:220px;">
+            <div class="input-group input-group-sm" style="max-width:220px;">
+                <input type="password" id="decryptPin" class="form-control form-control-sm"
+                       placeholder="Encryption PIN">
+                <span class="input-group-text" style="cursor:pointer;" onclick="togglePinVisibility('decryptPin', this)">
+                    <i class="bx bx-show"></i>
+                </span>
+            </div>
             <button id="btnDecrypt" class="btn btn-warning btn-sm px-4 radius-30">
                 <i class="bx bx-lock-open me-1"></i> Decrypt Prices
             </button>
@@ -1374,6 +1379,19 @@ async function applyDecryption(privateKey) {
         '<div class="alert alert-success mb-0"><i class="bx bx-check-circle me-2"></i>Prices decrypted successfully.</div>';
 }
 
+function togglePinVisibility(inputId, toggleEl) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    const icon = toggleEl.querySelector('i');
+    if (input.type === 'password') {
+        input.type = 'text';
+        if (icon) { icon.classList.remove('bx-show'); icon.classList.add('bx-hide'); }
+    } else {
+        input.type = 'password';
+        if (icon) { icon.classList.remove('bx-hide'); icon.classList.add('bx-show'); }
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     const btnDecrypt = document.getElementById('btnDecrypt');
     const decryptPin = document.getElementById('decryptPin');
@@ -1662,7 +1680,12 @@ async function openPdfViewer(btn) {
                 loadingMsg.innerHTML = `
                     <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:20px;max-width:320px;margin:auto;">
                         <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this PDF:</p>
-                        <input type="password" id="pdfDecryptPin" class="form-control mb-2" placeholder="Encryption PIN" autocomplete="off">
+                        <div class="input-group mb-2">
+                            <input type="password" id="pdfDecryptPin" class="form-control" placeholder="Encryption PIN" autocomplete="off">
+                            <span class="input-group-text" style="cursor:pointer;" onclick="togglePinVisibility('pdfDecryptPin', this)">
+                                <i class="bx bx-show"></i>
+                            </span>
+                        </div>
                         <button class="btn btn-primary w-100" id="pdfDecryptBtn">Decrypt &amp; View</button>
                         <div id="pdfDecryptErr" class="text-danger small mt-2"></div>
                     </div>`;
