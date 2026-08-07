@@ -742,19 +742,19 @@
                     @endif
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && (auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1))
-                    {{-- Submission Mode Toggle --}}
+                    @if (auth()->user()->dealers)
+                    {{-- Submission Mode Toggle (only for dealers who can choose between prices and PDF) --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button type="button" id="modePriceBtn" onclick="setSubmissionMode('price')"
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(13,148,136,0.5); background:rgba(13,148,136,0.18); color:var(--etera-teal-light,#4dd0c4); transition:all .2s;">
                             <i class="bx bx-list-ul"></i> Enter Prices
                         </button>
-                        @if (auth()->user()->dealers)
                         <button type="button" id="modePdfBtn" onclick="setSubmissionMode('pdf')"
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(255,255,255,0.12); background:transparent; color:#aaa; transition:all .2s;">
                             <i class="bx bxs-file-pdf"></i> Upload PDF Quotation
                         </button>
-                        @endif
                     </div>
+                    @endif
                     <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
 
                     {{-- PDF Upload Section (hidden until mode=pdf) --}}
