@@ -414,6 +414,30 @@
                                         <span>{{ $proforma->brand->name ?? 'N/A' }}</span>
                                         <h5>{{ $proforma->model ?? 'N/A' }}</h5>
                                     </li>
+                                    @if ($proforma->damage_severity)
+                                        <li>
+                                            <i class="icon-material-outline-report-problem"></i>
+                                            <span>Damage Severity</span>
+                                            <h5>
+                                                @php
+                                                    $severityLabels = [
+                                                        'minor' => 'Minor (Remote Fill) - ቀላል',
+                                                        'major' => 'Major (Garage Required) - ከባድ',
+                                                        'severe' => 'Severe (Site Visit) - ከፍተኛ',
+                                                    ];
+                                                    $severityColors = [
+                                                        'minor' => '#4dd0c4',
+                                                        'major' => '#fb923c',
+                                                        'severe' => '#ef4444',
+                                                    ];
+                                                    $sev = $proforma->damage_severity;
+                                                @endphp
+                                                <span style="color: {{ $severityColors[$sev] ?? '#fff' }}; font-weight: 700;">
+                                                    {{ $severityLabels[$sev] ?? ucfirst($sev) }}
+                                                </span>
+                                            </h5>
+                                        </li>
+                                    @endif
                                     @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
                                         @if ($proforma->isFromOthers())
                                             <li>
