@@ -348,7 +348,7 @@
                          data-shop-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
-                         data-discount="{{ $application->discount ?? 0 }}"
+                         data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
                          data-notes="{{ $application->notes ?? '' }}">
@@ -462,24 +462,25 @@
                                     </tbody>
                                     <tfoot>
                                         @php
-                                        $discountPct = (float)($application->discount ?? 0);
-                                        $discountAmt = ($shopSubtotal * $discountPct) / 100;
-                                        $netTotal = $shopSubtotal - $discountAmt;
+                                        $vatRate = 15;
+                                        $netTotal = $shopSubtotal;
+                                        $vatAmount = $netTotal * ($vatRate / 100);
+                                        $grandTotal = $netTotal + $vatAmount;
                                         @endphp
                                         <tr>
                                             <td colspan="7"></td>
-                                            <td>SUBTOTAL</td>
-                                            <td class="shop-subtotal-val" data-app-id="{{ $application->id }}">{{ number_format($shopSubtotal, 2) }} ETB</td>
+                                            <td>SUBTOTAL (Net)</td>
+                                            <td class="shop-subtotal-val" data-app-id="{{ $application->id }}">{{ number_format($netTotal, 2) }} ETB</td>
                                         </tr>
                                         <tr>
                                             <td colspan="7"></td>
-                                            <td>DISCOUNT</td>
-                                            <td class="shop-discount-val" data-app-id="{{ $application->id }}" data-discount-pct="{{ $discountPct }}">{{ number_format($discountAmt, 2) }} ETB ({{ $discountPct }}%)</td>
+                                            <td>VAT (15%)</td>
+                                            <td class="shop-vat-val" data-app-id="{{ $application->id }}">{{ number_format($vatAmount, 2) }} ETB</td>
                                         </tr>
                                         <tr>
                                             <td colspan="7"></td>
-                                            <td>NET TOTAL</td>
-                                            <td class="shop-nettotal-val" data-app-id="{{ $application->id }}">{{ number_format($netTotal, 2) }} ETB</td>
+                                            <td>GRAND TOTAL (VAT Included)</td>
+                                            <td class="shop-nettotal-val" data-app-id="{{ $application->id }}">{{ number_format($grandTotal, 2) }} ETB</td>
                                         </tr>
                                     </tfoot>
                                 </table>
@@ -504,7 +505,7 @@
                                 </p>
 
                                 <div style="font-size: 10px; margin-top: 2px;">
-                                    <strong>Discount:</strong> {{$application->discount}} %
+                                    <strong>VAT:</strong> 15% (included in total)
                                 </div>
                             </div>
                             @if($application->notes)
@@ -543,7 +544,7 @@
                          data-garage-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
-                         data-discount="{{ $application->discount ?? 0 }}"
+                         data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
                          data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
@@ -599,9 +600,10 @@
                                         @php
                                         $garageAmount    = (float) ($application->amount ?? 0);
                                         $isEncAmt        = !empty($application->amount_is_encrypted);
-                                        $garageDiscountPct = (float)($application->discount ?? 0);
-                                        $garageDiscountAmt = ($garageAmount * $garageDiscountPct) / 100;
-                                        $garageNetTotal    = $garageAmount - $garageDiscountAmt;
+                                        $garageVatRate   = 15;
+                                        $garageNetTotal  = $garageAmount / (1 + ($garageVatRate / 100));
+                                        $garageVatAmount = $garageNetTotal * ($garageVatRate / 100);
+                                        $garageGrandTotal = $garageAmount;
                                         @endphp
                                         <tr>
                                             <td style="padding: 4px;">1</td>
@@ -621,29 +623,7 @@
                                     </tbody>
                                     <tfoot>
                                         <tr>
-                                            <td colspan="4" style="padding: 4px; font-weight: bold;">SUBTOTAL</td>
-                                            <td style="padding: 4px; font-weight: bold;" class="price-cell" data-app-id="{{ $application->id }}">
-                                                @if($isEncAmt)
-                                                    <span class="encrypted-price" data-app-id="{{ $application->id }}">
-                                                        <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
-                                                    </span>
-                                                @else
-                                                    {{ number_format($garageAmount, 2) }} ETB
-                                                @endif
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="4" style="padding: 4px; font-weight: bold;">DISCOUNT</td>
-                                            <td style="padding: 4px; font-weight: bold;">
-                                                @if(!$isEncAmt)
-                                                    {{ number_format($garageDiscountAmt, 2) }} ETB ({{ $garageDiscountPct }}%)
-                                                @else
-                                                    <em class="text-warning">—</em>
-                                                @endif
-                                            </td>
-                                        </tr>
-                                        <tr>
-                                            <td colspan="4" style="padding: 4px; font-weight: bold;">NET TOTAL</td>
+                                            <td colspan="4" style="padding: 4px; font-weight: bold;">SUBTOTAL (Net)</td>
                                             <td style="padding: 4px; font-weight: bold;" class="price-cell" data-app-id="{{ $application->id }}">
                                                 @if($isEncAmt)
                                                     <span class="encrypted-price" data-app-id="{{ $application->id }}">
@@ -651,6 +631,28 @@
                                                     </span>
                                                 @else
                                                     {{ number_format($garageNetTotal, 2) }} ETB
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="4" style="padding: 4px; font-weight: bold;">VAT (15%)</td>
+                                            <td style="padding: 4px; font-weight: bold;">
+                                                @if(!$isEncAmt)
+                                                    {{ number_format($garageVatAmount, 2) }} ETB
+                                                @else
+                                                    <em class="text-warning">—</em>
+                                                @endif
+                                            </td>
+                                        </tr>
+                                        <tr>
+                                            <td colspan="4" style="padding: 4px; font-weight: bold;">GRAND TOTAL (VAT Included)</td>
+                                            <td style="padding: 4px; font-weight: bold;" class="price-cell" data-app-id="{{ $application->id }}">
+                                                @if($isEncAmt)
+                                                    <span class="encrypted-price" data-app-id="{{ $application->id }}">
+                                                        <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
+                                                    </span>
+                                                @else
+                                                    {{ number_format($garageGrandTotal, 2) }} ETB
                                                 @endif
                                             </td>
                                         </tr>
@@ -790,7 +792,7 @@ function openPrintPage(card) {
     const shopName = card.dataset.shopName || "N/A";
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
-    const discountPct = parseFloat(card.dataset.discount) || 0;
+    const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const garageAmount = parseFloat(card.dataset.amount) || 0;
     const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
     const applicantNotes = card.dataset.notes || "";
@@ -824,12 +826,12 @@ function openPrintPage(card) {
         }
     });
     
-    // Calculate totals
+    // Calculate totals (part prices are NET)
     const parseETB = (value) => parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
-    const subtotal = partsData.reduce((sum, p) => sum + parseETB(p.total), 0);
-    const discountAmt = (subtotal * discountPct) / 100;
-    const netTotal = subtotal - discountAmt;
-    const grandTotal = netTotal + (isDualService ? garageAmount : 0);
+    const netTotal = partsData.reduce((sum, p) => sum + parseETB(p.total), 0);
+    const vatAmount = netTotal * (vatRate / 100);
+    const grandTotal = netTotal + vatAmount;
+    const combinedTotal = grandTotal + (isDualService ? garageAmount : 0);
     
     const formatETB = (num) => {
         return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ETB";
@@ -955,16 +957,16 @@ function openPrintPage(card) {
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>SUBTOTAL:</strong></td>
-                                    <td class="text-end">${formatETB(subtotal)}</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="7" class="text-end"><strong>DISCOUNT:</strong></td>
-                                    <td class="text-end">${formatETB(discountAmt)} (${discountPct}%)</td>
-                                </tr>
-                                <tr>
-                                    <td colspan="7" class="text-end"><strong>PARTS NET TOTAL:</strong></td>
+                                    <td colspan="7" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
                                     <td class="text-end">${formatETB(netTotal)}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="7" class="text-end"><strong>VAT (15%):</strong></td>
+                                    <td class="text-end">${formatETB(vatAmount)}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="7" class="text-end"><strong>PARTS GRAND TOTAL (VAT Included):</strong></td>
+                                    <td class="text-end">${formatETB(grandTotal)}</td>
                                 </tr>
                                 ${isDualService ? `
                                 <tr>
@@ -973,8 +975,8 @@ function openPrintPage(card) {
                                 </tr>
                                 ` : ''}
                                 <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
-                                    <td colspan="7" class="text-end"><strong>${isDualService ? 'COMBINED GRAND TOTAL' : 'GRAND TOTAL'}:</strong></td>
-                                    <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(grandTotal)}</td>
+                                    <td colspan="7" class="text-end"><strong>${isDualService ? 'COMBINED GRAND TOTAL (VAT Included)' : 'GRAND TOTAL (VAT Included)'}:</strong></td>
+                                    <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(combinedTotal)}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -1011,7 +1013,7 @@ function openPrintPages(card) {
     const garageName = card.dataset.garageName || "N/A";
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
-    const discountPct = parseFloat(card.dataset.discount) || 0;
+    const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const amount = parseFloat(card.dataset.amount) || 0;
     const applicantNotes = card.dataset.notes || "";
     
@@ -1023,9 +1025,9 @@ function openPrintPages(card) {
     const plate = "{{ $proforma->license_plate_number ?? 'N/A' }}";
     const createdAt = "{{ $proforma->proformaInvoice?->created_at->format('M d, Y') }}";
     
-    // Calculate garage totals
-    const discountAmt = (amount * discountPct) / 100;
-    const netTotal = amount - discountAmt;
+    // Calculate garage totals (amount is VAT-inclusive, derive net)
+    const netTotal = amount / (1 + (vatRate / 100));
+    const vatAmount = netTotal * (vatRate / 100);
     
     const formatETB = (num) => {
         return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ETB";
@@ -1142,16 +1144,16 @@ function openPrintPages(card) {
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="4" class="text-end"><strong>SUBTOTAL:</strong></td>
-                                    <td class="text-end">${formatETB(amount)}</td>
+                                    <td colspan="4" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
+                                    <td class="text-end">${formatETB(netTotal)}</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="4" class="text-end"><strong>DISCOUNT:</strong></td>
-                                    <td class="text-end">${formatETB(discountAmt)} (${discountPct}%)</td>
+                                    <td colspan="4" class="text-end"><strong>VAT (15%):</strong></td>
+                                    <td class="text-end">${formatETB(vatAmount)}</td>
                                 </tr>
                                 <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
-                                    <td colspan="4" class="text-end"><strong>NET TOTAL:</strong></td>
-                                    <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(netTotal)}</td>
+                                    <td colspan="4" class="text-end"><strong>GRAND TOTAL (VAT Included):</strong></td>
+                                    <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(amount)}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -1362,16 +1364,17 @@ async function applyDecryption(privateKey) {
     }
 
     for (const [appId, subtotal] of Object.entries(appSubtotals)) {
-        const discountCell = document.querySelector(`.shop-discount-val[data-app-id="${appId}"]`);
-        const discountPct  = discountCell ? parseFloat(discountCell.dataset.discountPct) || 0 : 0;
-        const discountAmt  = (subtotal * discountPct) / 100;
-        const netTotal     = subtotal - discountAmt;
+        const vatCell = document.querySelector(`.shop-vat-val[data-app-id="${appId}"]`);
+        const vatRate  = 15;
+        const netAmount  = subtotal;
+        const vatAmount  = netAmount * (vatRate / 100);
+        const grandTotal = netAmount + vatAmount;
 
         const subtotalCell = document.querySelector(`.shop-subtotal-val[data-app-id="${appId}"]`);
-        const netTotalCell = document.querySelector(`.shop-nettotal-val[data-app-id="${appId}"]`);
-        if (subtotalCell) subtotalCell.textContent = fmt(subtotal);
-        if (discountCell) discountCell.textContent = `${fmt(discountAmt)} (${discountPct}%)`;
-        if (netTotalCell) netTotalCell.textContent = fmt(netTotal);
+        const grandTotalCell = document.querySelector(`.shop-nettotal-val[data-app-id="${appId}"]`);
+        if (subtotalCell) subtotalCell.textContent = fmt(netAmount);
+        if (vatCell) vatCell.textContent = fmt(vatAmount);
+        if (grandTotalCell) grandTotalCell.textContent = fmt(grandTotal);
     }
 
     const panel = document.getElementById('decryptPanel');

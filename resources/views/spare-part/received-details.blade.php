@@ -234,7 +234,7 @@
                                  data-tin-number="{{ $application->applicationBy->tin_number }}"
                                  data-phone-number="{{ $application->applicationBy->phone_number }}"
                                  data-location="{{ $application->applicationBy->location }}"
-                                 data-discount="{{ $application->discount ?? 0 }}"
+                                 data-vat-rate="15"
                                  data-proforma-parts='@json($proforma->parts)'
                                  data-application-prices='@json($application->prices)'
                                  data-notes="{{ $application->notes ?? '' }}"
@@ -319,7 +319,6 @@
                                         </tbody>
                                         <tfoot>
                                             @php
-                                                $discountPct = (float)($application->discount ?? 0);
                                                 $subtotalParts = 0;
                                                 foreach ($proforma->parts as $index => $part) {
                                                     $price = $application->prices->values()->get($index);
@@ -328,29 +327,25 @@
                                                     }
                                                 }
                                                 $usingParts = $subtotalParts > 0;
-                                                $subtotal = $usingParts ? $subtotalParts : (float) $application->amount;
-                                                $discountAmt = $usingParts ? (($subtotal * $discountPct) / 100) : 0.0;
-                                                $netTotal = $usingParts ? ($subtotal - $discountAmt) : (float) $application->amount;
+                                                $netTotal = $usingParts ? $subtotalParts : ((float) $application->amount / 1.15);
+                                                $vatRate = 15;
+                                                $vatAmount = $netTotal * ($vatRate / 100);
+                                                $grandTotal = $netTotal + $vatAmount;
                                             @endphp
                                             <tr>
                                                 <td colspan="6"></td>
-                                                <td class="text-end"><strong>SUBTOTAL</strong></td>
-                                                <td class="text-end"><strong>{{ number_format($subtotal, 2) }} ETB</strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="6"></td>
-                                                <td class="text-end"><strong>DISCOUNT</strong></td>
-                                                <td class="text-end"><strong>{{ number_format($discountAmt, 2) }} ETB ({{ $discountPct }}%)</strong></td>
-                                            </tr>
-                                            <tr>
-                                                <td colspan="6"></td>
-                                                <td class="text-end"><strong>NET TOTAL</strong></td>
+                                                <td class="text-end"><strong>SUBTOTAL (Net)</strong></td>
                                                 <td class="text-end"><strong>{{ number_format($netTotal, 2) }} ETB</strong></td>
+                                            </tr>
+                                            <tr>
+                                                <td colspan="6"></td>
+                                                <td class="text-end"><strong>VAT (15%)</strong></td>
+                                                <td class="text-end"><strong>{{ number_format($vatAmount, 2) }} ETB</strong></td>
                                             </tr>
                                             <tr style="background-color: rgba(13,148,136,0.12); font-weight: bold; border-top: 2px solid var(--etera-teal);">
                                                 <td colspan="6"></td>
-                                                <td class="text-end"><strong>GRAND TOTAL</strong></td>
-                                                <td class="text-end" style="color: var(--etera-teal); font-size: 1.1em;"><strong>{{ number_format($netTotal, 2) }} ETB</strong></td>
+                                                <td class="text-end"><strong>GRAND TOTAL (VAT Included)</strong></td>
+                                                <td class="text-end" style="color: var(--etera-teal); font-size: 1.1em;"><strong>{{ number_format($grandTotal, 2) }} ETB</strong></td>
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -462,7 +457,7 @@ function showMoreApplications() {
 			let shopName = card.dataset.shopName || "N/A";
 			let phoneNumber = card.dataset.phoneNumber || "N/A";
 			let stampImage = card.dataset.stampImageUrl || "{{ asset('assets/images/stamp.png') }}";
-            let discountPct = parseFloat(card.dataset.discount) || 0;
+            let vatRate = parseFloat(card.dataset.vatRate) || 15;
             let applicantNotes = card.dataset.notes || "";
             let expiryDate = card.dataset.expiryDate || "";
 
@@ -494,9 +489,9 @@ function showMoreApplications() {
                 return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ETB";
             }
 
-			let subtotal = partsData.reduce((sum, p) => sum + parseETB(p.total), 0);
-			let discountAmt = (subtotal * discountPct) / 100;
-			let netTotal = subtotal - discountAmt;
+			let netTotal = partsData.reduce((sum, p) => sum + parseETB(p.total), 0);
+			let vatAmount = netTotal * (vatRate / 100);
+			let grandTotal = netTotal + vatAmount;
 
 			let printWindow = window.open('', '_blank');
 			printWindow.document.write(`
@@ -595,20 +590,16 @@ function showMoreApplications() {
 									</tbody>
 									<tfoot>
 										<tr>
-											<td colspan="7" class="text-end"><strong>SUBTOTAL:</strong></td>
-											<td class="text-end">${formatETB(subtotal)}</td>
-										</tr>
-										<tr>
-											<td colspan="7" class="text-end"><strong>DISCOUNT:</strong></td>
-											<td class="text-end">${formatETB(discountAmt)} (${discountPct}%)</td>
-										</tr>
-										<tr>
-											<td colspan="7" class="text-end"><strong>NET TOTAL:</strong></td>
+											<td colspan="7" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
 											<td class="text-end">${formatETB(netTotal)}</td>
 										</tr>
+										<tr>
+											<td colspan="7" class="text-end"><strong>VAT (15%):</strong></td>
+											<td class="text-end">${formatETB(vatAmount)}</td>
+										</tr>
 										<tr style="background-color: rgba(13,148,136,0.12); font-weight: bold; border-top: 2px solid var(--etera-teal);">
-											<td colspan="7" class="text-end"><strong>GRAND TOTAL:</strong></td>
-											<td class="text-end" style="color: var(--etera-teal); font-size: 1.1em;">${formatETB(netTotal)}</td>
+											<td colspan="7" class="text-end"><strong>GRAND TOTAL (VAT Included):</strong></td>
+											<td class="text-end" style="color: var(--etera-teal); font-size: 1.1em;">${formatETB(grandTotal)}</td>
 										</tr>
 									</tfoot>
 								</table>

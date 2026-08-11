@@ -99,15 +99,11 @@ class ProformaApplicationController extends Controller
                     } else {
                         $request->validate([
                             'amount' => 'required|numeric|min:1',
-                            'discount' => 'nullable|numeric|min:0|max:100',
                             'expiry_date' => 'nullable|date|after:today',
                         ], [
                             'amount.required' => 'Price is required.',
                             'amount.numeric' => 'Price must be a valid number.',
                             'amount.min' => 'Price must be at least 1.',
-                            'discount.numeric' => 'Discount must be a valid number.',
-                            'discount.min' => 'Discount cannot be negative.',
-                            'discount.max' => 'Discount cannot exceed 100%.',
                             'expiry_date.date' => 'Expiry date must be a valid date.',
                             'expiry_date.after' => 'Expiry date must be after today.',
                         ]);
@@ -131,17 +127,12 @@ class ProformaApplicationController extends Controller
                         $request->validate([
                             'total' => 'nullable|array',
                             'total.*' => 'nullable|numeric|min:1',
-                            'discount' => 'nullable|numeric|min:0|max:100',
                             'expiry_date' => 'nullable|date|after:today',
                             'garage_amount' => $isDualService ? 'required|numeric|min:1' : 'nullable|numeric|min:1',
-                            'garage_discount' => 'nullable|numeric|min:0|max:100',
                             'garage_expiry_date' => 'nullable|date|after:today',
                         ], [
                             'total.*.numeric' => 'Unit price must be a valid number.',
                             'total.*.min' => 'Unit price must be at least 1. Leave the field blank if you do not carry this part.',
-                            'discount.numeric' => 'Discount must be a valid number.',
-                            'discount.min' => 'Discount cannot be negative.',
-                            'discount.max' => 'Discount cannot exceed 100%.',
                             'expiry_date.date' => 'Expiry date must be a valid date.',
                             'expiry_date.after' => 'Expiry date must be after today.',
                         ]);
@@ -161,7 +152,6 @@ class ProformaApplicationController extends Controller
                 Log::info('Price quote submission: validation passed', [
                     'proforma_id' => $proforma->id,
                     'role' => auth()->user()->role ?? null,
-                    'discount' => $request->discount ?? null,
                     'shop_parts_count' => is_array($request->total ?? null) ? count($request->total) : null,
                 ]);
 
@@ -183,17 +173,16 @@ class ProformaApplicationController extends Controller
                 }
 
                 // Step 3: Calculate the final amount (0 placeholder when encrypted).
+                // Prices arrive as NET from the frontend; add 15% VAT to get the stored amount.
+                $vatRate = 0.15;
                 $finalAmount = 0;
-                $discount = $request->discount ?? 0;
 
                 if ($isEncrypted) {
                     // Encrypted mode: amount is a ciphertext; store 0 as numeric placeholder
                     $finalAmount = 0;
                 } elseif (!$isShopRole) {
-                    $initialPrice = $request->amount;
-                    $discountAmount = ($initialPrice * $discount) / 100;
-                    $finalAmount = $initialPrice - $discountAmount;
-                    $finalAmount = max($finalAmount, 1);
+                    $netAmount = max($request->amount, 1);
+                    $finalAmount = round($netAmount * (1 + $vatRate), 2);
                 } else { // 'shop' role
                     $totalAmount = 0;
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
@@ -204,8 +193,8 @@ class ProformaApplicationController extends Controller
                             $totalAmount += $partTotal;
                         }
                     }
-                    $discountAmount = ($totalAmount * $discount) / 100;
-                    $finalAmount = $totalAmount - $discountAmount;
+                    // Add 15% VAT to the net total
+                    $finalAmount = round($totalAmount * (1 + $vatRate), 2);
                     // PDF-only submission has no price; avoid forcing min:1
                     $isPdfOnlyCalc = $hasPdf && $totalAmount == 0;
                     if (!$isPdfOnlyCalc) {
@@ -216,7 +205,6 @@ class ProformaApplicationController extends Controller
                 Log::info('Price quote submission: totals computed', [
                     'proforma_id' => $proforma->id,
                     'final_amount' => $finalAmount,
-                    'discount' => $discount,
                     'role' => auth()->user()->role ?? null,
                 ]);
 
@@ -292,7 +280,7 @@ class ProformaApplicationController extends Controller
                     'application_by'    => auth()->id(),
                     'from'              => $role,
                     'amount'            => $finalAmount,
-                    'discount'          => $isEncrypted ? 0 : $discount,
+                    'discount'          => 0,
                     'notes'             => $request->filled('notes') ? trim($request->notes) : null,
                     'application_source'=> $applicationSource,
                     'inbox_group'       => $inboxGroup,

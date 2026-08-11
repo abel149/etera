@@ -688,11 +688,11 @@
                                     <td colspan="{{ $colspan }}"></td>
                                     <td class="text-align-right" colspan="1">
                                         @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
-                                            <p style="margin: 0; padding: 0;">TOTAL PARTS PRICE</p>
+                                            <p style="margin: 0; padding: 0;">TOTAL PARTS PRICE (Net)</p>
                                         @else
-                                            <p style="margin: 0; padding: 0;">GARAGE REPAIR SERVICE ESTIMATE PRICE</p>
+                                            <p style="margin: 0; padding: 0;">GARAGE REPAIR SERVICE ESTIMATE (Net)</p>
                                         @endif
-                                        <small style="color: #f5365c;">(Price including VAT)</small>
+                                        <small style="color: #f5365c;">(Prices entered here are <strong>excluding VAT</strong> – 15% VAT will be added automatically)</small>
                                     </td>
                                     <td colspan="2">
                                         <input type="number" name="amount" class="with-border" required
@@ -706,15 +706,14 @@
                                 </tr>
                                 <tr>
                                     @php
-                                        $discountColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
+                                        $vatColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
                                     @endphp
-                                    <td colspan="{{ $discountColspan }}"></td>
+                                    <td colspan="{{ $vatColspan }}"></td>
                                     <td class="text-align-right" colspan="1">
-                                        Discount (%)
+                                        VAT (15%)
                                     </td>
                                     <td colspan="2">
-                                        <input type="number" id="discount" name="discount" class="with-border"
-                                            placeholder="Enter discount"  min="0" max="100">
+                                        <input type="number" id="vat-amount" class="with-border" value="0" disabled>
                                     </td>
                                     <input type="hidden" name="final-amount" id="final-amount-hidden"
                                         class="with-border">
@@ -741,7 +740,7 @@
                                     @endphp
                                     <td colspan="{{ $grandTotalColspan }}"></td>
                                     <td class="text-align-right" colspan="1">
-                                        Grand Total (Discounted)
+                                        Grand Total (VAT Included)
                                     </td>
                                     <td colspan="2">
                                         <input type="number" id="grand-total" class="with-border" value="0"
@@ -827,7 +826,7 @@
                         <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
                             <div>
                                 <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
-                                    Repair Service Estimate (ETB)
+                                    Repair Service Estimate (Net, ETB)
                                 </label>
                                 <input type="number" name="garage_amount" class="with-border" min="1" step="any"
                                     style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
@@ -837,10 +836,10 @@
                             </div>
                             <div>
                                 <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
-                                    Discount (%)
+                                    VAT (15%)
                                 </label>
-                                <input type="number" name="garage_discount" class="with-border" placeholder="Enter discount" min="0" max="100"
-                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05);">
+                                <input type="text" class="with-border" value="15% (auto-applied)" disabled
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05); color:#0f172a;">
                             </div>
                         </div>
                         <div style="margin-bottom: 15px;">
@@ -933,66 +932,56 @@
 
         // --- Calculation Logic ---
         /**
-         * Calculates the total amount, applies discount, and updates the final fields.
+         * Calculates the total NET amount, applies a fixed 15% VAT, and updates the final fields.
          * Used for both 'shop' (multi-line calculation) and 'garage' (single field calculation).
          */
+        const VAT_RATE = 15; // fixed VAT percentage
         let isCalculating = false; // Prevent infinite loops
-        
+
         function calculateAmounts() {
             if (isCalculating) return; // Prevent recursive calls
             isCalculating = true;
-            
+
             try {
                 const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
-                let totalAmount = 0;
+                let netTotal = 0;
 
                 if (isShopRole) {
-                    // SHOP role: Calculate sum from all part total inputs
+                    // SHOP role: Calculate NET sum from all part total inputs
                     const totalInputs = document.querySelectorAll('.part-total');
                     totalInputs.forEach(input => {
                         const value = parseFloat(input.value) || 0;
-                        totalAmount += value;
+                        netTotal += value;
                     });
                 } else {
-                    // GARAGE role: Use the value from the manually entered total-amount input
+                    // GARAGE role: Use the value from the manually entered total-amount input (NET)
                     const totalAmountInput = document.getElementById('total-amount');
-                    totalAmount = totalAmountInput ? parseFloat(totalAmountInput.value) || 0 : 0;
+                    netTotal = totalAmountInput ? parseFloat(totalAmountInput.value) || 0 : 0;
                 }
 
-                // Update the main total amount field for consistency (only active for shop role)
+                // Update the main NET total amount field for consistency (only active for shop role)
                 const totalAmountInput = document.getElementById('total-amount');
                 if (isShopRole && totalAmountInput) {
-                    // Format to 2 decimal places if it's a shop, but keep as number type
-                    totalAmountInput.value = totalAmount.toFixed(2);
+                    totalAmountInput.value = netTotal ? netTotal.toFixed(2) : '';
                 }
 
-                // Get discount value
-                const discountInput = document.getElementById('discount');
-                if (!discountInput) {
-                    isCalculating = false;
-                    return;
-                }
-                
-                let discountPercentage = parseFloat(discountInput.value) || 0;
+                const safeNet = Math.max(0, netTotal);
+                const vatAmount = safeNet * (VAT_RATE / 100);
+                const grossTotal = safeNet + vatAmount;
 
-                // Enforce discount constraints (0-100)
-                if (discountPercentage < 0) discountPercentage = 0;
-                if (discountPercentage > 100) discountPercentage = 100;
-                discountInput.value = discountPercentage;
-
-                // Calculate discounted amount
-                const discountFactor = 1 - (discountPercentage / 100);
-                const grandTotal = totalAmount * discountFactor;
-
-                // Update final fields
+                // Update VAT and grand total fields
+                const vatInput = document.getElementById('vat-amount');
                 const grandTotalInput = document.getElementById('grand-total');
                 const finalAmountHidden = document.getElementById('final-amount-hidden');
-                
+
+                if (vatInput) {
+                    vatInput.value = vatAmount > 0 ? vatAmount.toFixed(2) : '';
+                }
                 if (grandTotalInput) {
-                    grandTotalInput.value = Math.max(0, grandTotal).toFixed(2);
+                    grandTotalInput.value = grossTotal > 0 ? grossTotal.toFixed(2) : '';
                 }
                 if (finalAmountHidden) {
-                    finalAmountHidden.value = Math.max(0, grandTotal).toFixed(2);
+                    finalAmountHidden.value = grossTotal > 0 ? grossTotal.toFixed(2) : '';
                 }
             } catch (error) {
                 console.error('Error in calculateAmounts:', error);
@@ -1119,18 +1108,6 @@
                 }
             }
 
-            // Common listener for discount input (use debounce to prevent excessive calls)
-            const discountInput = document.querySelector('#discount');
-            if (discountInput) {
-                let discountTimeout;
-                discountInput.addEventListener('input', function() {
-                    clearTimeout(discountTimeout);
-                    discountTimeout = setTimeout(function() {
-                        calculateAmounts();
-                    }, 300);
-                });
-            }
-
             // Initial calculation run if there are parts (only once on load)
             setTimeout(function() {
                 if (document.querySelectorAll('tbody tr').length > 0) {
@@ -1205,6 +1182,8 @@
                     if (btnText)   btnText.style.display = 'none';
                     if (btnLoad) { btnLoad.style.display = 'inline-flex'; btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…'; }
 
+                    // Prices are sent as NET — the backend adds 15% VAT to compute the stored amount.
+
                     // ── E2E Encryption (insurance proformas only) ────────────
                     const isInsuranceProforma = {{ in_array($proforma->poster?->role, ['insurance', 'insurance_agent']) ? 'true' : 'false' }};
 
@@ -1230,7 +1209,7 @@
                         }
 
                         if (!keyData.has_encryption || !keyData.public_key) {
-                            // Poster has not set up encryption — submit prices as-is (plain).
+                            // Poster has not set up encryption — submit NET prices as plain text.
                             if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…';
                             await new Promise(r => setTimeout(r, 0));
                             form.submit();
@@ -1253,7 +1232,8 @@
                             for (let i = 0; i < priceInputs.length; i++) {
                                 const raw = priceInputs[i].value.trim();
                                 if (raw) {
-                                    const cipher = await E2EEncryption.encryptValue(raw, keyData.public_key);
+                                    const net = parseFloat(raw) || 0;
+                                    const cipher = await E2EEncryption.encryptValue(net.toFixed(2), keyData.public_key);
                                     const hidden = document.createElement('input');
                                     hidden.type  = 'hidden';
                                     hidden.name  = `encrypted_total[${i}]`;
@@ -1269,7 +1249,8 @@
                                 const garageInput = form.querySelector('input[name="garage_amount"]');
                                 const garageRaw = garageInput ? garageInput.value.trim() : '';
                                 if (garageRaw) {
-                                    const garageCipher = await E2EEncryption.encryptValue(garageRaw, keyData.public_key);
+                                    const net = parseFloat(garageRaw) || 0;
+                                    const garageCipher = await E2EEncryption.encryptValue(net.toFixed(2), keyData.public_key);
                                     const garageHidden = document.createElement('input');
                                     garageHidden.type = 'hidden';
                                     garageHidden.name = 'encrypted_amount';
@@ -1283,17 +1264,22 @@
                             const amtInput = document.getElementById('total-amount');
                             const raw = amtInput ? amtInput.value.trim() : '';
                             if (raw) {
-                                const cipher = await E2EEncryption.encryptValue(raw, keyData.public_key);
+                                const net = parseFloat(raw) || 0;
+                                const cipher = await E2EEncryption.encryptValue(net.toFixed(2), keyData.public_key);
                                 const hidden = document.createElement('input');
                                 hidden.type  = 'hidden';
-                                hidden.name  = 'encrypted_amount';
+                                hidden.name = 'encrypted_amount';
                                 hidden.value = cipher;
                                 form.appendChild(hidden);
                             }
                             if (amtInput) amtInput.name = '';
                         }
                     }
-                    // Non-insurance proformas (or PDF-only to insurance): submit as-is
+                    // Non-insurance proformas (or PDF-only to insurance): submit NET prices as plain text.
+                    // The backend adds 15% VAT to compute the stored amount.
+                    if (!isInsuranceProforma || !hasActualPrices) {
+                        // No conversion needed — NET prices are sent as-is.
+                    }
 
                     if (btnLoad) btnLoad.innerHTML = '<i class="bx bx-loader-alt bx-spin"></i> Submitting…';
                     await new Promise(r => setTimeout(r, 0));

@@ -19,7 +19,6 @@ class ProformaApplication extends Model implements HasMedia
     protected $casts = [
         'initial_price'       => 'decimal:2',
         'amount'              => 'decimal:2',
-        'discount'            => 'decimal:2',
         'amount_is_encrypted' => 'boolean',
     ];
 
@@ -49,23 +48,11 @@ class ProformaApplication extends Model implements HasMedia
     }
 
     /**
-     * Calculate final price based on initial price and discount
+     * Get the final price (amount is already VAT-inclusive, no discount to apply)
      */
     public function calculateFinalPrice()
     {
-        if ($this->initial_price && $this->discount) {
-            $discountAmount = ($this->initial_price * $this->discount) / 100;
-            return $this->initial_price - $discountAmount;
-        }
         return $this->initial_price ?? $this->amount;
-    }
-
-    /**
-     * Get the discount percentage
-     */
-    public function getDiscountPercentageAttribute()
-    {
-        return $this->discount ?? 0;
     }
 
     /**
