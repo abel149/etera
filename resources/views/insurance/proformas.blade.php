@@ -81,6 +81,7 @@
 								<th>Year</th>
 								<th>License Plate</th>
 								<th>Phone #</th>
+								<th>Parts Progress</th>
 								<th>Show</th>
 							</tr>
 						</thead>
@@ -95,6 +96,14 @@
 								<td>{{$proforma->year}}</td>
 								<td class="plate">{{$proforma->license_plate_number}}</td>
 								<td class="phone">{{$proforma->customer_phone_number}}</td>
+								<td>
+									@php $progress = $proforma->partsPricingProgress(); @endphp
+									@if($progress['total'] > 0)
+										<span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }}">{{ $progress['filled'] }}/{{ $progress['total'] }}</span>
+									@else
+										<span class="text-muted">N/A</span>
+									@endif
+								</td>
 								<td>
 									<a class="btn" href="/insurance/proforma-details?proforma_id={{$proforma->id}}">
 										<i class="bx bx-show me-0"></i>

@@ -275,7 +275,15 @@
                         @if($proforma->parts->count() > 0)
                         <div class="row mt-4">
                             <div class="col-12">
-                                <h5 class="mb-3">Required Spare Parts</h5>
+                                <h5 class="mb-3">
+                                    Required Spare Parts
+                                    @php $progress = $proforma->partsPricingProgress(); @endphp
+                                    @if($progress['total'] > 0)
+                                    <span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }} ms-2" style="font-size: 0.85rem;">
+                                        Parts Priced: {{ $progress['filled'] }}/{{ $progress['total'] }}
+                                    </span>
+                                    @endif
+                                </h5>
                                 <div class="table-responsive">
                                      <table class="table table-bordered mb-0">
           <thead>

@@ -250,6 +250,38 @@ class Proforma extends Model implements HasMedia
         return $this->hasMany(ProformaPart::class)->latest();
     }
 
+    /**
+     * Calculate parts pricing progress across all shop applications.
+     * Returns ['filled' => int, 'total' => int].
+     *
+     * Example: 3 required shops × 10 parts = 30 total slots.
+     * If 2 shops fully filled (20) + 1 partial with 5 = 25/30.
+     */
+    public function partsPricingProgress(): array
+    {
+        $totalParts = $this->parts()->count();
+        if ($totalParts === 0) {
+            return ['filled' => 0, 'total' => 0];
+        }
+
+        $requiredShops   = (int) ($this->required_number_of_shops ?? 0);
+        $requiredGarages = (int) ($this->required_number_of_garages ?? 0);
+        $isEteraChereta  = ($requiredShops + $requiredGarages) === 0;
+
+        if ($isEteraChereta) {
+            $shopAppCount   = $this->applications()->where('from', 'shop')->count();
+            $totalSlots     = $shopAppCount * $totalParts;
+        } else {
+            $totalSlots     = $totalParts * max(1, $requiredShops);
+        }
+
+        $filledParts = (int) $this->applications()
+            ->where('from', 'shop')
+            ->sum('filled_parts_count');
+
+        return ['filled' => $filledParts, 'total' => (int) $totalSlots];
+    }
+
     // Removed broken insurance() relationship - insurance_id column doesn't exist
     // Use poster() relationship instead, and check poster->role == 'insurance'
 

@@ -192,6 +192,14 @@
 
 <div class="card">
     <div class="card-body">
+        @php $progress = $proforma->partsPricingProgress(); @endphp
+        @if($progress['total'] > 0)
+        <div class="mb-3 text-center">
+            <span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }} px-3 py-2" style="font-size: 0.95rem;">
+                Parts Priced: {{ $progress['filled'] }} / {{ $progress['total'] }}
+            </span>
+        </div>
+        @endif
     
         <div class="row">
             @if(!$proforma->isGarageOnlyInsurance())
