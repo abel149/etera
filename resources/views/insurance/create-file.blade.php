@@ -104,7 +104,7 @@
                                     <!-- Add Is Insured Checkbox here -->
                                     <div class="col-12 col-lg-6">
                                         <div class="form-check mt-4">
-                                            <input class="form-check-input" type="checkbox" name="insured" id="insured" value="1" {{ old('insured') ? 'checked' : '' }}>
+                                            <input class="form-check-input" type="checkbox" name="insured" id="insured" value="1" {{ old('insured', '1') ? 'checked' : '' }}>
                                             <label class="form-check-label" for="insured">
                                                 Is Insured
                                             </label>
@@ -298,7 +298,7 @@
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
                                     </div> <div class="col-12 col-lg-6">
-                                        <label for="InputEmail2" class="form-label">Claim Officer Phone Number</label>
+                                        <label for="InputEmail2" class="form-label">operator Phone Number</label>
                                         <input type="text" name="Agent_phone_number" value="{{old('Agent_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder=""
                                         required
                                         oninvalid="this.setCustomValidity('Please enter the Phone number')"

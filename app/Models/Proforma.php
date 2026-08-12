@@ -689,8 +689,8 @@ class Proforma extends Model implements HasMedia
 
                 $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
-                // Garage is treated as one proforma — add flat perProformaCost if any group submitted
-                $garagePortion = $filledGroups > 0 ? $perProformaCost : 0;
+                // Garage is charged per filled group (each group includes a garage application)
+                $garagePortion = $perProformaCost * $filledGroups;
 
                 return round($shopPortion + $garagePortion, 2);
             } elseif ($totalParts > 0) {
@@ -748,8 +748,8 @@ class Proforma extends Model implements HasMedia
 
                     $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
-                    // Garage is treated as one proforma — add flat perProformaCost if any group submitted
-                    $garagePortion = $filledGroups > 0 ? $perProformaCost : 0;
+                    // Garage is charged per filled group (each group includes a garage application)
+                    $garagePortion = $perProformaCost * $filledGroups;
                     $totalAmount = round($shopPortion + $garagePortion, 2);
                 } else {
                     $totalAmount = $perProformaCost * $filledGroups;

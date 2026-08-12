@@ -1744,9 +1744,8 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
                 $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
-                // Garage is treated as one proforma — add flat perProformaCost if any group submitted
-                // (garage_amount is required for dual service, so any submission includes a garage price)
-                $garagePortion = $filledGroups > 0 ? $perProformaCost : 0;
+                // Garage is charged per filled group (each group includes a garage application)
+                $garagePortion = $perProformaCost * $filledGroups;
 
                 $insuranceTotal = $shopPortion + $garagePortion;
             } elseif ($totalParts > 0) {
