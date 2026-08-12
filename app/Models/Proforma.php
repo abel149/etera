@@ -259,6 +259,10 @@ class Proforma extends Model implements HasMedia
      */
     public function partsPricingProgress(): array
     {
+        if ($this->isGarageOnlyInsurance()) {
+            return ['filled' => 0, 'total' => 0];
+        }
+
         $totalParts = $this->parts()->count();
         if ($totalParts === 0) {
             return ['filled' => 0, 'total' => 0];

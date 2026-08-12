@@ -86,6 +86,12 @@
                       data-bs-toggle="modal" data-bs-target="#partsModal">
                       {{ $proforma->parts->count() }} Parts
                     </span>
+                    @php $progress = $proforma->partsPricingProgress(); @endphp
+                    @if($progress['total'] > 0)
+                    <span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }} ms-2" style="font-size: 0.85rem;">
+                      Parts Priced: {{ $progress['filled'] }}/{{ $progress['total'] }}
+                    </span>
+                    @endif
                   </td>
                 </tr>
                 <tr>

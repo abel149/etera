@@ -609,9 +609,9 @@
                                         $garageAmount    = (float) ($application->amount ?? 0);
                                         $isEncAmt        = !empty($application->amount_is_encrypted);
                                         $garageVatRate   = 15;
-                                        $garageNetTotal  = $garageAmount / (1 + ($garageVatRate / 100));
+                                        $garageNetTotal  = $garageAmount;
                                         $garageVatAmount = $garageNetTotal * ($garageVatRate / 100);
-                                        $garageGrandTotal = $garageAmount;
+                                        $garageGrandTotal = $garageNetTotal + $garageVatAmount;
                                         @endphp
                                         <tr>
                                             <td style="padding: 4px;">1</td>
@@ -839,7 +839,9 @@ function openPrintPage(card) {
     const netTotal = partsData.reduce((sum, p) => sum + parseETB(p.total), 0);
     const vatAmount = netTotal * (vatRate / 100);
     const grandTotal = netTotal + vatAmount;
-    const combinedTotal = grandTotal + (isDualService ? garageAmount : 0);
+    const garageVat = garageAmount * (vatRate / 100);
+    const garageGrand = garageAmount + garageVat;
+    const combinedTotal = grandTotal + (isDualService ? garageGrand : 0);
     
     const formatETB = (num) => {
         return num.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " ETB";
@@ -978,8 +980,8 @@ function openPrintPage(card) {
                                 </tr>
                                 ${isDualService ? `
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>GARAGE REPAIR SERVICE:</strong></td>
-                                    <td class="text-end">${formatETB(garageAmount)}</td>
+                                    <td colspan="7" class="text-end"><strong>GARAGE REPAIR SERVICE (VAT Included):</strong></td>
+                                    <td class="text-end">${formatETB(garageGrand)}</td>
                                 </tr>
                                 ` : ''}
                                 <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
@@ -1033,8 +1035,8 @@ function openPrintPages(card) {
     const plate = "{{ $proforma->license_plate_number ?? 'N/A' }}";
     const createdAt = "{{ $proforma->proformaInvoice?->created_at->format('M d, Y') }}";
     
-    // Calculate garage totals (amount is VAT-inclusive, derive net)
-    const netTotal = amount / (1 + (vatRate / 100));
+    // Calculate garage totals (amount is NET, add VAT)
+    const netTotal = amount;
     const vatAmount = netTotal * (vatRate / 100);
     
     const formatETB = (num) => {
@@ -1161,7 +1163,7 @@ function openPrintPages(card) {
                                 </tr>
                                 <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
                                     <td colspan="4" class="text-end"><strong>GRAND TOTAL (VAT Included):</strong></td>
-                                    <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(amount)}</td>
+                                    <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(netTotal + vatAmount)}</td>
                                 </tr>
                             </tfoot>
                         </table>
@@ -1519,8 +1521,8 @@ rows.forEach((tr) => {
 const garageBlock = isDualService ? '<div style=\'display:flex;justify-content:flex-end;margin-top:16px;\'>' +
   '<table style=\'width:320px;border-collapse:collapse;\'><tbody>' +
   '<tr style=\'background:#e3f2fd;font-weight:bold;border-top:2px solid #1976d2;\'>' +
-  '<td style=\'border:1px solid #ddd;padding:8px;\'><strong>Garage Repair Service:</strong></td>' +
-  '<td style=\'border:1px solid #ddd;padding:8px;text-align:right;\'>' + formatETB(garageAmount) + '</td>' +
+  '<td style=\'border:1px solid #ddd;padding:8px;\'><strong>Garage Repair Service (VAT Included):</strong></td>' +
+  '<td style=\'border:1px solid #ddd;padding:8px;text-align:right;\'>' + formatETB(garageAmount * 1.15) + '</td>' +
   '</tr></tbody></table></div>' : '';
 
 const notesBlock = notes ? '<div style=\'margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;\'>' +
