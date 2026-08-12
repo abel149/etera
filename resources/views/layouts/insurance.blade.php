@@ -150,7 +150,7 @@
 				<li>
 					<a href="{{ route('insurance.agents') }}">
 						<div class="parent-icon"><i class='bx bx-group'></i></div>
-						<div class="menu-title">My Agents
+						<div class="menu-title">My Claim Officers
 							@php $agentCount = auth()->user()->agents()->count(); @endphp
 							@if($agentCount > 0)
 							<span class="badge bg-light text-dark ms-1 small">{{ $agentCount }}</span>

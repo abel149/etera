@@ -308,7 +308,7 @@
                                             @if($application->amount_is_encrypted && $application->encrypted_amount)
                                                 <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
                                             @else
-                                                {{ number_format((float) $application->amount, 2) }} ETB
+                                                {{ number_format((float) $application->amount * 1.15, 2) }} ETB
                                             @endif
                                         </span>
                                     </div>
@@ -501,7 +501,7 @@
                                             @if($application->amount_is_encrypted && $application->encrypted_amount)
                                                 <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
                                             @else
-                                                {{ number_format((float) $application->amount, 2) }} ETB
+                                                {{ number_format((float) $application->amount * 1.15, 2) }} ETB
                                             @endif
                                         </span>
                                     </div>
@@ -1347,7 +1347,7 @@ async function applyDecryption(privateKey) {
         if (!cipher) continue;
         const amount = parseFloat(await E2EEncryption.decryptValue(cipher, privateKey));
         document.querySelectorAll(`.encrypted-price[data-app-id="${appId}"]`).forEach(el => {
-            el.outerHTML = `<span>${fmt(amount)}</span>`;
+            el.outerHTML = `<span>${fmt(amount * 1.15)}</span>`;
         });
         // Update card datasets so selected quotations read the decrypted value, not 0
         document.querySelectorAll(`[data-application-id="${appId}"]`).forEach(card => {
