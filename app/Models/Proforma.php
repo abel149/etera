@@ -658,7 +658,62 @@ class Proforma extends Model implements HasMedia
 
         // Explicit insurance subtypes always use insurance billing
         if ($this->proforma_type && str_starts_with($this->proforma_type, 'insurance_')) {
-            return $this->insured ? 0 : (float) ($latestCost->insurance_proforma ?? 0);
+            if ($this->insured) {
+                return 0;
+            }
+
+            $perProformaCost = (float) ($latestCost->insurance_proforma ?? 0);
+            if ($perProformaCost <= 0) {
+                return 0;
+            }
+
+            $filledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                ->whereNotNull('inbox_group')
+                ->distinct()
+                ->pluck('inbox_group')
+                ->count();
+            if ($filledGroups <= 0) {
+                $filledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)->count();
+            }
+
+            $totalParts = $this->parts()->count();
+            $isGarageOnly = $this->isGarageOnlyInsurance();
+            $isDualService = $this->isShopGarageInsurance();
+
+            if ($isGarageOnly) {
+                return round($perProformaCost * $filledGroups, 2);
+            } elseif ($isDualService && $totalParts > 0) {
+                $partsFilled = (int) \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                    ->where('from', 'shop')
+                    ->sum('filled_parts_count');
+
+                $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
+
+                $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                    ->where('from', 'shop')
+                    ->where('amount', '>', 0)
+                    ->distinct()
+                    ->pluck('inbox_group')
+                    ->count();
+                if ($garageFilledGroups <= 0) {
+                    $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                        ->where('from', 'shop')
+                        ->where('amount', '>', 0)
+                        ->count();
+                }
+
+                $garagePortion = $perProformaCost * $garageFilledGroups;
+
+                return round($shopPortion + $garagePortion, 2);
+            } elseif ($totalParts > 0) {
+                $partsFilled = (int) \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                    ->where('from', 'shop')
+                    ->sum('filled_parts_count');
+
+                return round($perProformaCost * ($partsFilled / $totalParts), 2);
+            }
+
+            return round($perProformaCost * $filledGroups, 2);
         }
 
         // Legacy type determination by counts
@@ -683,11 +738,46 @@ class Proforma extends Model implements HasMedia
                 $totalAmount = (float) ($latestCost->$unitField ?? 0);
             }
         }
-        // ===== INSURANCE TYPE =====
+        // ===== INSURANCE TYPE (legacy 3+3) =====
         elseif ($type === 'insurance') {
-            // Only charge if not insured
             if (!$this->insured) {
-                $totalAmount = (float) ($latestCost->insurance_proforma ?? 0);
+                $perProformaCost = (float) ($latestCost->insurance_proforma ?? 0);
+                $totalParts = $this->parts()->count();
+
+                $filledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                    ->whereNotNull('inbox_group')
+                    ->distinct()
+                    ->pluck('inbox_group')
+                    ->count();
+                if ($filledGroups <= 0) {
+                    $filledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)->count();
+                }
+
+                if ($totalParts > 0 && $perProformaCost > 0) {
+                    $partsFilled = (int) \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                        ->where('from', 'shop')
+                        ->sum('filled_parts_count');
+
+                    $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
+
+                    $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                        ->where('from', 'shop')
+                        ->where('amount', '>', 0)
+                        ->distinct()
+                        ->pluck('inbox_group')
+                        ->count();
+                    if ($garageFilledGroups <= 0) {
+                        $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
+                            ->where('from', 'shop')
+                            ->where('amount', '>', 0)
+                            ->count();
+                    }
+
+                    $garagePortion = $perProformaCost * $garageFilledGroups;
+                    $totalAmount = round($shopPortion + $garagePortion, 2);
+                } else {
+                    $totalAmount = $perProformaCost * $filledGroups;
+                }
             }
         }
         // ===== ETERA CHERETA =====

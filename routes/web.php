@@ -1702,8 +1702,17 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
         */
         elseif ($type === 'insurance') {
 
+            $perProformaCost = (float) (
+                $proforma->insured
+                    ? ($latestCost->insured_cost ?? 0)
+                    : ($latestCost->insurance_proforma ?? 0)
+            );
+
+            if ($perProformaCost <= 0) {
+                throw new Exception('Invalid insurance cost');
+            }
+
             // Count distinct groups that received at least one application
-            // (price submission or PDF upload) — this is the number of "proformas filled"
             $filledGroups = ProformaApplication::where('proforma_id', $proforma->id)
                 ->whereNotNull('inbox_group')
                 ->distinct()
@@ -1715,17 +1724,57 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 $filledGroups = ProformaApplication::where('proforma_id', $proforma->id)->count();
             }
 
-            $perProformaCost = (float) (
-                $proforma->insured
-                    ? ($latestCost->insured_cost ?? 0)
-                    : ($latestCost->insurance_proforma ?? 0)
-            );
-
-            if ($perProformaCost <= 0) {
-                throw new Exception('Invalid insurance cost');
+            $totalParts = $proforma->parts()->count();
+            $isGarageOnly = $proforma->isGarageOnlyInsurance();
+            $isDualService = $proforma->isShopGarageInsurance();
+            // Legacy 3+3 proformas (no explicit proforma_type) are also dual service
+            $isLegacyDual = !$proforma->proforma_type && $requiredShops == 3 && $requiredGarages == 3;
+            if ($isLegacyDual) {
+                $isDualService = true;
             }
 
-            $insuranceTotal = $perProformaCost * $filledGroups;
+            if ($isGarageOnly) {
+                // Garage-only: no parts to prorate, charge flat per filled group
+                $insuranceTotal = $perProformaCost * $filledGroups;
+            } elseif ($isDualService && $totalParts > 0) {
+                // Dual service: prorate shop portion by parts filled + flat garage cost per group with garage price
+                $partsFilled = (int) ProformaApplication::where('proforma_id', $proforma->id)
+                    ->where('from', 'shop')
+                    ->sum('filled_parts_count');
+
+                $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
+
+                // Count groups where garage also filled a price (amount > 0)
+                $garageFilledGroups = ProformaApplication::where('proforma_id', $proforma->id)
+                    ->where('from', 'shop')
+                    ->where('amount', '>', 0)
+                    ->distinct()
+                    ->pluck('inbox_group')
+                    ->count();
+                if ($garageFilledGroups <= 0) {
+                    $garageFilledGroups = ProformaApplication::where('proforma_id', $proforma->id)
+                        ->where('from', 'shop')
+                        ->where('amount', '>', 0)
+                        ->count();
+                }
+
+                $garagePortion = $perProformaCost * $garageFilledGroups;
+
+                $insuranceTotal = $shopPortion + $garagePortion;
+            } elseif ($totalParts > 0) {
+                // Shop-only: prorate by parts filled across all groups
+                $partsFilled = (int) ProformaApplication::where('proforma_id', $proforma->id)
+                    ->where('from', 'shop')
+                    ->sum('filled_parts_count');
+
+                $insuranceTotal = $perProformaCost * ($partsFilled / $totalParts);
+            } else {
+                // No parts and not garage-only: fall back to flat per group
+                $insuranceTotal = $perProformaCost * $filledGroups;
+            }
+
+            // Round to 2 decimal places
+            $insuranceTotal = round($insuranceTotal, 2);
 
             $unitPrice = $insuranceTotal / (1 + $vatRate);
             $vatAmount = $insuranceTotal - $unitPrice;
