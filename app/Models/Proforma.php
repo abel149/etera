@@ -689,20 +689,8 @@ class Proforma extends Model implements HasMedia
 
                 $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
-                $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
-                    ->where('from', 'shop')
-                    ->where('amount', '>', 0)
-                    ->distinct()
-                    ->pluck('inbox_group')
-                    ->count();
-                if ($garageFilledGroups <= 0) {
-                    $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
-                        ->where('from', 'shop')
-                        ->where('amount', '>', 0)
-                        ->count();
-                }
-
-                $garagePortion = $perProformaCost * $garageFilledGroups;
+                // Garage is treated as one proforma — add flat perProformaCost if any group submitted
+                $garagePortion = $filledGroups > 0 ? $perProformaCost : 0;
 
                 return round($shopPortion + $garagePortion, 2);
             } elseif ($totalParts > 0) {
@@ -760,20 +748,8 @@ class Proforma extends Model implements HasMedia
 
                     $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
-                    $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
-                        ->where('from', 'shop')
-                        ->where('amount', '>', 0)
-                        ->distinct()
-                        ->pluck('inbox_group')
-                        ->count();
-                    if ($garageFilledGroups <= 0) {
-                        $garageFilledGroups = \App\Models\ProformaApplication::where('proforma_id', $this->id)
-                            ->where('from', 'shop')
-                            ->where('amount', '>', 0)
-                            ->count();
-                    }
-
-                    $garagePortion = $perProformaCost * $garageFilledGroups;
+                    // Garage is treated as one proforma — add flat perProformaCost if any group submitted
+                    $garagePortion = $filledGroups > 0 ? $perProformaCost : 0;
                     $totalAmount = round($shopPortion + $garagePortion, 2);
                 } else {
                     $totalAmount = $perProformaCost * $filledGroups;

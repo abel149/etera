@@ -1737,28 +1737,16 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 // Garage-only: no parts to prorate, charge flat per filled group
                 $insuranceTotal = $perProformaCost * $filledGroups;
             } elseif ($isDualService && $totalParts > 0) {
-                // Dual service: prorate shop portion by parts filled + flat garage cost per group with garage price
+                // Dual service: prorate shop portion by parts filled + one flat perProformaCost for garage
                 $partsFilled = (int) ProformaApplication::where('proforma_id', $proforma->id)
                     ->where('from', 'shop')
                     ->sum('filled_parts_count');
 
                 $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
-                // Count groups where garage also filled a price (amount > 0)
-                $garageFilledGroups = ProformaApplication::where('proforma_id', $proforma->id)
-                    ->where('from', 'shop')
-                    ->where('amount', '>', 0)
-                    ->distinct()
-                    ->pluck('inbox_group')
-                    ->count();
-                if ($garageFilledGroups <= 0) {
-                    $garageFilledGroups = ProformaApplication::where('proforma_id', $proforma->id)
-                        ->where('from', 'shop')
-                        ->where('amount', '>', 0)
-                        ->count();
-                }
-
-                $garagePortion = $perProformaCost * $garageFilledGroups;
+                // Garage is treated as one proforma — add flat perProformaCost if any group submitted
+                // (garage_amount is required for dual service, so any submission includes a garage price)
+                $garagePortion = $filledGroups > 0 ? $perProformaCost : 0;
 
                 $insuranceTotal = $shopPortion + $garagePortion;
             } elseif ($totalParts > 0) {
