@@ -107,35 +107,47 @@ public function receivePayment($userId)
     // ---------------------------
     private function processUsers($users)
     {
-        return $users->map(function ($user) {
+        $userIds = $users->pluck('id')->toArray();
+        if (empty($userIds)) return collect();
+
+        // Batch load all PaidUser records in one query
+        $allPaidUsers = PaidUser::whereIn('user_id', $userIds)
+            ->get()
+            ->groupBy('user_id');
+
+        // Batch load all insurance invoices in one query (insurance users only)
+        $insuranceUserIds = $users->where('role', 'insurance')->pluck('id')->toArray();
+        $allInvoices = collect();
+        if (!empty($insuranceUserIds)) {
+            $allInvoices = ProformaInvoice::whereHas('proforma', function ($q) use ($insuranceUserIds) {
+                $q->whereIn('poster_id', $insuranceUserIds)->where('insured', true);
+            })
+            ->with('proforma:id,poster_id')
+            ->get()
+            ->groupBy(fn ($inv) => $inv->proforma->poster_id);
+        }
+
+        return $users->map(function ($user) use ($allPaidUsers, $allInvoices) {
 
             /* ================= PaidUser ================= */
-            $paidUsers = PaidUser::where('user_id', $user->id)->get();
+            $paidUsers = $allPaidUsers->get($user->id, collect());
 
             $totalEarned = $paidUsers->sum('amount');
             $totalPaid   = $paidUsers->where('is_paid', true)->sum('amount');
             $remaining   = $totalEarned - $totalPaid;
 
             /* ================= Insurance Proformas ================= */
-            $invoiceCount = 0;
-            $invoiceTotal = 0;
-            $invoicePaid  = 0;
+            $invoiceCount  = 0;
+            $invoiceTotal  = 0;
+            $invoicePaid   = 0;
             $invoiceUnpaid = 0;
             $invoices = collect();
 
             if ($user->role === 'insurance') {
-               $invoices = ProformaInvoice::whereHas('proforma', function ($q) use ($user) {
-    $q->where('poster_id', $user->id)
-      ->where('insured', true); // <-- only insured proformas
-})->get();
-
-                
-                
-    \Log::info("Invoices for user {$user->id} ({$user->name}):", $invoices->toArray());
-
-                $invoiceCount = $invoices->count();
-                $invoiceTotal = $invoices->sum('total_amount');
-                $invoicePaid  = $invoices->where('is_paid', true)->sum('total_amount');
+                $invoices      = $allInvoices->get($user->id, collect());
+                $invoiceCount  = $invoices->count();
+                $invoiceTotal  = $invoices->sum('total_amount');
+                $invoicePaid   = $invoices->where('is_paid', true)->sum('total_amount');
                 $invoiceUnpaid = $invoiceTotal - $invoicePaid;
             }
 
@@ -156,8 +168,8 @@ public function receivePayment($userId)
                 'insurance_proforma_paid'   => $invoicePaid,
                 'insurance_proforma_unpaid' => $invoiceUnpaid,
 
-                'invoices' => $invoices,
-                'transactions' => $paidUsers,
+                'invoices'      => $invoices,
+                'transactions'  => $paidUsers,
             ];
         })->values();
     }
