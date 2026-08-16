@@ -45,8 +45,8 @@ public function store(Request $request)
         'brands' => 'required',
         'brands.*' => 'required|exists:brands,id',
 
-        'license_image' => 'required|file|image',
-        'stamp_image' => 'required|file|image',
+        'license_image' => 'nullable|file|image',
+        'stamp_image' => 'nullable|file|image',
 
         'dealers' => 'nullable|boolean',
         'shop_garage' => 'nullable|boolean',
@@ -65,9 +65,9 @@ public function store(Request $request)
 
     } while (User::where('store_id', $newStoreId)->exists());
 
-    // Upload images
-    $licenseImagePath = $request->file('license_image')->store('public/licenses');
-    $stampImagePath = $request->file('stamp_image')->store('public/stamps');
+    // Upload images (optional)
+    $licenseImagePath = $request->hasFile('license_image') ? $request->file('license_image')->store('public/licenses') : null;
+    $stampImagePath = $request->hasFile('stamp_image') ? $request->file('stamp_image')->store('public/stamps') : null;
 
     // Create the shop user
     $user = User::create([
@@ -304,8 +304,13 @@ public function edit(string $id)
         $shop = User::findOrFail($id);
     
     
-        // Handle license image - FilePond async upload or direct file
-        if ($request->filled('license_image_data')) {
+        // Handle license image - FilePond async upload, direct file, or removal
+        if ($request->filled('remove_license_image') && $request->remove_license_image === '1') {
+            if ($shop->license_image && Storage::disk('public')->exists($shop->license_image)) {
+                Storage::disk('public')->delete($shop->license_image);
+            }
+            $shop->license_image = null;
+        } elseif ($request->filled('license_image_data')) {
             $tempPath = $request->license_image_data;
             if (Storage::disk('public')->exists($tempPath)) {
                 $filename = time() . '_' . basename($tempPath);
@@ -320,8 +325,13 @@ public function edit(string $id)
             $shop->license_image = $request->file('license_image')->store('licenses', 'public');
         }
     
-        // Handle stamp image - FilePond async upload or direct file
-        if ($request->filled('stamp_image_data')) {
+        // Handle stamp image - FilePond async upload, direct file, or removal
+        if ($request->filled('remove_stamp_image') && $request->remove_stamp_image === '1') {
+            if ($shop->stamp_image && Storage::disk('public')->exists($shop->stamp_image)) {
+                Storage::disk('public')->delete($shop->stamp_image);
+            }
+            $shop->stamp_image = null;
+        } elseif ($request->filled('stamp_image_data')) {
             $tempPath = $request->stamp_image_data;
             if (Storage::disk('public')->exists($tempPath)) {
                 $filename = time() . '_' . basename($tempPath);
