@@ -71,9 +71,9 @@ use App\Events\ProformaCreated;
 
 use App\Http\Controllers\LogViewerController;
 
-Route::get('/logs', [LogViewerController::class, 'index']);
+Route::get('/logs', [LogViewerController::class, 'index'])->middleware('auth.user');
 
-Route::get('/logs/fetch', [LogViewerController::class, 'fetchLogs']);
+Route::get('/logs/fetch', [LogViewerController::class, 'fetchLogs'])->middleware('auth.user');
 
 // 🔹 CSRF Token Refresh (prevents 419 errors on long sessions)
 Route::get('/csrf-token', function () {
@@ -1621,6 +1621,8 @@ Route::prefix('/admin')
 
 Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
+    abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin']), 403);
+
     // ❗ Prevent double verification
     if ($proforma->status === 'completed') {
         return redirect()->back()->with('error', 'Proforma already verified.');
@@ -2059,7 +2061,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         return redirect()->back()->with('error', 'Verification failed.');
     }
-});
+})->middleware('auth.user');
 
 
 /**
@@ -5434,7 +5436,7 @@ Route::get('/etera-chereta/status', function () {
 // =====================
 // Accountant Dashboard
 // =====================
-Route::middleware(['auth'])->group(function () {
+Route::middleware(['auth.user'])->group(function () {
 
     Route::get('/finance',
         [App\Http\Controllers\AdminAnalyticsController::class, 'index']
@@ -5497,6 +5499,7 @@ Route::prefix('role')
     
     // Debug route for testing part prices
     Route::get('/debug/part-prices/{applicationId}', function($applicationId) {
+        abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin']), 403);
         $application = \App\Models\ProformaApplication::with('prices', 'proforma.parts')->findOrFail($applicationId);
         
         return response()->json([
@@ -5523,10 +5526,11 @@ Route::prefix('role')
                 ];
             })
         ]);
-    })->name('debug.part-prices');
+    })->name('debug.part-prices')->middleware('auth.user');
     
     // Debug route for testing voice notes
     Route::get('/debug/voice-notes/{applicationId}', function($applicationId) {
+        abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin']), 403);
         $application = \App\Models\ProformaApplication::with('media', 'applicationBy')->findOrFail($applicationId);
         
         return response()->json([
@@ -5555,7 +5559,7 @@ Route::prefix('role')
                 ];
             })
         ]);
-    })->name('debug.voice-notes');
+    })->name('debug.voice-notes')->middleware('auth.user');
 
 // Include Manager & Operator Routes
 require __DIR__.'/manager_operator_routes.php';

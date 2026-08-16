@@ -14,6 +14,8 @@ class AdminAnalyticsController extends Controller
     // ---------------------------
 public function index()
 {
+    abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin', 'accountant']), 403);
+
     $currentUser = auth()->user();
 
     $users = User::whereIn('role', ['garage', 'shop', 'insurance', 'operator'])->get();
@@ -62,6 +64,8 @@ public function index()
     // ---------------------------
     public function markPaid($userId)
     {
+        abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin', 'accountant']), 403);
+
         $unpaid = PaidUser::where('user_id', $userId)
             ->where('is_paid', false)
             ->get();
@@ -79,6 +83,8 @@ public function index()
 
 public function receivePayment($userId)
 {
+    abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin', 'accountant']), 403);
+
     // Get all unpaid insurance invoices for this user
     $unpaid = ProformaInvoice::whereHas('proforma', function ($q) use ($userId) {
         $q->where('poster_id', $userId);
