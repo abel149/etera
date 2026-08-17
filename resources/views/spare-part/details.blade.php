@@ -597,92 +597,221 @@
                             </thead>
                             <tbody>
                                 @if(isset($proforma->parts) && count($proforma->parts) > 0)
-                                    @foreach ($proforma->parts->sortBy('id')->values() as $part)
+                                    @php
+                                        $sortedParts = $proforma->parts->sortBy('id')->values();
+                                        $showSplit   = !$actsAsShop && $sortedParts->whereNotNull('repair_renew')->count() > 0;
+                                    @endphp
+                                    @if ($showSplit)
+                                        {{-- ── Garage split view: group parts by repair_renew ── --}}
+                                        @php
+                                            $renewParts  = $sortedParts->where('repair_renew', 'renew')->values();
+                                            $repairParts = $sortedParts->where('repair_renew', 'repair')->values();
+                                            $otherParts  = $sortedParts->filter(fn($p) => !in_array($p->repair_renew, ['renew', 'repair']))->values();
+                                            $gIdx        = 0;
+                                        @endphp
+                                        {{-- Section: Renew --}}
+                                        @if ($renewParts->count())
                                         <tr>
-                                            <td data-label="Index">{{ $loop->index + 1 }}</td>
-                                            {{-- START: PART IMAGES BUTTON (Displays the modal) --}}
-                                            <td>
-                                                @php
-                                                    // Safely handle part images with null checks
-                                                    $partImagePaths = [];
-                                                    $imageCount = 0;
-                                                    
-                                                    if(isset($part->images) && $part->images->count() > 0) {
-                                                        $partImagePaths = $part->images
-                                                            ->pluck('image_path')
-                                                            ->map(function ($path) {
-                                                                return asset('storage/' . ($path ?? ''));
-                                                            })
-                                                            ->values()
-                                                            ->all();
-                                                        $imageCount = $part->images->count();
-                                                    }
-                                                @endphp
-
-                                                @if ($imageCount > 0)
-                                                    <button type="button" class="btn btn-sm btn-outline-primary"
-                                                        onclick='openPartImageModal(@json($partImagePaths))'>
-                                                        View Image{{ $imageCount > 1 ? 's' : '' }} ({{ $imageCount }})
-                                                    </button>
-                                                @else
-                                                    <span class="text-muted">#N/A</span>
-                                                @endif
+                                            <td colspan="8" style="background:rgba(77,208,196,0.12);color:#0a8f7d;font-weight:700;padding:10px 16px;border-bottom:2px solid rgba(77,208,196,0.35);">
+                                                <i class="bx bx-refresh me-1"></i> Parts to Renew &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $renewParts->count() }})</span>
                                             </td>
-                                            {{-- END: PART IMAGES BUTTON --}}
+                                        </tr>
+                                        @foreach ($renewParts as $part)
+                                            <tr>
+                                                <td>{{ $loop->index + 1 }}</td>
+                                                <td>
+                                                    @php
+                                                        $partImagePaths = [];
+                                                        $imageCount = 0;
+                                                        if(isset($part->images) && $part->images->count() > 0) {
+                                                            $partImagePaths = $part->images->pluck('image_path')->map(fn($path) => asset('storage/' . ($path ?? '')))->values()->all();
+                                                            $imageCount = $part->images->count();
+                                                        }
+                                                    @endphp
+                                                    @if ($imageCount > 0)
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick='openPartImageModal(@json($partImagePaths))'>View Image{{ $imageCount > 1 ? 's' : '' }} ({{ $imageCount }})</button>
+                                                    @else
+                                                        <span class="text-muted">#N/A</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $part->component ?? 'N/A' }}</td>
+                                                <td>{{ $part->number ?? 'N/A' }}</td>
+                                                <td>{{ $part->grade ?? 'N/A' }}</td>
+                                                <td>{{ $part->condition ?? 'N/A' }}</td>
+                                                <td>{{ $part->country ?? 'N/A' }}</td>
+                                                <td>{{ $part->quantity ?? 0 }}
+                                                    <input type="hidden" class="row-qty" value="{{ $part->quantity ?? 0 }}">
+                                                    <input type="hidden" name="part_id[{{ $gIdx }}]" value="{{ $part->id ?? '' }}">
+                                                </td>
+                                            </tr>
+                                            @php $gIdx++ @endphp
+                                        @endforeach
+                                        @endif
+                                        {{-- Section: Repair --}}
+                                        @if ($repairParts->count())
+                                        <tr>
+                                            <td colspan="8" style="background:rgba(251,146,60,0.12);color:#b85a0d;font-weight:700;padding:10px 16px;border-bottom:2px solid rgba(251,146,60,0.35);">
+                                                <i class="bx bx-wrench me-1"></i> Parts to Repair &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $repairParts->count() }})</span>
+                                            </td>
+                                        </tr>
+                                        @foreach ($repairParts as $part)
+                                            <tr>
+                                                <td>{{ $loop->index + 1 }}</td>
+                                                <td>
+                                                    @php
+                                                        $partImagePaths = [];
+                                                        $imageCount = 0;
+                                                        if(isset($part->images) && $part->images->count() > 0) {
+                                                            $partImagePaths = $part->images->pluck('image_path')->map(fn($path) => asset('storage/' . ($path ?? '')))->values()->all();
+                                                            $imageCount = $part->images->count();
+                                                        }
+                                                    @endphp
+                                                    @if ($imageCount > 0)
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick='openPartImageModal(@json($partImagePaths))'>View Image{{ $imageCount > 1 ? 's' : '' }} ({{ $imageCount }})</button>
+                                                    @else
+                                                        <span class="text-muted">#N/A</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $part->component ?? 'N/A' }}</td>
+                                                <td>{{ $part->number ?? 'N/A' }}</td>
+                                                <td>{{ $part->grade ?? 'N/A' }}</td>
+                                                <td>{{ $part->condition ?? 'N/A' }}</td>
+                                                <td>{{ $part->country ?? 'N/A' }}</td>
+                                                <td>{{ $part->quantity ?? 0 }}
+                                                    <input type="hidden" class="row-qty" value="{{ $part->quantity ?? 0 }}">
+                                                    <input type="hidden" name="part_id[{{ $gIdx }}]" value="{{ $part->id ?? '' }}">
+                                                </td>
+                                            </tr>
+                                            @php $gIdx++ @endphp
+                                        @endforeach
+                                        @endif
+                                        {{-- Section: Unspecified (no repair_renew) --}}
+                                        @if ($otherParts->count())
+                                        <tr>
+                                            <td colspan="8" style="background:rgba(108,117,125,0.08);color:#5c6371;font-weight:700;padding:10px 16px;border-bottom:2px solid rgba(108,117,125,0.2);">
+                                                Other Parts &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $otherParts->count() }})</span>
+                                            </td>
+                                        </tr>
+                                        @foreach ($otherParts as $part)
+                                            <tr>
+                                                <td>{{ $loop->index + 1 }}</td>
+                                                <td>
+                                                    @php
+                                                        $partImagePaths = [];
+                                                        $imageCount = 0;
+                                                        if(isset($part->images) && $part->images->count() > 0) {
+                                                            $partImagePaths = $part->images->pluck('image_path')->map(fn($path) => asset('storage/' . ($path ?? '')))->values()->all();
+                                                            $imageCount = $part->images->count();
+                                                        }
+                                                    @endphp
+                                                    @if ($imageCount > 0)
+                                                        <button type="button" class="btn btn-sm btn-outline-primary" onclick='openPartImageModal(@json($partImagePaths))'>View Image{{ $imageCount > 1 ? 's' : '' }} ({{ $imageCount }})</button>
+                                                    @else
+                                                        <span class="text-muted">#N/A</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $part->component ?? 'N/A' }}</td>
+                                                <td>{{ $part->number ?? 'N/A' }}</td>
+                                                <td>{{ $part->grade ?? 'N/A' }}</td>
+                                                <td>{{ $part->condition ?? 'N/A' }}</td>
+                                                <td>{{ $part->country ?? 'N/A' }}</td>
+                                                <td>{{ $part->quantity ?? 0 }}
+                                                    <input type="hidden" class="row-qty" value="{{ $part->quantity ?? 0 }}">
+                                                    <input type="hidden" name="part_id[{{ $gIdx }}]" value="{{ $part->id ?? '' }}">
+                                                </td>
+                                            </tr>
+                                            @php $gIdx++ @endphp
+                                        @endforeach
+                                        @endif
+                                    @else
+                                        {{-- ── Original view (shops, or no repair_renew data) ── --}}
+                                        @foreach ($sortedParts as $part)
+                                            <tr>
+                                                <td data-label="Index">{{ $loop->index + 1 }}</td>
+                                                {{-- START: PART IMAGES BUTTON (Displays the modal) --}}
+                                                <td>
+                                                    @php
+                                                        // Safely handle part images with null checks
+                                                        $partImagePaths = [];
+                                                        $imageCount = 0;
+                                                        
+                                                        if(isset($part->images) && $part->images->count() > 0) {
+                                                            $partImagePaths = $part->images
+                                                                ->pluck('image_path')
+                                                                ->map(function ($path) {
+                                                                    return asset('storage/' . ($path ?? ''));
+                                                                })
+                                                                ->values()
+                                                                ->all();
+                                                            $imageCount = $part->images->count();
+                                                        }
+                                                    @endphp
 
-                                            <td data-label="Component">{{ $part->component ?? 'N/A' }}</td>
-                                            <td data-label="Part #">{{ $part->number ?? 'N/A' }}</td>
-                                            <td data-label="Grade">{{ $part->grade ?? 'N/A' }}</td>
-                                            <td data-label="Condition">{{ $part->condition ?? 'N/A' }}</td>
-                                            <td data-label="Country">{{ $part->country ?? 'N/A' }}</td>
-                                            <td data-label="Qty">{{ $part->quantity ?? 0 }}</td>
-                                            <input type="hidden" class="row-qty" value="{{ $part->quantity ?? 0 }}">
-                                            {{-- Hidden input for part ID to link quote amount to part --}}
-                                            <input type="hidden" name="part_id[{{ $loop->index }}]" value="{{ $part->id ?? '' }}">
+                                                    @if ($imageCount > 0)
+                                                        <button type="button" class="btn btn-sm btn-outline-primary"
+                                                            onclick='openPartImageModal(@json($partImagePaths))'>
+                                                            View Image{{ $imageCount > 1 ? 's' : '' }} ({{ $imageCount }})
+                                                        </button>
+                                                    @else
+                                                        <span class="text-muted">#N/A</span>
+                                                    @endif
+                                                </td>
+                                                {{-- END: PART IMAGES BUTTON --}}
 
-                                            @if ($actsAsShop)
-                                                @php
-                                                    $lockedData = isset($lockedDataByPartId) ? ($lockedDataByPartId[$part->id] ?? null) : null;
-                                                    $isLocked   = $lockedData !== null;
-                                                    $lockedPrice = $isLocked ? (float) ($lockedData['unit_price'] ?? 0) : 0;
-                                                    $lockedTotal = $isLocked ? $lockedPrice * ($part->quantity ?? 1) : 0;
-                                                @endphp
-                                                @if($isLocked)
-                                                    <td style="background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.25);">
-                                                        <div style="display:flex; align-items:center; gap:5px;">
-                                                            <span style="color:#fb923c; font-size:0.85rem;">&#x1F512;</span>
+                                                <td data-label="Component">{{ $part->component ?? 'N/A' }}</td>
+                                                <td data-label="Part #">{{ $part->number ?? 'N/A' }}</td>
+                                                <td data-label="Grade">{{ $part->grade ?? 'N/A' }}</td>
+                                                <td data-label="Condition">{{ $part->condition ?? 'N/A' }}</td>
+                                                <td data-label="Country">{{ $part->country ?? 'N/A' }}</td>
+                                                <td data-label="Qty">{{ $part->quantity ?? 0 }}</td>
+                                                <input type="hidden" class="row-qty" value="{{ $part->quantity ?? 0 }}">
+                                                {{-- Hidden input for part ID to link quote amount to part --}}
+                                                <input type="hidden" name="part_id[{{ $loop->index }}]" value="{{ $part->id ?? '' }}">
+
+                                                @if ($actsAsShop)
+                                                    @php
+                                                        $lockedData = isset($lockedDataByPartId) ? ($lockedDataByPartId[$part->id] ?? null) : null;
+                                                        $isLocked   = $lockedData !== null;
+                                                        $lockedPrice = $isLocked ? (float) ($lockedData['unit_price'] ?? 0) : 0;
+                                                        $lockedTotal = $isLocked ? $lockedPrice * ($part->quantity ?? 1) : 0;
+                                                    @endphp
+                                                    @if($isLocked)
+                                                        <td style="background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.25);">
+                                                            <div style="display:flex; align-items:center; gap:5px;">
+                                                                <span style="color:#fb923c; font-size:0.85rem;">&#x1F512;</span>
+                                                                <input type="number"
+                                                                    name="total[{{ $loop->index }}]"
+                                                                    class="with-border unit-price-input"
+                                                                    value="{{ $lockedPrice }}"
+                                                                    step="any" min="1"
+                                                                    readonly disabled
+                                                                    style="background: rgba(251,146,60,0.06); color: rgba(255,255,255,0.45); cursor: not-allowed; border-color: rgba(251,146,60,0.2);">
+                                                                <input type="hidden" name="total[{{ $loop->index }}]" value="{{ $lockedPrice }}">
+                                                            </div>
+                                                        </td>
+                                                        <td style="background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.25);">
+                                                            <input type="number" class="with-border part-total"
+                                                                value="{{ $lockedTotal }}" readonly disabled
+                                                                style="background: rgba(251,146,60,0.06); color: rgba(255,255,255,0.45); cursor: not-allowed; border-color: rgba(251,146,60,0.2);">
+                                                        </td>
+                                                    @else
+                                                        <td>
                                                             <input type="number"
                                                                 name="total[{{ $loop->index }}]"
-                                                                class="with-border unit-price-input"
-                                                                value="{{ $lockedPrice }}"
+                                                                class="with-border unit-price-input" placeholder="unit price" value=""
                                                                 step="any" min="1"
-                                                                readonly disabled
-                                                                style="background: rgba(251,146,60,0.06); color: rgba(255,255,255,0.45); cursor: not-allowed; border-color: rgba(251,146,60,0.2);">
-                                                            <input type="hidden" name="total[{{ $loop->index }}]" value="{{ $lockedPrice }}">
-                                                        </div>
-                                                    </td>
-                                                    <td style="background: rgba(251,146,60,0.08); border-color: rgba(251,146,60,0.25);">
-                                                        <input type="number" class="with-border part-total"
-                                                            value="{{ $lockedTotal }}" readonly disabled
-                                                            style="background: rgba(251,146,60,0.06); color: rgba(255,255,255,0.45); cursor: not-allowed; border-color: rgba(251,146,60,0.2);">
-                                                    </td>
-                                                @else
-                                                    <td>
-                                                        <input type="number"
-                                                            name="total[{{ $loop->index }}]"
-                                                            class="with-border unit-price-input" placeholder="unit price" value=""
-                                                            step="any" min="1"
-                                                            oninvalid="this.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable')"
-                                                            oninput="this.setCustomValidity('')">
-                                                    </td>
-                                                    <td>
-                                                        <input type="number" class="with-border part-total" placeholder="Total"
-                                                            value="0" readonly disabled>
-                                                    </td>
+                                                                oninvalid="this.setCustomValidity('Price must be at least 1 ETB, or leave blank if unavailable')"
+                                                                oninput="this.setCustomValidity('')">
+                                                        </td>
+                                                        <td>
+                                                            <input type="number" class="with-border part-total" placeholder="Total"
+                                                                value="0" readonly disabled>
+                                                        </td>
+                                                    @endif
                                                 @endif
-                                            @endif
-                                        </tr>
-                                    @endforeach
+                                            </tr>
+                                        @endforeach
+                                    @endif
                                 @else
                                     <tr>
                                         <td colspan="{{ $actsAsShop ? 10 : 8 }}" class="text-center">

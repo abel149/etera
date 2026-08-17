@@ -3567,6 +3567,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'parts.*.quantity' => 'nullable|integer|min:1',
                 'parts.*.condition' => 'nullable|string',
                 'parts.*.component' => 'nullable|string',
+                'parts.*.repair_renew' => 'nullable|string|in:renew,repair',
+                'call_customer' => 'nullable|boolean',
                 'parts.*.images.*' => 'nullable|image|max:10240', // Validate images
                 'number_of_proformas' => 'nullable|integer|min:-1|max:5',
                 'etera_chereta_hours' => 'nullable|integer|in:4,8,12,24,48,72',
@@ -3636,6 +3638,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'timer_duration' => $timerMinutes,
                 'timer_expires_at' => $timerExpiresAt,
                 'insured' => $request->has('insured') ? true : false,
+                'call_customer' => $request->has('call_customer'),
             ]);
 
             foreach ($request->parts as $partData) {
@@ -3647,6 +3650,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                     'quantity' => $partData['quantity'] ?? null,
                     'condition' => $partData['condition'] ?? null,
                     'component' => $partData['component'] ?? null,
+                    'repair_renew' => $partData['repair_renew'] ?? null,
                 ]);
 
             }

@@ -144,6 +144,12 @@
                                         <td>Unlimted with timer.</td>
                                         @endif
                                     </tr>
+                                    @if($proforma->call_customer)
+                                    <tr>
+                                        <td><strong>Call Customer:</strong></td>
+                                        <td><span class="badge bg-warning text-dark"><i class="bx bx-phone-call me-1"></i>Call Customer</span></td>
+                                    </tr>
+                                    @endif
                                 </table>
                             </div>
                         </div>

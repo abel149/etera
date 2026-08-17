@@ -19,6 +19,7 @@ class ProformaPart extends Model
         'quantity',
         'condition',
         'component',
+        'repair_renew',
     ];
 
     protected $casts = [

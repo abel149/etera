@@ -354,6 +354,15 @@
                                         @enderror
                                     </div>
 
+                                    <div class="col-12 col-lg-6">
+                                        <div class="form-check mt-4">
+                                            <input class="form-check-input" type="checkbox" name="call_customer" id="call_customer" value="1" {{ old('call_customer') ? 'checked' : '' }}>
+                                            <label class="form-check-label fw-semibold" for="call_customer">
+                                                <i class="bx bx-phone-call me-1"></i> Call Customer
+                                            </label>
+                                        </div>
+                                    </div>
+
                                     <div class="col-12">
                                         <div class="d-flex align-items-center gap-3">
                                             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="stepper3.previous()"><i class='bx bx-left-arrow-alt me-2'></i>Previous</button>
@@ -465,6 +474,16 @@
                                                     @error('parts.0.component')
                                                         <span class="text-danger">{{ $message }}</span>
                                                     @enderror
+                                                </div>
+
+                                                <!-- Repair / Renew -->
+                                                <div class="col-12 col-lg-2">
+                                                    <label class="form-label">Term <span class="text-muted small">(optional)</span></label>
+                                                    <select name="parts[0][repair_renew]" class="form-select">
+                                                        <option value="">— Select —</option>
+                                                        <option value="renew" {{ old('parts.0.repair_renew') == 'renew' ? 'selected' : '' }}>Renew</option>
+                                                        <option value="repair" {{ old('parts.0.repair_renew') == 'repair' ? 'selected' : '' }}>Repair</option>
+                                                    </select>
                                                 </div>
                                             </div>
                                             </div>

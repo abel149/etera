@@ -27,6 +27,7 @@ class Proforma extends Model implements HasMedia
         'auto_selection_count' => 'integer',
         'close_request' => 'boolean',
         'insured' => 'boolean',
+        'call_customer' => 'boolean',
     ];
 
     protected static function booted(): void
