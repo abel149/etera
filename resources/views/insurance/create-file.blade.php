@@ -483,14 +483,20 @@
                                 {{-- Group 1: All shops (same as other slots) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="1">
                                     <label for="shopPartners" class="form-label">Shops — Slot 1 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select brand-filter-select mb-2" data-target="shopPartners" style="display:none">
+                                        <option value="">All Brands</option>
+                                        @foreach($brands as $brand)
+                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
                                     <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            @php $brandNames = $shop->brands->pluck('name')->implode(', '); @endphp
-                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brands="{{ $brandNames }}" {{ in_array($shop->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brand-ids="{{ $brandIds }}" {{ in_array($shop->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                         @foreach($all_garages as $garage)
                                             @if($garage->shop_garage == 1)
-                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" data-brand-ids="" {{ in_array($garage->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                             @endif
                                         @endforeach
                                     </select>
@@ -499,14 +505,20 @@
                                 {{-- Group 2 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="2">
                                     <label for="shopExtra1" class="form-label">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra1" style="display:none">
+                                        <option value="">All Brands</option>
+                                        @foreach($brands as $brand)
+                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
                                     <select class="form-select shop-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            @php $brandNames = $shop->brands->pluck('name')->implode(', '); @endphp
-                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brands="{{ $brandNames }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brand-ids="{{ $brandIds }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                         @foreach($all_garages as $garage)
                                             @if($garage->shop_garage == 1)
-                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" data-brand-ids="" {{ in_array($garage->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                             @endif
                                         @endforeach
                                     </select>
@@ -515,14 +527,20 @@
                                 {{-- Group 3 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="3">
                                     <label for="shopExtra2" class="form-label">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra2" style="display:none">
+                                        <option value="">All Brands</option>
+                                        @foreach($brands as $brand)
+                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
                                     <select class="form-select shop-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            @php $brandNames = $shop->brands->pluck('name')->implode(', '); @endphp
-                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brands="{{ $brandNames }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brand-ids="{{ $brandIds }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                         @foreach($all_garages as $garage)
                                             @if($garage->shop_garage == 1)
-                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" data-brand-ids="" {{ in_array($garage->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                             @endif
                                         @endforeach
                                     </select>
@@ -531,14 +549,20 @@
                                 {{-- Group 4 (shown when required ≥ 4) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="4" style="display:none">
                                     <label for="shopExtra3" class="form-label">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra3" style="display:none">
+                                        <option value="">All Brands</option>
+                                        @foreach($brands as $brand)
+                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
                                     <select class="form-select shop-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            @php $brandNames = $shop->brands->pluck('name')->implode(', '); @endphp
-                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brands="{{ $brandNames }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brand-ids="{{ $brandIds }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                         @foreach($all_garages as $garage)
                                             @if($garage->shop_garage == 1)
-                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" data-brand-ids="" {{ in_array($garage->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                             @endif
                                         @endforeach
                                     </select>
@@ -547,14 +571,20 @@
                                 {{-- Group 5 (shown when required = 5) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="5" style="display:none">
                                     <label for="shopExtra4" class="form-label">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
+                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra4" style="display:none">
+                                        <option value="">All Brands</option>
+                                        @foreach($brands as $brand)
+                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                        @endforeach
+                                    </select>
                                     <select class="form-select shop-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            @php $brandNames = $shop->brands->pluck('name')->implode(', '); @endphp
-                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brands="{{ $brandNames }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" data-brand-ids="{{ $brandIds }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
                                         @endforeach
                                         @foreach($all_garages as $garage)
                                             @if($garage->shop_garage == 1)
-                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" data-brand-ids="" {{ in_array($garage->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
                                             @endif
                                         @endforeach
                                     </select>
@@ -863,15 +893,28 @@ document.addEventListener('DOMContentLoaded', () => {
     });
 
     function filterShopOptions(type) {
+        const shopOnly = type === 'insurance_shop_only';
         const dualOnly = type === 'insurance_shop_garage';
         shopSelects.forEach(sel => {
             const opts = allShopOptions[sel.id] || [];
             const selectedIds = Array.from(sel.selectedOptions).map(o => o.value);
+            // Get selected brand from the brand dropdown for this slot
+            const brandSelect = document.querySelector('.brand-filter-select[data-target="' + sel.id + '"]');
+            const selectedBrand = brandSelect ? brandSelect.value : '';
+            // Destroy Select2 before modifying DOM
+            if (window.jQuery) $('#' + sel.id).select2('destroy');
             sel.innerHTML = '';
             opts.forEach(opt => {
                 let show;
                 if (dualOnly) {
                     show = opt.dataset.shopGarage === '1';
+                } else if (shopOnly) {
+                    show = opt.dataset.role === 'shop';
+                    // If a brand is selected, also filter by brand
+                    if (show && selectedBrand) {
+                        const brandIds = (opt.dataset.brandIds || '').split(',').filter(Boolean);
+                        show = brandIds.includes(selectedBrand);
+                    }
                 } else {
                     show = opt.dataset.role === 'shop';
                 }
@@ -881,8 +924,20 @@ document.addEventListener('DOMContentLoaded', () => {
                     sel.appendChild(cloned);
                 }
             });
-            // Refresh Select2 UI for this select
-            if (window.jQuery) $('#' + sel.id).trigger('change.select2');
+            // Re-init Select2 (plain, no custom matcher needed)
+            if (window.jQuery) {
+                $('#' + sel.id).select2({
+                    theme:       'bootstrap-5',
+                    placeholder: 'Type to search and select...',
+                    allowClear:  true,
+                    width:       '100%'
+                });
+            }
+        });
+        // Show/hide brand dropdowns — only for insurance_shop_only
+        document.querySelectorAll('.brand-filter-select').forEach(el => {
+            el.style.display = shopOnly ? '' : 'none';
+            if (!shopOnly) el.value = '';
         });
         // Re-run mutual exclusion so cross-slot dedup still applies
         if (typeof syncMutualExclusion === 'function') {
@@ -951,6 +1006,14 @@ document.addEventListener('DOMContentLoaded', () => {
     const garageCountSel = document.getElementById('number_of_garages');
     if (shopCountSel)   shopCountSel.addEventListener('change',   updateGroupVisibility);
     if (garageCountSel) garageCountSel.addEventListener('change', updateGroupVisibility);
+
+    // Wire brand filter dropdowns to re-filter shop options
+    document.querySelectorAll('.brand-filter-select').forEach(el => {
+        el.addEventListener('change', () => {
+            const currentType = (document.querySelector('input[name="proforma_type"]:checked') || {}).value || 'insurance_shop_only';
+            filterShopOptions(currentType);
+        });
+    });
 
     // Initialise on page load (handles validation-error repopulation)
     const checkedRadio = document.querySelector('input[name="proforma_type"]:checked');
@@ -1252,17 +1315,7 @@ $(document).ready(function () {
             theme:       'bootstrap-5',
             placeholder: 'Type to search and select...',
             allowClear:  true,
-            width:       '100%',
-            matcher: function(params, data) {
-                if (!params.term || !params.term.trim()) return data;
-                var term = params.term.toLowerCase();
-                var text = (data.text || '').toLowerCase();
-                var brands = ($(data.element).data('brands') || '').toString().toLowerCase();
-                if (text.indexOf(term) !== -1 || brands.indexOf(term) !== -1) {
-                    return data;
-                }
-                return null;
-            }
+            width:       '100%'
         });
     });
 
