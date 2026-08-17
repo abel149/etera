@@ -59,7 +59,11 @@
 								<td>
 									<div class="d-flex align-items-center">
 										<div  data-bs-toggle="modal" data-bs-target="#garageDetailModal{{$garage->id}}" >
-											<h6 class="mb-0 font-14">{{$garage->name}}</h6>
+											<h6 class="mb-0 font-14">{{$garage->name}}
+												@if($garage->shop_garage)
+													<span class="badge bg-info ms-1" style="font-size: 0.7rem;">Dual Service</span>
+												@endif
+											</h6>
 											<p class="mb-0 font-13 text-secondary">{{$garage->email}}</p>
 										</div>
 									</div>

@@ -66,6 +66,8 @@ class GarageProformasList extends Component
          */
         $isTest = Auth::user()->is_test ?? false;
 
+        $isDualService = Auth::user()->shop_garage == 1;
+
         $query = Proforma::query()
             ->where('status', 'published')
             ->whereHas('poster', function ($q) use ($isTest) {
@@ -78,9 +80,12 @@ class GarageProformasList extends Component
                       }
                   });
             })
-            ->where(function ($q) {
+            ->where(function ($q) use ($isDualService) {
+                // Always exclude shop-only proformas (garages never handle these).
+                // Exclude dual-service proformas too, unless this garage is dual-service enabled.
+                $excludedTypes = $isDualService ? ['insurance_shop_only'] : ['insurance_shop_only', 'insurance_shop_garage'];
                 $q->whereNull('proforma_type')
-                  ->orWhereNotIn('proforma_type', ['insurance_shop_only', 'insurance_shop_garage']);
+                  ->orWhereNotIn('proforma_type', $excludedTypes);
             });
 
         /**

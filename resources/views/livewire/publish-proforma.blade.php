@@ -241,10 +241,18 @@
                         @if($isShopOnly)
                             <span class="badge bg-danger ms-2"><i class="bx bx-lock me-1"></i>Shop Only — Locked</span>
                         @endif
+                        @if($proforma->isShopGarageInsurance())
+                            <span class="badge bg-info ms-2"><i class="bx bx-building-house me-1"></i>Dual Service Only</span>
+                        @endif
                     </h4>
                     @if($isShopOnly)
                         <div class="alert alert-warning py-2 mb-3">
                             <i class="bx bx-info-circle me-1"></i> This proforma is <strong>Shop Only</strong>. Garage inbox slots are disabled.
+                        </div>
+                    @endif
+                    @if($proforma->isShopGarageInsurance())
+                        <div class="alert alert-info py-2 mb-3">
+                            <i class="bx bx-info-circle me-1"></i> This is a <strong>Dual Service</strong> proforma. Only garages with Dual Service enabled are shown.
                         </div>
                     @endif
                     <div class="mb-3">

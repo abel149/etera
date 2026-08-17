@@ -73,9 +73,10 @@ class ProformaApplicationController extends Controller
                 $isDualService = $proforma->isShopGarageInsurance();
                 $isShopRole = auth()->user()->role === 'shop';
 
-                if ($isDualService && (!$isShopRole || auth()->user()->shop_garage != 1)) {
-                    return redirect('/spare-part-shops/proformas')
-                        ->with('error', 'This proforma is only available to dual-service shops.');
+                if ($isDualService && auth()->user()->shop_garage != 1) {
+                    $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
+                    return redirect($redirectUrl)
+                        ->with('error', 'This proforma is only available to dual-service providers.');
                 }
 
                 // Step 1b: Logging
@@ -93,7 +94,11 @@ class ProformaApplicationController extends Controller
                 // Step 2: Validate the request data based on the user's role.
                 $isEncrypted = $request->boolean('prices_encrypted', false);
 
-                if (!$isShopRole) {
+                // For dual service proformas, any user with shop_garage=1 goes through the shop path
+                // (parts pricing + garage amount). For non-dual-service, garages use the garage-only path.
+                $useShopPath = $isShopRole || ($isDualService && auth()->user()->shop_garage == 1);
+
+                if (!$useShopPath) {
                     if ($isEncrypted) {
                         $request->validate(['encrypted_amount' => 'required|string']);
                     } else {
@@ -108,7 +113,7 @@ class ProformaApplicationController extends Controller
                             'expiry_date.after' => 'Expiry date must be after today.',
                         ]);
                     }
-                } else { // 'shop' role
+                } else { // Shop role or dual-service garage with shop_garage=1
                     // Check for PDF early so we can bypass price validation for PDF-only
                     $hasPdf = $request->filled('encrypted_pdf') || $request->filled('pdf_data');
 
@@ -157,7 +162,7 @@ class ProformaApplicationController extends Controller
 
                 // Resolve $hasPdf for garage role (shop sets it above)
                 $hasPdf = $hasPdf ?? ($request->filled('encrypted_pdf') || $request->filled('pdf_data'));
-                $isPdfOnly = $isShopRole
+                $isPdfOnly = $useShopPath
                     && $hasPdf
                     && !$request->filled('encrypted_total')
                     && empty(array_filter($request->input('total', [])));
@@ -180,10 +185,10 @@ class ProformaApplicationController extends Controller
                 if ($isEncrypted) {
                     // Encrypted mode: amount is a ciphertext; store 0 as numeric placeholder
                     $finalAmount = 0;
-                } elseif (!$isShopRole) {
+                } elseif (!$useShopPath) {
                     $netAmount = max($request->amount, 1);
                     $finalAmount = round($netAmount * (1 + $vatRate), 2);
-                } else { // 'shop' role
+                } else { // Shop role or dual-service garage with shop_garage=1
                     $totalAmount = 0;
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
                         $unitPrice = floatval($request->total[$index] ?? 0);
@@ -210,6 +215,9 @@ class ProformaApplicationController extends Controller
 
                 // Step 4: Detect inbox source AND group BEFORE deleting inbox
                 $role     = auth()->user()->role;
+                // For dual service proformas, a garage with shop_garage=1 submits as 'shop'
+                // (parts pricing + garage amount) so group assignment and billing work correctly.
+                $effectiveFrom = ($isDualService && auth()->user()->shop_garage == 1) ? 'shop' : $role;
                 $ownInbox = $proforma->inboxes()->where('user_id', auth()->id())->first();
                 $isInsuranceInboxed = $ownInbox && $ownInbox->source === 'insurance';
                 $isAdminInboxed     = $ownInbox && $ownInbox->source === 'admin';
@@ -221,7 +229,7 @@ class ProformaApplicationController extends Controller
                 $groupService = new ProformaGroupService();
                 $isPartialApplication = false;
 
-                if ($role === 'shop' && $requiredShops > 0 && !$isDualService) {
+                if ($effectiveFrom === 'shop' && $requiredShops > 0 && !$isDualService) {
                     $applicationMode = $request->input('application_mode');
                     $requestedGroup = $request->integer('assigned_group');
 
@@ -278,7 +286,7 @@ class ProformaApplicationController extends Controller
                 // Step 4b: Create a new application record.
                 $appData = [
                     'application_by'    => auth()->id(),
-                    'from'              => $role,
+                    'from'              => $effectiveFrom,
                     'amount'            => $finalAmount,
                     'discount'          => 0,
                     'notes'             => $request->filled('notes') ? trim($request->notes) : null,
@@ -302,23 +310,28 @@ class ProformaApplicationController extends Controller
                     ->delete();
 
                 if ($isDualService && $isInsuranceInboxed && $inboxGroup !== null) {
-                    $shopUserIds = User::where('role', 'shop')->pluck('id');
+                    // Clear all shop and dual-service garage inboxes for this group
+                    $dualServiceUserIds = User::where(function ($q) {
+                        $q->where('role', 'shop')->orWhere(function ($q2) {
+                            $q2->where('role', 'garage')->where('shop_garage', 1);
+                        });
+                    })->pluck('id');
                     $proforma->inboxes()
                         ->where('source', 'insurance')
                         ->where('inbox_group', $inboxGroup)
-                        ->whereIn('user_id', $shopUserIds)
+                        ->whereIn('user_id', $dualServiceUserIds)
                         ->delete();
                 }
 
                 // Chereta (legacy null-group only): when quota of insurance partners applied, clear null-group inboxes.
                 // Per-group chereta is now deferred to after prices are saved (fires on group completion).
                 if ($isInsuranceInboxed && $inboxGroup === null) {
-                    $roleUserIds = User::where('role', $role)->pluck('id');
+                    $roleUserIds = User::where('role', $effectiveFrom)->pluck('id');
                     $partnerApplied = $proforma->applications()
-                        ->where('from', $role)
+                        ->where('from', $effectiveFrom)
                         ->where('application_source', 'partner')
                         ->count();
-                    $quota = $role === 'shop'
+                    $quota = $effectiveFrom === 'shop'
                         ? (int) ($proforma->insurance_shop_quota ?? 1)
                         : (int) ($proforma->insurance_garage_quota ?? 1);
                     if ($partnerApplied >= $quota) {
@@ -416,7 +429,7 @@ class ProformaApplicationController extends Controller
                 $filledPartsCount = 0;
                 $skippedPartsCount = 0;
 
-                if ($isShopRole && !$isPdfOnly) {
+                if ($useShopPath && !$isPdfOnly) {
                     $partsProcessed = 0;
                     $totalPartsCount = $proforma->parts()->count();
 
@@ -584,7 +597,7 @@ class ProformaApplicationController extends Controller
 
                 // Step 8b: Post-submit partial trigger — check if this group now needs broadcast help.
                 // Runs outside the closing check so partials fire even when the proforma stays open.
-                if ($role === 'shop' && !$isDualService && !$isPdfOnly && $inboxGroup !== null && !($garageRequirementMet && $shopRequirementMet)) {
+                if ($effectiveFrom === 'shop' && !$isDualService && !$isPdfOnly && $inboxGroup !== null && !($garageRequirementMet && $shopRequirementMet)) {
                     $groupService->checkAndTriggerPartials($proforma, $inboxGroup);
                 }
 

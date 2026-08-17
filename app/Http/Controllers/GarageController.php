@@ -51,6 +51,7 @@ class GarageController extends Controller
         'registered_by' => auth()->user()->id,
         'license_image' => $licenseImagePath,
         'stamp_image' => $stampImagePath,
+        'shop_garage' => $request->has('shop_garage') ? 1 : 0,
     ]);
 
     // Redirect based on user role
@@ -108,6 +109,13 @@ class GarageController extends Controller
         'name', 'phone_number', 'tin_number', 'location',
         'business_license_number', 'license_expire_date', 'email'
     ]);
+
+    // Only touch shop_garage if the submitting form actually renders the checkbox
+    // (marked by shop_garage_form=1). Prevents forms without the field from
+    // silently resetting an existing dual-service flag to 0.
+    if ($request->has('shop_garage_form')) {
+        $data['shop_garage'] = $request->has('shop_garage') ? 1 : 0;
+    }
 
     // Handle license image - FilePond async upload or direct file
     if ($request->filled('license_image_data')) {

@@ -51,6 +51,14 @@ class PublishProforma extends Component
         $shops = User::where('role', 'shop')->orderBy('name', 'asc')->get();
         $garages = User::where('role', 'garage')->orderBy('name', 'asc')->get();
 
+        // For dual service proformas, only show shops/garages with shop_garage = 1
+        // (the backend in proforma.store silently skips non-dual users for this
+        // proforma type, so the dropdowns must match to avoid admin confusion).
+        if ($this->proforma && $this->proforma->isShopGarageInsurance()) {
+            $shops = User::where('role', 'shop')->where('shop_garage', 1)->orderBy('name', 'asc')->get();
+            $garages = User::where('role', 'garage')->where('shop_garage', 1)->orderBy('name', 'asc')->get();
+        }
+
         return view('livewire.publish-proforma', compact('shops', 'garages'));
     }
 }

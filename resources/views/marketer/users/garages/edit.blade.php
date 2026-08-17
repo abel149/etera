@@ -269,6 +269,17 @@
                         <input name="password_confirmation" type="password" class="form-control" id="input10" placeholder="Confirm Password">
                     </div>
 
+                    <!-- Dual Service Checkbox -->
+                    <input type="hidden" name="shop_garage_form" value="1">
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="shop_garage" id="shop_garage" value="1" {{ old('shop_garage', $garage->shop_garage) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="shop_garage">
+                                Dual Service (Shop + Garage)
+                            </label>
+                        </div>
+                    </div>
+
                     <!-- Business License Image Upload (FilePond) -->
                     <div class="col-md-6">
                         <label class="form-label">Business License Image</label>

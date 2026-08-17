@@ -170,10 +170,11 @@ class AdminController extends Controller
         // For insurance_shop_garage type, only show users with shop_garage = 1
         if ($proforma->proforma_type === 'insurance_shop_garage') {
             $shops   = \App\Models\User::where('role', 'shop')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->get();
+            $garages = \App\Models\User::where('role', 'garage')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->get();
         } else {
             $shops   = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
+            $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
         }
-        $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
 
         // IDs locked by active applications (cannot be replaced)
         $activeApplicationShopIds = $proforma->applications
@@ -302,8 +303,16 @@ class AdminController extends Controller
 
             // Notify garages if proforma is from insurance AND not shop-only
             if ($proforma->poster && $proforma->poster->role === 'insurance'
-                && !in_array($proforma->proforma_type, ['insurance_shop_only', 'insurance_shop_garage'], true)) {
-                $garages = User::where('role', 'garage')->where('approved', true)->get();
+                && !in_array($proforma->proforma_type, ['insurance_shop_only'], true)) {
+
+                $garageQuery = User::where('role', 'garage')->where('approved', true);
+
+                // For insurance_shop_garage type, only notify garages with shop_garage = 1
+                if ($proforma->proforma_type === 'insurance_shop_garage') {
+                    $garageQuery->where('shop_garage', 1);
+                }
+
+                $garages = $garageQuery->get();
                 if ($garages->isNotEmpty()) {
                     Notification::send($garages, new ProformaFloatedNotification($proforma));
                 }

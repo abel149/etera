@@ -376,6 +376,19 @@
         </div>
     </div>
 
+    @php
+        // Centralized role resolution: a user "acts as shop" (sees the parts pricing
+        // table, submits via the shop route/flow) when they are a shop, OR they are a
+        // dual-service garage (shop_garage=1) viewing a dual-service (insurance_shop_garage)
+        // proforma. Any other garage — including a dual-service garage on a non-dual
+        // proforma — is treated as a plain garage (single amount field).
+        $isDualServiceProforma = $proforma->isShopGarageInsurance();
+        $actsAsShop = auth()->check() && (
+            auth()->user()->role === 'shop'
+            || ($isDualServiceProforma && auth()->user()->shop_garage == 1)
+        );
+    @endphp
+
     @if(isset($proforma->images) && count($proforma->images) > 0)
         @php
             $proformaImagePaths = $proforma->images
@@ -438,7 +451,7 @@
                                             </h5>
                                         </li>
                                     @endif
-                                    @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
+                                    @if ($actsAsShop)
                                         @if ($proforma->isFromOthers())
                                             <li>
                                                 <i class="icon-material-outline-settings"></i>
@@ -547,7 +560,7 @@
                 @endif
 
                 <form
-                    action="{{ auth()->check() && auth()->user()->role === 'garage' ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
+                    action="{{ auth()->check() && auth()->user()->role === 'garage' && !$actsAsShop ? route('garage.proforma.apply', $proforma->id) : route('proforma.apply', $proforma->id) }}"
                     method="POST" id="proforma-quote-form" novalidate>
                     @csrf
                     <input type="hidden" name="application_mode" value="{{ $applicationMode ?? '' }}">
@@ -562,7 +575,7 @@
                         <table class="basic-table">
                             <thead>
     <tr>
-        <th colspan="{{ auth()->check() && (auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1) ? 10 : 8 }}"
+        <th colspan="{{ $actsAsShop ? 10 : 8 }}"
             style="font-weight: bold; text-align: center;">
             Spare Parts that need to be changed
         </th>
@@ -576,7 +589,7 @@
                                     <th>Condition</th>
                                     <th>Country</th>
                                     <th>Qty</th>
-                                    @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
+                                    @if ($actsAsShop)
                                         <th style="min-width: 100px;">Unit Price (ETB)</th>
                                         <th style="min-width: 100px;">Total (ETB)</th>
                                     @endif
@@ -627,7 +640,7 @@
                                             {{-- Hidden input for part ID to link quote amount to part --}}
                                             <input type="hidden" name="part_id[{{ $loop->index }}]" value="{{ $part->id ?? '' }}">
 
-                                            @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
+                                            @if ($actsAsShop)
                                                 @php
                                                     $lockedData = isset($lockedDataByPartId) ? ($lockedDataByPartId[$part->id] ?? null) : null;
                                                     $isLocked   = $lockedData !== null;
@@ -672,7 +685,7 @@
                                     @endforeach
                                 @else
                                     <tr>
-                                        <td colspan="{{ auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 10 : 8 }}" class="text-center">
+                                        <td colspan="{{ $actsAsShop ? 10 : 8 }}" class="text-center">
                                             No parts found for this proforma.
                                         </td>
                                     </tr>
@@ -681,13 +694,9 @@
 
                             <tfoot>
                                 <tr>
-                                    @php
-                                        // Calculate colspan based on user role
-                                        $colspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
-                                    @endphp
-                                    <td colspan="{{ $colspan }}"></td>
+                                    <td colspan="{{ $actsAsShop ? 8 : 6 }}"></td>
                                     <td class="text-align-right" colspan="1">
-                                        @if (auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1)
+                                        @if ($actsAsShop)
                                             <p style="margin: 0; padding: 0;">TOTAL PARTS PRICE (Net)</p>
                                         @else
                                             <p style="margin: 0; padding: 0;">GARAGE REPAIR SERVICE ESTIMATE (Net)</p>
@@ -697,7 +706,7 @@
                                     <td colspan="2">
                                         <input type="number" name="amount" class="with-border" required
                                             id="total-amount" 
-                                            {{ auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 'disabled' : '' }} min="1"
+                                            {{ $actsAsShop ? 'disabled' : '' }} min="1"
                                             step="any">
                                         @error('amount')
                                             <span class="text-danger">{{ $message }}</span>
@@ -705,10 +714,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    @php
-                                        $vatColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
-                                    @endphp
-                                    <td colspan="{{ $vatColspan }}"></td>
+                                    <td colspan="{{ $actsAsShop ? 8 : 6 }}"></td>
                                     <td class="text-align-right" colspan="1">
                                         VAT (15%)
                                     </td>
@@ -719,10 +725,7 @@
                                         class="with-border">
                                 </tr>
                                 <tr>
-                                    @php
-                                        $expiryColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
-                                    @endphp
-                                    <td colspan="{{ $expiryColspan }}"></td>
+                                    <td colspan="{{ $actsAsShop ? 8 : 6 }}"></td>
                                     <td class="text-align-right" colspan="1">
                                         Quote Expiry Date
                                     </td>
@@ -735,10 +738,7 @@
                                     </td>
                                 </tr>
                                 <tr>
-                                    @php
-                                        $grandTotalColspan = auth()->check() && auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1 ? 8 : 6;
-                                    @endphp
-                                    <td colspan="{{ $grandTotalColspan }}"></td>
+                                    <td colspan="{{ $actsAsShop ? 8 : 6 }}"></td>
                                     <td class="text-align-right" colspan="1">
                                         Grand Total (VAT Included)
                                     </td>
@@ -764,7 +764,7 @@
                     </div>
                     @endif
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && (auth()->user()->role == 'shop' || auth()->user()->shop_garage == 1))
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && $actsAsShop)
                     @if (auth()->user()->dealers)
                     {{-- Submission Mode Toggle (only for dealers who can choose between prices and PDF) --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -806,8 +806,8 @@
                     <input type="hidden" name="encrypted_pdf" id="hiddenEncryptedPdf">
                     <input type="hidden" name="encrypted_aes_key" id="hiddenEncryptedAesKey">
 @endif
-@if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->role == 'garage')
-    {{-- Only show price entry for garages --}}
+@if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->role == 'garage' && !$actsAsShop)
+    {{-- Only show price entry for plain garages (not acting as shop) --}}
     <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
 @endif
                     <input type="hidden" name="aes_iv" id="hiddenAesIv">
@@ -815,7 +815,7 @@
                     <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">
 
                     {{-- Garage application section (embedded in shop form for shop_garage users) --}}
-                    @if (auth()->check() && auth()->user()->shop_garage == 1 && $proforma->isShopGarageInsurance())
+                    @if (auth()->check() && auth()->user()->shop_garage == 1 && $isDualServiceProforma)
                     <div class="margin-top-30" style="background: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.2); border-radius: 12px; padding: 20px;">
                         <h6 style="color: #60a5fa; font-weight: 600; margin-bottom: 15px;">
                             <i class="bx bx-buildings" style="margin-right: 6px;"></i>Garage Service Application
@@ -943,7 +943,7 @@
             isCalculating = true;
 
             try {
-                const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+                const isShopRole = {{ $actsAsShop ? 'true' : 'false' }};
                 let netTotal = 0;
 
                 if (isShopRole) {
@@ -998,7 +998,7 @@
             if (isCalculating) return; // Prevent recursive calls
             
             try {
-                const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+                const isShopRole = {{ $actsAsShop ? 'true' : 'false' }};
 
                 if (isShopRole) {
                     const rows = document.querySelectorAll('tbody tr');
@@ -1041,7 +1041,7 @@
             }
 
             // Shop role: require at least one part price to be filled
-            const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+            const isShopRole = {{ $actsAsShop ? 'true' : 'false' }};
             if (isShopRole) {
                 const priceInputs = form.querySelectorAll('.unit-price-input');
                 const hasAtLeastOne = Array.from(priceInputs).some(function(inp) {
@@ -1088,7 +1088,7 @@
             }
 
             // Setup calculation listeners based on role
-            const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
+            const isShopRole = {{ $actsAsShop ? 'true' : 'false' }};
 
             if (isShopRole) {
                 // Shop role: Listen to all unit price inputs
@@ -1125,8 +1125,8 @@
                 form.addEventListener('submit', async function(e) {
                     e.preventDefault();
 
-                    const isShopRole = {{ (auth()->check() && auth()->user()->role === 'shop') ? 'true' : 'false' }};
-                    const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
+                    const isShopRole = {{ $actsAsShop ? 'true' : 'false' }};
+                    const isDualService = {{ $isDualServiceProforma ? 'true' : 'false' }};
 
                     // Check if PDF data was already populated by the capture-phase PDF handler
                     const hasPdfData = !!(document.getElementById('hiddenEncryptedPdf')?.value ||

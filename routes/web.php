@@ -4802,6 +4802,15 @@ Route::post('/proformas', function (Request $request) {
 
         // Add new entries
         foreach (array_diff($desiredGarageIds, $currentGarageIds) as $desiredUserId) {
+
+            // Filter users: for insurance_shop_garage type, only include garages with shop_garage = 1
+            if ($proforma->proforma_type === 'insurance_shop_garage') {
+                $user = \App\Models\User::find($desiredUserId);
+                if (!$user || $user->shop_garage != 1) {
+                    continue;
+                }
+            }
+
             $inboxRecord = Inbox::firstOrCreate(
                 ['proforma_id' => $proforma->id, 'user_id' => $desiredUserId, 'source' => 'admin'],
             );

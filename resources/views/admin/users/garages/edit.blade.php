@@ -297,6 +297,17 @@
                         @enderror
                     </div>
 
+                    <!-- Dual Service Checkbox -->
+                    <input type="hidden" name="shop_garage_form" value="1">
+                    <div class="col-md-6">
+                        <div class="form-check mt-2">
+                            <input class="form-check-input" type="checkbox" name="shop_garage" id="shop_garage" value="1" {{ old('shop_garage', $garage->shop_garage) ? 'checked' : '' }}>
+                            <label class="form-check-label" for="shop_garage">
+                                Dual Service (Shop + Garage)
+                            </label>
+                        </div>
+                    </div>
+
                     <div class="my-0">
                         <button type="submit" class="btn btn-primary radius-30 px-4"> Update
                         </button>
