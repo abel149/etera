@@ -1,4 +1,4 @@
-<div wire:poll.30s>
+<div wire:poll.keep-alive.2m>
     <style>
         .sidebar-container {
             display: flex;

@@ -28,16 +28,16 @@ class GarageController extends Controller
         'location' => 'required',
         'password' => 'nullable|min:6|confirmed', // password can be null
         'tin_number' => 'required|unique:users,tin_number',
-        'license_image' => 'required|file|image',
-        'stamp_image' => 'required|file|image',
+        'license_image' => 'nullable|file|image',
+        'stamp_image' => 'nullable|file|image',
     ]);
 
     // If password is null, default to 123456
     $password = $request->password ?: '123456';
 
-    // Store the images
-    $licenseImagePath = $request->file('license_image')->store('public/licenses');
-    $stampImagePath = $request->file('stamp_image')->store('public/stamps');
+    // Store the images (optional)
+    $licenseImagePath = $request->hasFile('license_image') ? $request->file('license_image')->store('public/licenses') : null;
+    $stampImagePath = $request->hasFile('stamp_image') ? $request->file('stamp_image')->store('public/stamps') : null;
 
     // Create a new user with the additional fields
     $user = User::create([
@@ -110,15 +110,13 @@ class GarageController extends Controller
         'business_license_number', 'license_expire_date', 'email'
     ]);
 
-    // Only touch shop_garage if the submitting form actually renders the checkbox
-    // (marked by shop_garage_form=1). Prevents forms without the field from
-    // silently resetting an existing dual-service flag to 0.
-    if ($request->has('shop_garage_form')) {
-        $data['shop_garage'] = $request->has('shop_garage') ? 1 : 0;
-    }
-
-    // Handle license image - FilePond async upload or direct file
-    if ($request->filled('license_image_data')) {
+    // Handle license image - FilePond async upload, direct file, or removal
+    if ($request->filled('remove_license_image') && $request->remove_license_image === '1') {
+        if ($garage->license_image && \Storage::disk('public')->exists($garage->license_image)) {
+            \Storage::disk('public')->delete($garage->license_image);
+        }
+        $data['license_image'] = null;
+    } elseif ($request->filled('license_image_data')) {
         $tempPath = $request->license_image_data;
         if (\Storage::disk('public')->exists($tempPath)) {
             $filename = time() . '_' . basename($tempPath);
@@ -134,8 +132,13 @@ class GarageController extends Controller
         $data['license_image'] = $request->file('license_image')->store('licenses', 'public');
     }
 
-    // Handle stamp image - FilePond async upload or direct file
-    if ($request->filled('stamp_image_data')) {
+    // Handle stamp image - FilePond async upload, direct file, or removal
+    if ($request->filled('remove_stamp_image') && $request->remove_stamp_image === '1') {
+        if ($garage->stamp_image && \Storage::disk('public')->exists($garage->stamp_image)) {
+            \Storage::disk('public')->delete($garage->stamp_image);
+        }
+        $data['stamp_image'] = null;
+    } elseif ($request->filled('stamp_image_data')) {
         $tempPath = $request->stamp_image_data;
         if (\Storage::disk('public')->exists($tempPath)) {
             $filename = time() . '_' . basename($tempPath);

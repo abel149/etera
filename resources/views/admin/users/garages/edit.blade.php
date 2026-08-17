@@ -270,13 +270,28 @@
                     <div class="col-md-6">
                         <label class="form-label">Business License Image</label>
                         @if($garage->license_image)
-                            <div class="mb-2">
-                                <img src="{{ asset('storage/' . (str_starts_with($garage->license_image, 'public/') ? substr($garage->license_image, 7) : $garage->license_image)) }}" alt="Current License" class="img-thumbnail" style="max-height: 120px;">
+                            @php $licenseUrl = asset('storage/' . (str_starts_with($garage->license_image, 'public/') ? substr($garage->license_image, 7) : $garage->license_image)); @endphp
+                            <div class="mb-2" id="licensePreview">
+                                <a href="{{ $licenseUrl }}" target="_blank">
+                                    <img src="{{ $licenseUrl }}" alt="Current License" class="img-thumbnail" style="max-height: 120px;">
+                                </a>
+                                <div class="mt-1 d-flex gap-2">
+                                    <a href="{{ $licenseUrl }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bx bx-show"></i> View
+                                    </a>
+                                    <a href="{{ $licenseUrl }}" download class="btn btn-sm btn-outline-secondary">
+                                        <i class="bx bx-download"></i> Download
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage('license')">
+                                        <i class="bx bx-trash"></i> Remove
+                                    </button>
+                                </div>
                                 <small class="d-block text-muted mt-1">Current image (upload new to replace)</small>
                             </div>
                         @endif
                         <input type="file" class="filepond-license" accept="image/png, image/jpeg, image/jpg">
                         <input type="hidden" id="license_image_data" name="license_image_data" value="">
+                        <input type="hidden" id="remove_license_image" name="remove_license_image" value="">
                         @error('license_image_data')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
@@ -285,13 +300,28 @@
                     <div class="col-md-6">
                         <label class="form-label">Stamp Image</label>
                         @if($garage->stamp_image)
-                            <div class="mb-2">
-                                <img src="{{ asset('storage/' . (str_starts_with($garage->stamp_image, 'public/') ? substr($garage->stamp_image, 7) : $garage->stamp_image)) }}" alt="Current Stamp" class="img-thumbnail" style="max-height: 120px;">
+                            @php $stampUrl = asset('storage/' . (str_starts_with($garage->stamp_image, 'public/') ? substr($garage->stamp_image, 7) : $garage->stamp_image)); @endphp
+                            <div class="mb-2" id="stampPreview">
+                                <a href="{{ $stampUrl }}" target="_blank">
+                                    <img src="{{ $stampUrl }}" alt="Current Stamp" class="img-thumbnail" style="max-height: 120px;">
+                                </a>
+                                <div class="mt-1 d-flex gap-2">
+                                    <a href="{{ $stampUrl }}" target="_blank" class="btn btn-sm btn-outline-primary">
+                                        <i class="bx bx-show"></i> View
+                                    </a>
+                                    <a href="{{ $stampUrl }}" download class="btn btn-sm btn-outline-secondary">
+                                        <i class="bx bx-download"></i> Download
+                                    </a>
+                                    <button type="button" class="btn btn-sm btn-outline-danger" onclick="removeImage('stamp')">
+                                        <i class="bx bx-trash"></i> Remove
+                                    </button>
+                                </div>
                                 <small class="d-block text-muted mt-1">Current image (upload new to replace)</small>
                             </div>
                         @endif
                         <input type="file" class="filepond-stamp" accept="image/png, image/jpeg, image/jpg">
                         <input type="hidden" id="stamp_image_data" name="stamp_image_data" value="">
+                        <input type="hidden" id="remove_stamp_image" name="remove_stamp_image" value="">
                         @error('stamp_image_data')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
@@ -375,12 +405,19 @@ document.addEventListener('DOMContentLoaded', function() {
     };
 
     const licensePond = FilePond.create(document.querySelector('.filepond-license'), pondOptions);
-    licensePond.on('processfile', (error, file) => { if (!error) document.getElementById('license_image_data').value = file.serverId; });
+    licensePond.on('processfile', (error, file) => { if (!error) { document.getElementById('license_image_data').value = file.serverId; document.getElementById('remove_license_image').value = ''; } });
     licensePond.on('removefile', () => { document.getElementById('license_image_data').value = ''; });
 
     const stampPond = FilePond.create(document.querySelector('.filepond-stamp'), pondOptions);
-    stampPond.on('processfile', (error, file) => { if (!error) document.getElementById('stamp_image_data').value = file.serverId; });
+    stampPond.on('processfile', (error, file) => { if (!error) { document.getElementById('stamp_image_data').value = file.serverId; document.getElementById('remove_stamp_image').value = ''; } });
     stampPond.on('removefile', () => { document.getElementById('stamp_image_data').value = ''; });
 });
+
+function removeImage(type) {
+    if (!confirm('Remove this image?')) return;
+    const preview = document.getElementById(type + 'Preview');
+    if (preview) preview.style.display = 'none';
+    document.getElementById('remove_' + type + '_image').value = '1';
+}
 </script>
 @endsection
