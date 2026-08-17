@@ -850,6 +850,41 @@ document.addEventListener('DOMContentLoaded', () => {
     const shopGroupsWrapper      = document.getElementById('shopGroupsWrapper');
     const garageGroupsWrapper    = document.getElementById('garageGroupsWrapper');
 
+    // ── Store all shop-select options for detach/reattach filtering ──────────
+    const shopSelects = document.querySelectorAll('.shop-select');
+    const allShopOptions = {};
+    shopSelects.forEach(sel => {
+        allShopOptions[sel.id] = Array.from(sel.querySelectorAll('option')).map(opt => opt.cloneNode(true));
+    });
+
+    function filterShopOptions(type) {
+        const dualOnly = type === 'insurance_shop_garage';
+        shopSelects.forEach(sel => {
+            const opts = allShopOptions[sel.id] || [];
+            const selectedIds = Array.from(sel.selectedOptions).map(o => o.value);
+            sel.innerHTML = '';
+            opts.forEach(opt => {
+                let show;
+                if (dualOnly) {
+                    show = opt.dataset.shopGarage === '1';
+                } else {
+                    show = opt.dataset.role === 'shop';
+                }
+                if (show) {
+                    const cloned = opt.cloneNode(true);
+                    if (selectedIds.includes(cloned.value)) cloned.selected = true;
+                    sel.appendChild(cloned);
+                }
+            });
+            // Refresh Select2 UI for this select
+            if (window.jQuery) $('#' + sel.id).trigger('change.select2');
+        });
+        // Re-run mutual exclusion so cross-slot dedup still applies
+        if (typeof syncMutualExclusion === 'function') {
+            syncMutualExclusion(['shopPartners', 'shopExtra1', 'shopExtra2', 'shopExtra3', 'shopExtra4']);
+        }
+    }
+
     // ── Group visibility: show exactly N inbox slots for each side ────────────
     function updateGroupVisibility() {
         const type = (document.querySelector('input[name="proforma_type"]:checked') || {}).value
@@ -892,19 +927,7 @@ document.addEventListener('DOMContentLoaded', () => {
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = '';
         }
 
-        const dualOnly = type === 'insurance_shop_garage';
-        document.querySelectorAll('.shop-select option').forEach(opt => {
-            let available;
-            if (dualOnly) {
-                available = opt.dataset.shopGarage === '1';
-            } else {
-                available = opt.dataset.role === 'shop';
-            }
-            opt.hidden = !available;
-            opt.disabled = !available;
-            if (!available) opt.selected = false;
-        });
-
+        filterShopOptions(type);
         updateGroupVisibility();
     }
 
