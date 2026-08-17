@@ -68,7 +68,7 @@
                     <!-- Stamp Image -->
                     <div class="col-md-6">
                         <label for="stamp_image_fp" class="form-label">Stamp Image</label>
-                        <input type="file" name="stamp_image" id="stamp_image_fp" class="filepond" accept="image/*" required>
+                        <input type="file" name="stamp_image" id="stamp_image_fp" class="filepond" accept="image/*">
                         <div id="stamp_image_fp_progress" style="display:none;" class="mt-2">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <small class="upload-progress-text text-muted">Loading...</small>
@@ -115,12 +115,6 @@
 </div>
 <!-- end page wrapper -->
 
-<link href="https://unpkg.com/filepond/dist/filepond.css" rel="stylesheet" />
-<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet" />
-
-<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
-<script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
-<script src="https://unpkg.com/filepond/dist/filepond.js"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     FilePond.registerPlugin(FilePondPluginImagePreview, FilePondPluginFileValidateType);

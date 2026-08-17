@@ -414,15 +414,6 @@
 </div>
 <!--end page wrapper -->
 
-{{-- FilePond CSS --}}
-<link href="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.css" rel="stylesheet">
-
-{{-- FilePond JS --}}
-<script src="https://unpkg.com/filepond-plugin-image-preview/dist/filepond-plugin-image-preview.js"></script>
-<script src="https://unpkg.com/filepond-plugin-file-validate-type/dist/filepond-plugin-file-validate-type.js"></script>
-<script src="https://unpkg.com/filepond-plugin-file-validate-size/dist/filepond-plugin-file-validate-size.js"></script>
-<script src="https://unpkg.com/filepond@^4/dist/filepond.js"></script>
-
 <style>
     .filepond--root { margin-bottom: 0; }
     .filepond--drop-label { min-height: 100px; border-radius: 8px; border: 2px dashed rgba(40,167,69,0.35); background: linear-gradient(135deg, #f9fafb 0%, #f1f8e9 100%); }
