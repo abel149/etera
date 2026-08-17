@@ -485,7 +485,12 @@
                                     <label for="shopPartners" class="form-label">Shops — Slot 1 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                        @foreach($all_garages as $garage)
+                                            @if($garage->shop_garage == 1)
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('spare_part_partners', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                            @endif
                                         @endforeach
                                     </select>
                                 </div>
@@ -495,7 +500,12 @@
                                     <label for="shopExtra1" class="form-label">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select shop-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                        @foreach($all_garages as $garage)
+                                            @if($garage->shop_garage == 1)
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra1', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                            @endif
                                         @endforeach
                                     </select>
                                 </div>
@@ -505,7 +515,12 @@
                                     <label for="shopExtra2" class="form-label">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select shop-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                        @foreach($all_garages as $garage)
+                                            @if($garage->shop_garage == 1)
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra2', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                            @endif
                                         @endforeach
                                     </select>
                                 </div>
@@ -515,7 +530,12 @@
                                     <label for="shopExtra3" class="form-label">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select shop-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                        @foreach($all_garages as $garage)
+                                            @if($garage->shop_garage == 1)
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra3', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                            @endif
                                         @endforeach
                                     </select>
                                 </div>
@@ -525,7 +545,12 @@
                                     <label for="shopExtra4" class="form-label">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
                                     <select class="form-select shop-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
                                         @foreach($all_shops as $shop)
-                                            <option value="{{ $shop->id }}" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                            <option value="{{ $shop->id }}" data-role="shop" data-shop-garage="{{ $shop->shop_garage ?? 0 }}" {{ in_array($shop->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $shop->store_id }} — {{ $shop->name }}</option>
+                                        @endforeach
+                                        @foreach($all_garages as $garage)
+                                            @if($garage->shop_garage == 1)
+                                                <option value="{{ $garage->id }}" data-role="garage" data-shop-garage="{{ $garage->shop_garage ?? 0 }}" {{ in_array($garage->id, old('insurance_shop_extra4', [])) ? 'selected' : '' }}>{{ $garage->store_id }} — {{ $garage->name }}</option>
+                                            @endif
                                         @endforeach
                                     </select>
                                 </div>
@@ -869,7 +894,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
         const dualOnly = type === 'insurance_shop_garage';
         document.querySelectorAll('.shop-select option').forEach(opt => {
-            const available = !dualOnly || opt.dataset.shopGarage === '1';
+            let available;
+            if (dualOnly) {
+                available = opt.dataset.shopGarage === '1';
+            } else {
+                available = opt.dataset.role === 'shop';
+            }
             opt.hidden = !available;
             opt.disabled = !available;
             if (!available) opt.selected = false;
