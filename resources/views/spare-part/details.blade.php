@@ -427,7 +427,7 @@
                                         <span>{{ $proforma->brand->name ?? 'N/A' }}</span>
                                         <h5>{{ $proforma->model ?? 'N/A' }}</h5>
                                     </li>
-                                    @if ($proforma->damage_severity)
+                                    @if ($proforma->damage_severity && !($actsAsShop && $proforma->isShopOnlyInsurance()))
                                         <li>
                                             <i class="icon-material-outline-report-problem"></i>
                                             <span>Damage Severity</span>
