@@ -482,13 +482,15 @@
 
                                 {{-- Group 1: All shops (same as other slots) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="1">
-                                    <label for="shopPartners" class="form-label">Shops — Slot 1 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select brand-filter-select mb-2" data-target="shopPartners" style="display:none">
-                                        <option value="">All Brands</option>
-                                        @foreach($brands as $brand)
-                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <label for="shopPartners" class="form-label mb-0">Shops — Slot 1 <span class="text-secondary small">(all shops)</span></label>
+                                        <select class="form-select radius-30 brand-filter-select" data-target="shopPartners" style="display:none; width:auto; min-width:180px;">
+                                            <option value="">All Brands</option>
+                                            @foreach($brands as $brand)
+                                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
@@ -504,13 +506,15 @@
 
                                 {{-- Group 2 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="2">
-                                    <label for="shopExtra1" class="form-label">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra1" style="display:none">
-                                        <option value="">All Brands</option>
-                                        @foreach($brands as $brand)
-                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <label for="shopExtra1" class="form-label mb-0">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
+                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra1" style="display:none; width:auto; min-width:180px;">
+                                            <option value="">All Brands</option>
+                                            @foreach($brands as $brand)
+                                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
@@ -526,13 +530,15 @@
 
                                 {{-- Group 3 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="3">
-                                    <label for="shopExtra2" class="form-label">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra2" style="display:none">
-                                        <option value="">All Brands</option>
-                                        @foreach($brands as $brand)
-                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <label for="shopExtra2" class="form-label mb-0">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
+                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra2" style="display:none; width:auto; min-width:180px;">
+                                            <option value="">All Brands</option>
+                                            @foreach($brands as $brand)
+                                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
@@ -548,13 +554,15 @@
 
                                 {{-- Group 4 (shown when required ≥ 4) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="4" style="display:none">
-                                    <label for="shopExtra3" class="form-label">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra3" style="display:none">
-                                        <option value="">All Brands</option>
-                                        @foreach($brands as $brand)
-                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <label for="shopExtra3" class="form-label mb-0">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
+                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra3" style="display:none; width:auto; min-width:180px;">
+                                            <option value="">All Brands</option>
+                                            @foreach($brands as $brand)
+                                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
@@ -570,13 +578,15 @@
 
                                 {{-- Group 5 (shown when required = 5) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="5" style="display:none">
-                                    <label for="shopExtra4" class="form-label">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
-                                    <select class="form-select brand-filter-select mb-2" data-target="shopExtra4" style="display:none">
-                                        <option value="">All Brands</option>
-                                        @foreach($brands as $brand)
-                                            <option value="{{ $brand->id }}">{{ $brand->name }}</option>
-                                        @endforeach
-                                    </select>
+                                    <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
+                                        <label for="shopExtra4" class="form-label mb-0">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
+                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra4" style="display:none; width:auto; min-width:180px;">
+                                            <option value="">All Brands</option>
+                                            @foreach($brands as $brand)
+                                                <option value="{{ $brand->id }}">{{ $brand->name }}</option>
+                                            @endforeach
+                                        </select>
+                                    </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4">
                                         @foreach($all_shops as $shop)
                                             @php $brandIds = $shop->brands->pluck('id')->implode(','); @endphp
@@ -901,8 +911,10 @@ document.addEventListener('DOMContentLoaded', () => {
             // Get selected brand from the brand dropdown for this slot
             const brandSelect = document.querySelector('.brand-filter-select[data-target="' + sel.id + '"]');
             const selectedBrand = brandSelect ? brandSelect.value : '';
-            // Destroy Select2 before modifying DOM
-            if (window.jQuery) $('#' + sel.id).select2('destroy');
+            // Destroy Select2 before modifying DOM (only if already initialized)
+            if (window.jQuery && $('#' + sel.id).hasClass('select2-hidden-accessible')) {
+                $('#' + sel.id).select2('destroy');
+            }
             sel.innerHTML = '';
             opts.forEach(opt => {
                 let show;
@@ -1017,14 +1029,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Initialise on page load (handles validation-error repopulation)
     const checkedRadio = document.querySelector('input[name="proforma_type"]:checked');
+    const initialType = checkedRadio ? checkedRadio.value : 'insurance_shop_only';
     if (checkedRadio) {
         typeCards.forEach(c => c.classList.remove('active'));
         const activeCard = document.querySelector('.proforma-type-card[data-type="' + checkedRadio.value + '"]');
         if (activeCard) activeCard.classList.add('active');
-        applyProformaType(checkedRadio.value);
-    } else {
-        updateGroupVisibility();
     }
+    applyProformaType(initialType);
     // ── End Proforma Type Selector ──────────────────────────────────────────────
 
 stepper3 = new Stepper(document.getElementById('stepper3'), {
@@ -1311,12 +1322,15 @@ $(document).ready(function () {
     // Initialise all 10 inputs as searchable Select2 multi-selects
     ['shopPartners', 'shopExtra1', 'shopExtra2', 'shopExtra3', 'shopExtra4',
      'garagePartners', 'garageExtra1', 'garageExtra2', 'garageExtra3', 'garageExtra4'].forEach(function (id) {
-        $('#' + id).select2({
-            theme:       'bootstrap-5',
-            placeholder: 'Type to search and select...',
-            allowClear:  true,
-            width:       '100%'
-        });
+        var $el = $('#' + id);
+        if (!$el.hasClass('select2-hidden-accessible')) {
+            $el.select2({
+                theme:       'bootstrap-5',
+                placeholder: 'Type to search and select...',
+                allowClear:  true,
+                width:       '100%'
+            });
+        }
     });
 
     // N-way mutual exclusion across all specified inputs
