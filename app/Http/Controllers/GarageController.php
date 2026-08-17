@@ -154,6 +154,10 @@ class GarageController extends Controller
         $data['stamp_image'] = $request->file('stamp_image')->store('stamps', 'public');
     }
 
+    if ($request->has('shop_garage_form')) {
+        $data['shop_garage'] = $request->has('shop_garage') ? 1 : 0;
+    }
+
     $garage->update($data);
 
     if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
