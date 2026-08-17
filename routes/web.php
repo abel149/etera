@@ -3425,7 +3425,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
 
             // For insurance_shop_garage type, only show shops with shop_garage = 1
             // Note: This is for the create page, filtering happens on selection in JS
-            $all_shops   = \App\Models\User::where('role', 'shop')->orderBy('name')->get();
+            $all_shops   = \App\Models\User::where('role', 'shop')->with('brands')->orderBy('name')->get();
             $all_garages = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
 
             return response()
