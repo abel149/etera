@@ -194,9 +194,67 @@
 						</tbody>
 					</table>
 				</div>
-				<div class="d-flex justify-content-center mt-3">
-					{{ $garages->links() }}
+				@if($garages->hasPages() || $garages->total() > 0)
+				<div class="d-flex flex-column flex-sm-row align-items-center justify-content-between mt-3 px-1 gap-2">
+					<div class="text-muted" style="font-size:0.875rem;">
+						Showing <strong>{{ $garages->firstItem() ?? 0 }}</strong>
+						to <strong>{{ $garages->lastItem() ?? 0 }}</strong>
+						of <strong>{{ $garages->total() }}</strong> garages
+					</div>
+					@if($garages->hasPages())
+					@php
+						$cur   = $garages->currentPage();
+						$last  = $garages->lastPage();
+						$range = collect();
+						for ($p = 1; $p <= $last; $p++) {
+							if ($p === 1 || $p === $last || abs($p - $cur) <= 1) {
+								$range->push(['type' => 'page', 'n' => $p]);
+							} elseif (abs($p - $cur) === 2) {
+								$range->push(['type' => 'dots']);
+							}
+						}
+						// Deduplicate consecutive dots
+						$pages = collect();
+						$prevDot = false;
+						foreach ($range as $item) {
+							if ($item['type'] === 'dots') {
+								if (!$prevDot) $pages->push($item);
+								$prevDot = true;
+							} else {
+								$pages->push($item);
+								$prevDot = false;
+							}
+						}
+					@endphp
+					<nav aria-label="Garages pagination">
+						<ul class="pagination mb-0" style="gap:4px;">
+							{{-- Previous --}}
+							<li class="page-item {{ $garages->onFirstPage() ? 'disabled' : '' }}">
+								<a class="page-link radius-30 px-3" href="{{ $garages->previousPageUrl() ?? '#' }}" aria-label="Previous" style="border-radius:30px!important;">
+									<i class="bx bx-chevron-left"></i> Prev
+								</a>
+							</li>
+							{{-- Page numbers --}}
+							@foreach($pages as $item)
+								@if($item['type'] === 'dots')
+									<li class="page-item disabled"><span class="page-link" style="border-radius:30px!important;">…</span></li>
+								@else
+									<li class="page-item {{ $item['n'] === $cur ? 'active' : '' }}">
+										<a class="page-link radius-30" href="{{ $garages->url($item['n']) }}" style="border-radius:30px!important;">{{ $item['n'] }}</a>
+									</li>
+								@endif
+							@endforeach
+							{{-- Next --}}
+							<li class="page-item {{ $garages->hasMorePages() ? '' : 'disabled' }}">
+								<a class="page-link radius-30 px-3" href="{{ $garages->nextPageUrl() ?? '#' }}" aria-label="Next" style="border-radius:30px!important;">
+									Next <i class="bx bx-chevron-right"></i>
+								</a>
+							</li>
+						</ul>
+					</nav>
+					@endif
 				</div>
+				@endif
 			</div>
 		</div>
 		<!--end row-->

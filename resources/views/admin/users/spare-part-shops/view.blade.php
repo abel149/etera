@@ -257,9 +257,63 @@
 								
 							</table>
 
-						<div class="d-flex justify-content-center mt-3">
-							{{ $shops->links() }}
+						@if($shops->hasPages() || $shops->total() > 0)
+						<div class="d-flex flex-column flex-sm-row align-items-center justify-content-between mt-3 px-1 gap-2">
+							<div class="text-muted" style="font-size:0.875rem;">
+								Showing <strong>{{ $shops->firstItem() ?? 0 }}</strong>
+								to <strong>{{ $shops->lastItem() ?? 0 }}</strong>
+								of <strong>{{ $shops->total() }}</strong> shops
+							</div>
+							@if($shops->hasPages())
+							@php
+								$cur   = $shops->currentPage();
+								$last  = $shops->lastPage();
+								$range = collect();
+								for ($p = 1; $p <= $last; $p++) {
+									if ($p === 1 || $p === $last || abs($p - $cur) <= 1) {
+										$range->push(['type' => 'page', 'n' => $p]);
+									} elseif (abs($p - $cur) === 2) {
+										$range->push(['type' => 'dots']);
+									}
+								}
+								$pages = collect();
+								$prevDot = false;
+								foreach ($range as $item) {
+									if ($item['type'] === 'dots') {
+										if (!$prevDot) $pages->push($item);
+										$prevDot = true;
+									} else {
+										$pages->push($item);
+										$prevDot = false;
+									}
+								}
+							@endphp
+							<nav aria-label="Shops pagination">
+								<ul class="pagination mb-0" style="gap:4px;">
+									<li class="page-item {{ $shops->onFirstPage() ? 'disabled' : '' }}">
+										<a class="page-link px-3" href="{{ $shops->previousPageUrl() ?? '#' }}" style="border-radius:30px!important;">
+											<i class="bx bx-chevron-left"></i> Prev
+										</a>
+									</li>
+									@foreach($pages as $item)
+										@if($item['type'] === 'dots')
+											<li class="page-item disabled"><span class="page-link" style="border-radius:30px!important;">…</span></li>
+										@else
+											<li class="page-item {{ $item['n'] === $cur ? 'active' : '' }}">
+												<a class="page-link" href="{{ $shops->url($item['n']) }}" style="border-radius:30px!important;">{{ $item['n'] }}</a>
+											</li>
+										@endif
+									@endforeach
+									<li class="page-item {{ $shops->hasMorePages() ? '' : 'disabled' }}">
+										<a class="page-link px-3" href="{{ $shops->nextPageUrl() ?? '#' }}" style="border-radius:30px!important;">
+											Next <i class="bx bx-chevron-right"></i>
+										</a>
+									</li>
+								</ul>
+							</nav>
+							@endif
 						</div>
+						@endif
 
 						
 					</div>
