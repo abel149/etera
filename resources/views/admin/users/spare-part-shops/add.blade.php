@@ -61,7 +61,7 @@
                     <!-- Business License Image -->
                     <div class="col-md-6">
                         <label for="license_image_fp" class="form-label">Business License Image</label>
-                        <input type="file" name="license_image" id="license_image_fp" class="filepond-upload" accept="image/*" required>
+                        <input type="file" name="license_image" id="license_image_fp" class="filepond-upload" accept="image/*">
                         <div id="license_image_fp_progress" style="display:none;" class="mt-2">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <small class="upload-progress-text text-muted">Loading...</small>
