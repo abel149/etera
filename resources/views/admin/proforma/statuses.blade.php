@@ -314,7 +314,7 @@ function showTimeline(proformaId) {
     .then(data => {
         let html = `
             <div class="timeline-header-card">
-                <h6><i class="bx bx-file me-2"></i>File #${data.file_number}</h6>
+                <h6><i class="bx bx-file me-2"></i>File #${data.file_number}${data.call_customer ? ' <span class="badge bg-warning text-dark ms-2"><i class="bx bx-phone-call"></i> Call Customer</span>' : ''}</h6>
                 <div class="text-muted mt-1">
                     <span class="me-3"><i class="bx bx-user me-1"></i>${data.customer_name}</span>
                     <span class="me-3"><i class="bx bx-car me-1"></i>${data.brand} ${data.model} (${data.year})</span>

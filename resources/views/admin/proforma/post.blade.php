@@ -100,6 +100,14 @@
                   <td class="no-wrap"><b>VIN Number</b></td>
                   <td class="proportional">{{ $proforma->chassis_number ?? 'N/A' }}</td>
                 </tr>
+                @if($proforma->call_customer)
+                <tr>
+                  <td class="no-wrap"><b>Call Customer</b></td>
+                  <td class="proportional" colspan="3">
+                    <span class="badge bg-warning text-dark"><i class="bx bx-phone-call me-1"></i>Call Customer</span>
+                  </td>
+                </tr>
+                @endif
                 <tr>
                   <td class="no-wrap"><b>Proforma Requested</b></td>
                   <td class="proportional">{{ $proforma->number_of_proformas ?? 'N/A' }}</td>

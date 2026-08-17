@@ -77,6 +77,7 @@
                                         <th>License Plate</th>
                                         <th>Status</th>
                                         <th>Type</th>
+                                        <th>Call</th>
                                         <th>Created At</th>
                                         <th>Actions</th>
                                     </tr>
@@ -144,6 +145,11 @@
                                                     <span class="text-muted">Not Insured</span>
                                                 @endif
                                             </td>
+                                            <td>
+                                                @if($proforma->call_customer)
+                                                    <span class="badge bg-warning text-dark"><i class="bx bx-phone-call me-1"></i>Call</span>
+                                                @endif
+                                            </td>
                                             <td>{{ $proforma->created_at?->format('d M Y') ?? 'N/A' }}</td>
                                             <td>
                                                 <div class="d-flex gap-2">
@@ -202,7 +208,7 @@
                                         </tr>
                                     @empty
                                         <tr>
-                                            <td colspan="10" class="mx-auto text-center">
+                                            <td colspan="11" class="mx-auto text-center">
                                                 <div class="d-flex align-items-center justify-content-center">
                                                     <div>
                                                         <h6 class="mb-0 font-14">No Proformas found</h6>

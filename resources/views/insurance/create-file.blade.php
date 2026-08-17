@@ -478,7 +478,7 @@
 
                                                 <!-- Repair / Renew -->
                                                 <div class="col-12 col-lg-2">
-                                                    <label class="form-label">Term <span class="text-muted small">(optional)</span></label>
+                                                    <label class="form-label">Service</label>
                                                     <select name="parts[0][repair_renew]" class="form-select">
                                                         <option value="">— Select —</option>
                                                         <option value="renew" {{ old('parts.0.repair_renew') == 'renew' ? 'selected' : '' }}>Renew</option>

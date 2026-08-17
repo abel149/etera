@@ -1608,6 +1608,7 @@ Route::prefix('/admin')
                 'brand' => $proforma->brand?->name ?? 'N/A',
                 'model' => $proforma->model,
                 'year' => $proforma->year,
+                'call_customer' => (bool) $proforma->call_customer,
                 'timeline' => $timeline,
             ]);
         })->name('admin.proforma.timeline');
