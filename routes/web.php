@@ -1429,7 +1429,7 @@ Route::get('/float', function (Request $request) {
 // ******************Admin Side******************
 
 Route::prefix('/admin')
-    ->middleware([\App\Http\Middleware\AdminMiddleware::class])
+    ->middleware(['auth.user', \App\Http\Middleware\AdminMiddleware::class])
     ->group(function () {
         // Approve newly registered users
         Route::put('/users/{id}/approve', function ($id) {
@@ -2292,7 +2292,7 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
                 });
             }
 
-            $garages = $query->orderBy('name', 'asc')->get();
+            $garages = $query->orderBy('name', 'asc')->paginate(20);
 
             return view('admin.users.garages.view', [
                 'garages' => $garages,
@@ -2440,7 +2440,7 @@ Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
                 });
             }
 
-            $shops  = $query->orderBy('name', 'asc')->get();
+            $shops  = $query->orderBy('name', 'asc')->paginate(20);
             $brands = \App\Models\Brand::orderBy('name', 'asc')->get();
 
             return view('admin.users.spare-part-shops.view', compact('shops', 'brands'));
