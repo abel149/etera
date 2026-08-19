@@ -9,25 +9,25 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="row align-items-end mb-3 g-2">
+						<form method="GET" action="{{ url('/admin/spare-part-shops') }}" class="row align-items-end mb-3 g-2">
 							<div class="col-lg-3 col-md-4">
 								<div class="position-relative">
-									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
+									<input type="text" name="search" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name, phone or TIN..." value="{{ request('search') }}">
 									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 								</div>
 							</div>
 							<div class="col-lg-3 col-md-4">
-								<select id="brandFilter" class="form-select radius-30">
+								<select name="brand_id" id="brandFilter" class="form-select radius-30">
 									<option value="">All Brands</option>
 									@foreach($brands as $brand)
-										<option value="{{ $brand->id }}">{{ $brand->name }}</option>
+										<option value="{{ $brand->id }}" @selected(request('brand_id') == $brand->id)>{{ $brand->name }}</option>
 									@endforeach
 								</select>
 							</div>
 							<div class="col-auto ms-auto">
 								<a href="/admin/add-spare-part-shop" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Spare Part Shop</a>
 							</div>
-						</div>
+						</form>
 
 						<div class="table-responsive lead-table">
 							<table class="table mb-0 align-middle">
@@ -291,7 +291,7 @@
 							<nav aria-label="Shops pagination">
 								<ul class="pagination mb-0" style="gap:4px;">
 									<li class="page-item {{ $shops->onFirstPage() ? 'disabled' : '' }}">
-										<a class="page-link px-3" href="{{ $shops->previousPageUrl() ?? '#' }}" style="border-radius:30px!important;">
+										<a class="page-link px-3" href="{{ $shops->appends(['search' => request('search'), 'brand_id' => request('brand_id')])->previousPageUrl() ?? '#' }}" style="border-radius:30px!important;">
 											<i class="bx bx-chevron-left"></i> Prev
 										</a>
 									</li>
@@ -300,12 +300,12 @@
 											<li class="page-item disabled"><span class="page-link" style="border-radius:30px!important;">…</span></li>
 										@else
 											<li class="page-item {{ $item['n'] === $cur ? 'active' : '' }}">
-												<a class="page-link" href="{{ $shops->url($item['n']) }}" style="border-radius:30px!important;">{{ $item['n'] }}</a>
+												<a class="page-link" href="{{ $shops->appends(['search' => request('search'), 'brand_id' => request('brand_id')])->url($item['n']) }}" style="border-radius:30px!important;">{{ $item['n'] }}</a>
 											</li>
 										@endif
 									@endforeach
 									<li class="page-item {{ $shops->hasMorePages() ? '' : 'disabled' }}">
-										<a class="page-link px-3" href="{{ $shops->nextPageUrl() ?? '#' }}" style="border-radius:30px!important;">
+										<a class="page-link px-3" href="{{ $shops->appends(['search' => request('search'), 'brand_id' => request('brand_id')])->nextPageUrl() ?? '#' }}" style="border-radius:30px!important;">
 											Next <i class="bx bx-chevron-right"></i>
 										</a>
 									</li>
@@ -350,9 +350,10 @@ document.addEventListener('DOMContentLoaded', function () {
     const searchInput = document.getElementById('tableSearch');
     const brandFilter = document.getElementById('brandFilter');
     const table = document.querySelector('.lead-table table tbody');
-    if (!searchInput || !brandFilter || !table) return;
+    if (!searchInput || !brandFilter) return;
 
-    function filterRows() {
+    function clientFilterRows() {
+        if (!table) return;
         const query = searchInput.value.toLowerCase().trim();
         const selectedBrand = brandFilter.value;
         const rows = table.querySelectorAll('tr');
@@ -360,17 +361,29 @@ document.addEventListener('DOMContentLoaded', function () {
         rows.forEach(function (row) {
             const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
             const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
+            const tin = (row.querySelector('td:nth-child(4)')?.textContent || '').toLowerCase();
             const brandIds = (row.getAttribute('data-brand-ids') || '').split(',');
 
-            const matchesText = !query || name.includes(query) || phone.includes(query);
+            const matchesText = !query || name.includes(query) || phone.includes(query) || tin.includes(query);
             const matchesBrand = !selectedBrand || brandIds.includes(selectedBrand);
 
             row.style.display = (matchesText && matchesBrand) ? '' : 'none';
         });
     }
 
-    searchInput.addEventListener('input', filterRows);
-    brandFilter.addEventListener('change', filterRows);
+    let debounceTimer;
+    searchInput.addEventListener('input', function () {
+        clientFilterRows();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () {
+            searchInput.form.submit();
+        }, 800);
+    });
+
+    brandFilter.addEventListener('change', function () {
+        clientFilterRows();
+        this.form.submit();
+    });
 });
 </script>
 @endsection
