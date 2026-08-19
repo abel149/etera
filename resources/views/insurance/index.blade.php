@@ -47,6 +47,7 @@
 									<th>Type</th>
 									<th>Phone #</th>
 									<th>Status</th>
+									<th>Parts Progress</th>
 									<th>Actions</th>
 								</tr>
 							</thead>
@@ -78,6 +79,14 @@
 										@else text-secondary 
 										@endif">
 										{{ $proforma->status }}
+									</td>
+									<td>
+										@php $progress = $proforma->partsPricingProgress(); @endphp
+										@if($progress['total'] > 0)
+											<span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }}">{{ $progress['filled'] }}/{{ $progress['total'] }}</span>
+										@else
+											<span class="text-muted">N/A</span>
+										@endif
 									</td>
 									<td>
 										<a href="{{ url('/insurance/proforma/' . $proforma->id . '/manage-inboxes') }}" class="btn btn-sm btn-outline-primary" title="Manage Inboxes">
