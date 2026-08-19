@@ -892,6 +892,7 @@ function openPrintPage(card) {
                 .text-primary { color: #1976d2 !important; }
                 .border-top { border-top: 2px solid #1976d2 !important; }
             </style>
+            <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
         </head>
         <body>
             <div class="container-fluid invoice-container">
@@ -1002,13 +1003,46 @@ function openPrintPage(card) {
 
                 <footer class="text-center mt-4">
                     <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
-                    <div class="btn-group btn-group-sm d-print-none">
+                    <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
-                            <i class="fa fa-print"></i> Print & Download
+                            <i class="fa fa-print"></i> Print &amp; Download
                         </a>
+                        <button onclick="downloadExcel()" class="btn btn-success shadow-none">
+                            &#128202; Download Excel
+                        </button>
                     </div>
                 </footer>
             </div>
+            <script>
+            (function(){
+                var _r=${JSON.stringify(partsData)};
+                var _m={sn:${JSON.stringify(shopName)},si:${JSON.stringify(storeId)},tn:${JSON.stringify(tinNumber)},loc:${JSON.stringify(location)},ph:${JSON.stringify(phoneNumber)},cn:${JSON.stringify(customerName)},cp:${JSON.stringify(customerPhone)},car:${JSON.stringify(year+' '+brand+' ['+plate+']')},nt:${netTotal},va:${vatAmount},gt:${grandTotal},dual:${isDualService ? 'true' : 'false'},gg:${isDualService ? garageGrand : 0},ct:${combinedTotal}};
+                window.downloadExcel=function(){
+                    var f=function(n){return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' ETB';};
+                    var rows=[
+                        ['Proforma Invoice'],
+                        ['Date',new Date().toLocaleDateString(),'Shop',_m.sn],
+                        ['Store ID',_m.si,'TIN #',_m.tn],
+                        ['Location',_m.loc,'Phone',_m.ph],
+                        ['Customer',_m.cn,'Customer Phone',_m.cp],
+                        ['Car',_m.car],
+                        []
+                    ];
+                    rows.push(['No','Part Name & Number','Condition','Grade','Country','Qty','Unit Price','Total Price']);
+                    _r.forEach(function(p){rows.push([p.no,p.partNumber,p.condition,p.grade,p.country,p.quantity,p.unitPrice,p.total]);});
+                    rows.push([]);
+                    rows.push(['','','','','','','SUBTOTAL (Net)',f(_m.nt)]);
+                    rows.push(['','','','','','','VAT (15%)',f(_m.va)]);
+                    rows.push(['','','','','','','PARTS GRAND TOTAL (VAT Incl.)',f(_m.gt)]);
+                    if(_m.dual){rows.push(['','','','','','','GARAGE REPAIR (VAT Incl.)',f(_m.gg)]);rows.push(['','','','','','','COMBINED GRAND TOTAL',f(_m.ct)]);}
+                    var wb=XLSX.utils.book_new();
+                    var ws=XLSX.utils.aoa_to_sheet(rows);
+                    ws['!cols']=[{wch:4},{wch:32},{wch:14},{wch:10},{wch:12},{wch:6},{wch:24},{wch:24}];
+                    XLSX.utils.book_append_sheet(wb,ws,'Proforma Invoice');
+                    XLSX.writeFile(wb,'proforma-invoice.xlsx');
+                };
+            })();
+            </script>
         </body>
         </html>
     `);
@@ -1088,6 +1122,7 @@ function openPrintPages(card) {
                 .text-primary { color: #1976d2 !important; }
                 .border-top { border-top: 2px solid #1976d2 !important; }
             </style>
+            <script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
         </head>
         <body>
             <div class="container-fluid invoice-container">
@@ -1179,13 +1214,44 @@ function openPrintPages(card) {
 
                 <footer class="text-center mt-4">
                     <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
-                    <div class="btn-group btn-group-sm d-print-none">
+                    <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
-                            <i class="fa fa-print"></i> Print & Download
+                            <i class="fa fa-print"></i> Print &amp; Download
                         </a>
+                        <button onclick="downloadGarageExcel()" class="btn btn-success shadow-none">
+                            &#128202; Download Excel
+                        </button>
                     </div>
                 </footer>
             </div>
+            <script>
+            (function(){
+                var _m={gn:${JSON.stringify(garageName)},si:${JSON.stringify(storeId)},tn:${JSON.stringify(tinNumber)},loc:${JSON.stringify(location)},ph:${JSON.stringify(phoneNumber)},cn:${JSON.stringify(customerName)},cp:${JSON.stringify(customerPhone)},car:${JSON.stringify(year+' '+brand+' ['+plate+']')},nt:${netTotal},va:${vatAmount}};
+                window.downloadGarageExcel=function(){
+                    var f=function(n){return n.toLocaleString(undefined,{minimumFractionDigits:2,maximumFractionDigits:2})+' ETB';};
+                    var rows=[
+                        ['Garage Service Invoice'],
+                        ['Date',new Date().toLocaleDateString(),'Garage',_m.gn],
+                        ['Store ID',_m.si,'TIN #',_m.tn],
+                        ['Location',_m.loc,'Phone',_m.ph],
+                        ['Customer',_m.cn,'Customer Phone',_m.cp],
+                        ['Car',_m.car],
+                        [],
+                        ['No','Service Name','Description','Service Type','Estimate Price'],
+                        [1,'Garage Repair Service','Complete repair service','Full Service',f(_m.nt)],
+                        [],
+                        ['','','','SUBTOTAL (Net)',f(_m.nt)],
+                        ['','','','VAT (15%)',f(_m.va)],
+                        ['','','','GRAND TOTAL (VAT Incl.)',f(_m.nt+_m.va)]
+                    ];
+                    var wb=XLSX.utils.book_new();
+                    var ws=XLSX.utils.aoa_to_sheet(rows);
+                    ws['!cols']=[{wch:4},{wch:28},{wch:28},{wch:20},{wch:20}];
+                    XLSX.utils.book_append_sheet(wb,ws,'Garage Invoice');
+                    XLSX.writeFile(wb,'garage-invoice.xlsx');
+                };
+            })();
+            </script>
         </body>
         </html>
     `);
