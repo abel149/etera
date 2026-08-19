@@ -206,7 +206,7 @@
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Spare Part Shops</h4>
                 @php
-                    $shopApps = $applications->filter(fn($a) => $a->applicationBy && $a->applicationBy->role === 'shop');
+                    $shopApps = $applications->filter(fn($a) => $a->from === 'shop');
                     $shopGroups = $shopApps->groupBy('inbox_group');
                     $isCollaborative = $shopGroups->count() > 1
                         || ($shopGroups->count() === 1 && $shopGroups->keys()->first() !== null);
@@ -221,7 +221,7 @@
                 </div>
                 @endif
                 @foreach($groupApplications as $application)
-                @if($application->applicationBy->role == 'shop')
+                @if($application->from == 'shop')
                 @php $appHasPdf = $application->pdf !== null; $appPdfOnly = $appHasPdf && $application->prices->isEmpty(); @endphp
                 @if($appPdfOnly)
                 {{-- PDF-only card: show shop name + stamp + View PDF button --}}
@@ -542,7 +542,7 @@
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
                 @foreach($applications as $application)
-                @if($application->applicationBy->role == 'garage')
+                @if($application->from == 'garage')
                 <div class="col-lg-12 mb-3">
                     <div class="card shadow garage-card"
                          data-application-id="{{ $application->id }}"

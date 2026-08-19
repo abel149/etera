@@ -77,18 +77,25 @@ class SendProformaPublishedEmail
         }
 
         // ── Notify garages (is_test matched, treat null as false) ────────────
-        $garageUsers = in_array($proforma->proforma_type, ['insurance_shop_only', 'insurance_shop_garage'], true)
-            ? collect()
-            : \App\Models\User::where('role', 'garage')
-            ->where(function ($q) use ($isTest) {
-                if ($isTest) {
-                    $q->where('is_test', true);
-                } else {
-                    $q->where(fn($q2) => $q2->where('is_test', false)->orWhereNull('is_test'));
-                }
-            })
-            ->whereNotNull('telegram_chat_id')
-            ->get();
+        if ($proforma->proforma_type === 'insurance_shop_only') {
+            $garageUsers = collect();
+        } else {
+            $garageQuery = \App\Models\User::where('role', 'garage')
+                ->where(function ($q) use ($isTest) {
+                    if ($isTest) {
+                        $q->where('is_test', true);
+                    } else {
+                        $q->where(fn($q2) => $q2->where('is_test', false)->orWhereNull('is_test'));
+                    }
+                })
+                ->whereNotNull('telegram_chat_id');
+
+            if ($proforma->proforma_type === 'insurance_shop_garage') {
+                $garageQuery->where('shop_garage', 1);
+            }
+
+            $garageUsers = $garageQuery->get();
+        }
 
         foreach ($garageUsers as $user) {
             try {

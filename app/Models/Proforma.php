@@ -398,7 +398,11 @@ class Proforma extends Model implements HasMedia
                 || ($applicant->role === 'garage' && $this->canBeAppliedByGarage());
         }
 
-        if ($applicant->role === 'shop') {
+        $isDualGarageAsShop = $this->isShopGarageInsurance()
+            && $applicant->role === 'garage'
+            && $applicant->shop_garage == 1;
+
+        if ($applicant->role === 'shop' || $isDualGarageAsShop) {
             if ($this->isShopGarageInsurance() && $applicant->shop_garage != 1) return false;
             if (!$this->canBeAppliedByShop()) return false;
 

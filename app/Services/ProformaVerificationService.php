@@ -124,7 +124,7 @@ class ProformaVerificationService
                 $user = $app->applicationBy;
                 if (!$user) continue;
 
-                $role = $user->role ?? 'unknown';
+                $role = $app->from ?? ($user->role ?? 'unknown');
                 $amount = 0;
 
                 if ($role === 'garage') {

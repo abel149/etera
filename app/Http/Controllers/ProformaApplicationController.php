@@ -207,6 +207,12 @@ class ProformaApplicationController extends Controller
                     }
                 }
 
+                // Dual-service proformas store the GARAGE estimate as the application amount (NET).
+                // Part totals are derived from the per-part prices table.
+                if (!$isEncrypted && $useShopPath && $isDualService) {
+                    $finalAmount = max((float) ($request->garage_amount ?? 0), 1);
+                }
+
                 Log::info('Price quote submission: totals computed', [
                     'proforma_id' => $proforma->id,
                     'final_amount' => $finalAmount,
