@@ -3,8 +3,8 @@
 <div class="row row-cols-12 row-cols-lg-12 row-cols-xl-12">
 	<div class="col mx-auto">
 		<div class="my-5 my-lg-0 shadow-none">
-			<div class="row">
-				<div class="col-12 col-lg-4">
+			<div class="row g-3">
+				<div class="col-12 col-lg-3">
 					<div class="card radius-10">
 						<div class="card-body">
 							<div class="d-flex align-items-center justify-content-between">
@@ -13,6 +13,45 @@
 									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->count() : 0 }}</h5>
 								</div>
 								<div id="chart3"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-12 col-lg-3">
+					<div class="card radius-10">
+						<div class="card-body">
+							<div class="d-flex align-items-center justify-content-between">
+								<div>
+									<p class="mb-0">Completed Files</p>
+									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->where('status', 'completed')->count() : 0 }}</h5>
+								</div>
+								<div id="chart4"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-12 col-lg-3">
+					<div class="card radius-10">
+						<div class="card-body">
+							<div class="d-flex align-items-center justify-content-between">
+								<div>
+									<p class="mb-0">Pending Files</p>
+									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->whereIn('status', ['pending', 'opened', 'published'])->count() : 0 }}</h5>
+								</div>
+								<div id="chart5"></div>
+							</div>
+						</div>
+					</div>
+				</div>
+				<div class="col-12 col-lg-3">
+					<div class="card radius-10">
+						<div class="card-body">
+							<div class="d-flex align-items-center justify-content-between">
+								<div>
+									<p class="mb-0">Closed Files</p>
+									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->where('status', 'closed')->count() : 0 }}</h5>
+								</div>
+								<div id="chart6"></div>
 							</div>
 						</div>
 					</div>
