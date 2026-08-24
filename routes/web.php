@@ -2293,7 +2293,7 @@ function addCommissionRecord($user, $proformaId, $applicationId, $amount)
                 });
             }
 
-            $garages = $query->orderBy('name', 'asc')->paginate(20);
+            $garages = $query->orderBy('name', 'asc')->paginate(20)->withQueryString();
 
             return view('admin.users.garages.view', [
                 'garages' => $garages,

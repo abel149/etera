@@ -9,7 +9,7 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<form method="GET" action="{{ url('/admin/spare-part-shops') }}" class="row align-items-end mb-3 g-2">
+						<form id="searchForm" method="GET" action="{{ url('/admin/spare-part-shops') }}" class="row align-items-end mb-3 g-2">
 							<div class="col-lg-3 col-md-4">
 								<div class="position-relative">
 									<input type="text" name="search" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name, phone or TIN..." value="{{ request('search') }}">
@@ -29,6 +29,7 @@
 							</div>
 						</form>
 
+						<div id="searchableTable">
 						<div class="table-responsive lead-table">
 							<table class="table mb-0 align-middle">
 								<thead class="table-light">
@@ -257,6 +258,7 @@
 								
 							</table>
 
+						</div>{{-- /table-responsive --}}
 						@if($shops->hasPages() || $shops->total() > 0)
 						<div class="d-flex flex-column flex-sm-row align-items-center justify-content-between mt-3 px-1 gap-2">
 							<div class="text-muted" style="font-size:0.875rem;">
@@ -314,8 +316,8 @@
 							@endif
 						</div>
 						@endif
+						</div>{{-- /searchableTable --}}
 
-						
 					</div>
 					</div>
 				</div>
@@ -347,43 +349,77 @@
 <!-- End Selected Delete Modal -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('searchForm');
     const searchInput = document.getElementById('tableSearch');
     const brandFilter = document.getElementById('brandFilter');
-    const table = document.querySelector('.lead-table table tbody');
-    if (!searchInput || !brandFilter) return;
+    const searchableTable = document.getElementById('searchableTable');
+    if (!form || !searchInput || !searchableTable) return;
+
+    // Restore cursor to end of input after AJAX navigation
+    if (searchInput.value) {
+        searchInput.focus();
+        const len = searchInput.value.length;
+        searchInput.setSelectionRange(len, len);
+    }
 
     function clientFilterRows() {
-        if (!table) return;
         const query = searchInput.value.toLowerCase().trim();
-        const selectedBrand = brandFilter.value;
-        const rows = table.querySelectorAll('tr');
-
+        const selectedBrand = brandFilter ? brandFilter.value : '';
+        const rows = searchableTable.querySelectorAll('tbody tr');
         rows.forEach(function (row) {
             const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
             const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
             const tin = (row.querySelector('td:nth-child(4)')?.textContent || '').toLowerCase();
             const brandIds = (row.getAttribute('data-brand-ids') || '').split(',');
-
             const matchesText = !query || name.includes(query) || phone.includes(query) || tin.includes(query);
             const matchesBrand = !selectedBrand || brandIds.includes(selectedBrand);
-
             row.style.display = (matchesText && matchesBrand) ? '' : 'none';
         });
+    }
+
+    async function fetchTable(url) {
+        try {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error('fetch failed');
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('searchableTable');
+            if (newContent) {
+                searchableTable.innerHTML = newContent.innerHTML;
+                history.pushState({}, '', url);
+                bindPaginationLinks();
+            }
+        } catch (e) {
+            form.submit();
+        }
+    }
+
+    function getSearchUrl() {
+        const params = new URLSearchParams(new FormData(form));
+        return form.action + '?' + params.toString();
     }
 
     let debounceTimer;
     searchInput.addEventListener('input', function () {
         clientFilterRows();
         clearTimeout(debounceTimer);
-        debounceTimer = setTimeout(function () {
-            searchInput.form.submit();
-        }, 800);
+        debounceTimer = setTimeout(function () { fetchTable(getSearchUrl()); }, 700);
     });
 
-    brandFilter.addEventListener('change', function () {
-        clientFilterRows();
-        this.form.submit();
-    });
+    if (brandFilter) {
+        brandFilter.addEventListener('change', function () { fetchTable(getSearchUrl()); });
+    }
+
+    function bindPaginationLinks() {
+        searchableTable.querySelectorAll('nav a.page-link[href]:not([href="#"])').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                fetchTable(this.href);
+            });
+        });
+    }
+
+    bindPaginationLinks();
 });
 </script>
 @endsection

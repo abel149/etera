@@ -8,18 +8,19 @@
 			<div class="col-12">
 				<div class="card">
 					<div class="card-body">
-						<div class="row align-items-center mb-3">
+						<form id="searchForm" method="GET" action="{{ url('/admin/garages') }}" class="row align-items-center mb-3">
 							<div class="col-lg-6 col-xl-5">
 								<div class="position-relative">
-									<input type="text" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name or phone...">
+									<input type="text" name="search" id="tableSearch" class="form-control ps-5 radius-30" placeholder="Search by name, phone or TIN..." value="{{ request('search') }}">
 									<span class="position-absolute top-50 product-show translate-middle-y"><i class="bx bx-search"></i></span>
 								</div>
 							</div>
 							<div class="col-auto ms-auto">
 								<a href="/admin/add-garage" type="button" class="btn btn-primary radius-30"><i class="bx bx-plus me-0"></i> Garage</a>
 							</div>
-						</div>
+						</form>
 
+				<div id="searchableTable">
 				<div class="table-responsive lead-table">
 					<table class="table mb-0 align-middle">
 						<thead class="table-light">
@@ -194,6 +195,7 @@
 						</tbody>
 					</table>
 				</div>
+				</div>{{-- /table-responsive --}}
 				@if($garages->hasPages() || $garages->total() > 0)
 				<div class="d-flex flex-column flex-sm-row align-items-center justify-content-between mt-3 px-1 gap-2">
 					<div class="text-muted" style="font-size:0.875rem;">
@@ -255,6 +257,7 @@
 					@endif
 				</div>
 				@endif
+				</div>{{-- /searchableTable --}}
 			</div>
 		</div>
 		<!--end row-->
@@ -303,19 +306,68 @@
 <!-- End Single Delete Modal -->
 <script>
 document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('searchForm');
     const searchInput = document.getElementById('tableSearch');
-    if (!searchInput) return;
-    const table = document.querySelector('.lead-table table tbody');
-    if (!table) return;
-    searchInput.addEventListener('input', function () {
-        const query = this.value.toLowerCase().trim();
-        const rows = table.querySelectorAll('tr');
+    const searchableTable = document.getElementById('searchableTable');
+    if (!form || !searchInput || !searchableTable) return;
+
+    // Restore cursor to end of input after AJAX navigation
+    if (searchInput.value) {
+        searchInput.focus();
+        const len = searchInput.value.length;
+        searchInput.setSelectionRange(len, len);
+    }
+
+    function clientFilterRows() {
+        const query = searchInput.value.toLowerCase().trim();
+        const rows = searchableTable.querySelectorAll('tbody tr');
         rows.forEach(function (row) {
             const name = (row.querySelector('td:nth-child(2)')?.textContent || '').toLowerCase();
             const phone = (row.querySelector('td:nth-child(3)')?.textContent || '').toLowerCase();
-            row.style.display = (!query || name.includes(query) || phone.includes(query)) ? '' : 'none';
+            const tin = (row.querySelector('td:nth-child(4)')?.textContent || '').toLowerCase();
+            row.style.display = (!query || name.includes(query) || phone.includes(query) || tin.includes(query)) ? '' : 'none';
         });
+    }
+
+    async function fetchTable(url) {
+        try {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error('fetch failed');
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('searchableTable');
+            if (newContent) {
+                searchableTable.innerHTML = newContent.innerHTML;
+                history.pushState({}, '', url);
+                bindPaginationLinks();
+            }
+        } catch (e) {
+            form.submit();
+        }
+    }
+
+    function getSearchUrl() {
+        const params = new URLSearchParams(new FormData(form));
+        return form.action + '?' + params.toString();
+    }
+
+    let debounceTimer;
+    searchInput.addEventListener('input', function () {
+        clientFilterRows();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () { fetchTable(getSearchUrl()); }, 700);
     });
+
+    function bindPaginationLinks() {
+        searchableTable.querySelectorAll('nav a.page-link[href]:not([href="#"])').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                fetchTable(this.href);
+            });
+        });
+    }
+
+    bindPaginationLinks();
 });
 </script>
 @endsection

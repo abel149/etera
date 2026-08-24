@@ -67,14 +67,14 @@
                         <h6 class="text-muted mb-3">Custom Proforma Pricing <small class="fw-normal">(leave blank to use global default)</small></h6>
                     </div>
                     <div class="col-md-6">
-                        <label for="insured_cost" class="form-label">Insured Cost (ETB, incl. VAT)</label>
+                        <label for="insured_cost" class="form-label">Insured Cost (ETB)</label>
                         <input type="number" step="0.01" min="0" name="insured_cost" id="insured_cost" class="form-control" placeholder="e.g. 1150.00" value="{{ old('insured_cost') }}">
                         @error('insured_cost')
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
                     <div class="col-md-6">
-                        <label for="insurance_proforma" class="form-label">Non-Insured Cost (ETB, incl. VAT)</label>
+                        <label for="insurance_proforma" class="form-label">Non-Insured Cost (ETB)</label>
                         <input type="number" step="0.01" min="0" name="insurance_proforma" id="insurance_proforma" class="form-control" placeholder="e.g. 2300.00" value="{{ old('insurance_proforma') }}">
                         @error('insurance_proforma')
                             <span class="text-danger">{{ $message }}</span>
