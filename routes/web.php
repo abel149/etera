@@ -3069,7 +3069,23 @@ Route::prefix('employee')
 Route::prefix('insurance')
     ->middleware([\App\Http\Middleware\RoleMiddleware::class])
     ->group(function () {
-        Route::get('/', function(){ return view('insurance.index'); });
+        Route::get('/', function (Request $request) {
+            $query = auth()->user()->proformas()->orderBy('created_at', 'desc');
+
+            if ($request->filled('search')) {
+                $search = $request->search;
+                $query->where(function ($q) use ($search) {
+                    $q->where('file_number', 'like', "%{$search}%")
+                      ->orWhere('customer_name', 'like', "%{$search}%")
+                      ->orWhere('license_plate_number', 'like', "%{$search}%")
+                      ->orWhere('customer_phone_number', 'like', "%{$search}%");
+                });
+            }
+
+            $proformas = $query->paginate(20)->withQueryString();
+
+            return view('insurance.index', compact('proformas'));
+        });
 
         Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             $proforma = \App\Models\Proforma::find($proformaId);

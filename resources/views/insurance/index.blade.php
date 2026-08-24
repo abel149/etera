@@ -19,21 +19,18 @@
 				</div>
 			</div>
 
-			@php
-				$proformas = auth()->user()->proformas()->orderBy('created_at', 'desc')->get();
-			@endphp
-
 			<div class="card radius-10 mt-4">
 				<div class="card-body">
 					<!-- ✅ Search Bar -->
-					<div class="d-flex justify-content-between align-items-center mb-4">
+					<form id="searchForm" method="GET" action="{{ url('/insurance') }}" class="d-flex justify-content-between align-items-center mb-4">
 						<h5 class="mb-0">Proforma Files</h5>
 						<div class="d-flex align-items-center gap-2">
 							<label for="searchInput" class="fw-semibold mb-0">Search:</label>
-							<input type="text" id="searchInput" placeholder="Search File, Customer, License Plate or Phone..." class="form-control" />
+							<input type="text" name="search" id="searchInput" placeholder="Search File, Customer, License Plate or Phone..." class="form-control" value="{{ request('search') }}" />
 						</div>
-					</div>
+					</form>
 
+					<div id="searchableTable">
 					<div class="table-responsive lead-table">
 						<table class="table mb-0 align-middle" id="proformaTable">
 							<thead class="table-light">
@@ -105,33 +102,140 @@
 								@endforeach
 							</tbody>
 						</table>
+					</div>{{-- /table-responsive --}}
+					@if($proformas->hasPages())
+					<div class="d-flex flex-column flex-sm-row align-items-center justify-content-between mt-3 px-1 gap-2">
+						<div class="text-muted" style="font-size:0.875rem;">
+							Showing <strong>{{ $proformas->firstItem() ?? 0 }}</strong>
+							to <strong>{{ $proformas->lastItem() ?? 0 }}</strong>
+							of <strong>{{ $proformas->total() }}</strong> proformas
+						</div>
+						@php
+							$cur   = $proformas->currentPage();
+							$last  = $proformas->lastPage();
+							$range = collect();
+							for ($p = 1; $p <= $last; $p++) {
+								if ($p === 1 || $p === $last || abs($p - $cur) <= 1) {
+									$range->push(['type' => 'page', 'n' => $p]);
+								} elseif (abs($p - $cur) === 2) {
+									$range->push(['type' => 'dots']);
+								}
+							}
+							$pages = collect();
+							$prevDot = false;
+							foreach ($range as $item) {
+								if ($item['type'] === 'dots') {
+									if (!$prevDot) $pages->push($item);
+									$prevDot = true;
+								} else {
+									$pages->push($item);
+									$prevDot = false;
+								}
+							}
+						@endphp
+						<nav aria-label="Proformas pagination">
+							<ul class="pagination mb-0" style="gap:4px;">
+								<li class="page-item {{ $proformas->onFirstPage() ? 'disabled' : '' }}">
+									<a class="page-link radius-30 px-3" href="{{ $proformas->previousPageUrl() ?? '#' }}" style="border-radius:30px!important;">
+										<i class="bx bx-chevron-left"></i> Prev
+									</a>
+								</li>
+								@foreach($pages as $item)
+									@if($item['type'] === 'dots')
+										<li class="page-item disabled"><span class="page-link" style="border-radius:30px!important;">…</span></li>
+									@else
+										<li class="page-item {{ $item['n'] === $cur ? 'active' : '' }}">
+											<a class="page-link radius-30" href="{{ $proformas->url($item['n']) }}" style="border-radius:30px!important;">{{ $item['n'] }}</a>
+										</li>
+									@endif
+								@endforeach
+								<li class="page-item {{ $proformas->hasMorePages() ? '' : 'disabled' }}">
+									<a class="page-link radius-30 px-3" href="{{ $proformas->nextPageUrl() ?? '#' }}" style="border-radius:30px!important;">
+										Next <i class="bx bx-chevron-right"></i>
+									</a>
+								</li>
+							</ul>
+						</nav>
 					</div>
+					@endif
+					</div>{{-- /searchableTable --}}
 				</div>
 			</div>
-
 		</div>
 	</div>
 </div>
 
-<!-- ✅ Search Script -->
+<!-- ✅ Search Script (seamless AJAX) -->
 <script>
-document.getElementById('searchInput').addEventListener('input', function() {
-	const query = this.value.toLowerCase().trim();
-	const rows = document.querySelectorAll('#proformaTable tbody tr');
+document.addEventListener('DOMContentLoaded', function () {
+    const form = document.getElementById('searchForm');
+    const searchInput = document.getElementById('searchInput');
+    const searchableTable = document.getElementById('searchableTable');
+    if (!form || !searchInput || !searchableTable) return;
 
-	rows.forEach(row => {
-		const fileNumber    = row.cells[0].textContent.toLowerCase();
-		const customerName  = row.cells[1].textContent.toLowerCase();
-		const plateNumber   = row.cells[5].textContent.toLowerCase();
-		const phone         = row.cells[7].textContent.toLowerCase();
+    if (searchInput.value) {
+        searchInput.focus();
+        const len = searchInput.value.length;
+        searchInput.setSelectionRange(len, len);
+    }
 
-		row.style.display = (
-			fileNumber.includes(query) ||
-			customerName.includes(query) ||
-			plateNumber.includes(query) ||
-			phone.includes(query)
-		) ? '' : 'none';
-	});
+    function clientFilterRows() {
+        const query = searchInput.value.toLowerCase().trim();
+        const rows = searchableTable.querySelectorAll('tbody tr');
+        rows.forEach(function (row) {
+            const fileNumber   = (row.cells[0]?.textContent || '').toLowerCase();
+            const customerName = (row.cells[1]?.textContent || '').toLowerCase();
+            const plateNumber  = (row.cells[5]?.textContent || '').toLowerCase();
+            const phone        = (row.cells[7]?.textContent || '').toLowerCase();
+            row.style.display = (
+                !query ||
+                fileNumber.includes(query) ||
+                customerName.includes(query) ||
+                plateNumber.includes(query) ||
+                phone.includes(query)
+            ) ? '' : 'none';
+        });
+    }
+
+    async function fetchTable(url) {
+        try {
+            const res = await fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            if (!res.ok) throw new Error('fetch failed');
+            const html = await res.text();
+            const doc = new DOMParser().parseFromString(html, 'text/html');
+            const newContent = doc.getElementById('searchableTable');
+            if (newContent) {
+                searchableTable.innerHTML = newContent.innerHTML;
+                history.pushState({}, '', url);
+                bindPaginationLinks();
+            }
+        } catch (e) {
+            form.submit();
+        }
+    }
+
+    function getSearchUrl() {
+        const params = new URLSearchParams(new FormData(form));
+        return form.action + '?' + params.toString();
+    }
+
+    let debounceTimer;
+    searchInput.addEventListener('input', function () {
+        clientFilterRows();
+        clearTimeout(debounceTimer);
+        debounceTimer = setTimeout(function () { fetchTable(getSearchUrl()); }, 700);
+    });
+
+    function bindPaginationLinks() {
+        searchableTable.querySelectorAll('nav a.page-link[href]:not([href="#"])').forEach(function (link) {
+            link.addEventListener('click', function (e) {
+                e.preventDefault();
+                fetchTable(this.href);
+            });
+        });
+    }
+
+    bindPaginationLinks();
 });
 </script>
 @endsection
