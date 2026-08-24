@@ -107,6 +107,7 @@ class RegisterController extends Controller
                 'approved' => false, // ALL users require admin approval
                 'balance' => 0,
                 'registered_by' => $request->registered_by ?? null,
+                'terms_agreed_at' => now(),
             ]);
 
             // Register brands for spare part shops

@@ -101,6 +101,7 @@ class User extends Authenticatable
         'recovery_key_salt',
         'dealers',
         'shop_garage',
+        'terms_agreed_at',
     ];
 
     protected $hidden = [
@@ -114,6 +115,7 @@ class User extends Authenticatable
     protected $casts = [
         'email_verified_at'   => 'datetime',
         'license_expire_date' => 'datetime',
+        'terms_agreed_at'     => 'datetime',
         'password'            => 'hashed', // Requires Laravel 10+. Use 'string' for older versions.
         'is_new'              => 'boolean',
         'approved'            => 'boolean', // ✅ CRITICAL: Ensures 0/1 becomes false/true

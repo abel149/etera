@@ -71,6 +71,25 @@ use App\Events\ProformaCreated;
 
 use App\Http\Controllers\LogViewerController;
 
+// Terms & Conditions agreement (shown to admin-created users on first login)
+Route::middleware('auth.user')->group(function () {
+    Route::get('/terms-agree', function () {
+        if (Auth::user()->terms_agreed_at !== null) {
+            return redirect('/');
+        }
+        return view('terms-agree');
+    });
+
+    Route::post('/terms-agree', function (Request $request) {
+        $request->validate(['agreed' => 'required|accepted'], [
+            'agreed.required' => 'You must accept the Terms & Conditions to continue.',
+            'agreed.accepted'  => 'You must accept the Terms & Conditions to continue.',
+        ]);
+        Auth::user()->update(['terms_agreed_at' => now()]);
+        return redirect(Session::pull('url.intended', '/'));
+    });
+});
+
 Route::get('/logs', [LogViewerController::class, 'index'])->middleware('auth.user');
 
 Route::get('/logs/fetch', [LogViewerController::class, 'fetchLogs'])->middleware('auth.user');

@@ -44,6 +44,17 @@ class AuthenticateUser
         // Update last activity
         Session::put('last_activity', time());
 
+        // Redirect to Terms & Conditions agreement if the user has never agreed.
+        // Only interrupt non-AJAX, non-JSON requests and exempt the agreement
+        // route and logout so we never create an infinite redirect loop.
+        if (Auth::user()->terms_agreed_at === null
+            && !$request->is('terms-agree')
+            && !$request->is('logout')
+            && !$request->ajax()
+            && !$request->wantsJson()) {
+            return redirect('/terms-agree');
+        }
+
         // Redirect to Telegram connect if user hasn't linked Telegram yet.
         // Only interrupt GET requests (page navigation) — form submissions must
         // always reach their handler so data is not silently discarded.
@@ -51,6 +62,7 @@ class AuthenticateUser
             && $request->isMethod('GET')
             && !$request->is('telegram-connect') 
             && !$request->is('telegram*')
+            && !$request->is('terms-agree')
             && !$request->is('logout')
             && !$request->ajax()
             && app(\App\Services\TelegramService::class)->isConfigured()) {
