@@ -163,6 +163,7 @@ class User extends Authenticatable
     public function myRegistrations()    { return $this->hasMany(User::class, 'registered_by'); }
     public function agents()             { return $this->hasMany(User::class, 'parent_insurance_id'); }
     public function parentInsurance()    { return $this->belongsTo(User::class, 'parent_insurance_id'); }
+    public function insuranceCost()      { return $this->hasOne(InsuranceCost::class, 'user_id'); }
     public function inboxes()            { return $this->hasMany(ProformaInbox::class, 'user_id'); }
     public function myInbox()            { return $this->hasMany(Inbox::class, 'user_id')->latest(); }
     

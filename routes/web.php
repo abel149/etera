@@ -1705,10 +1705,10 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
         */
         elseif ($type === 'insurance') {
 
-            $perProformaCost = (float) (
-                $proforma->insured
-                    ? ($latestCost->insured_cost ?? 0)
-                    : ($latestCost->insurance_proforma ?? 0)
+            $perProformaCost = \App\Models\InsuranceCost::resolveForPoster(
+                $proforma->poster,
+                $latestCost,
+                (bool) $proforma->insured
             );
 
             if ($perProformaCost <= 0) {
@@ -1763,20 +1763,20 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 $insuranceTotal = $perProformaCost * $filledGroups;
             }
 
-            // Round to 2 decimal places
+            // $insuranceTotal is the NET base price; VAT is added on top
             $insuranceTotal = round($insuranceTotal, 2);
 
-            $unitPrice = $insuranceTotal / (1 + $vatRate);
-            $vatAmount = $insuranceTotal - $unitPrice;
+            $vatAmount   = round($insuranceTotal * $vatRate, 2);
+            $totalWithVat = $insuranceTotal + $vatAmount;
 
             $rows[] = [
                 'proforma_id'     => $proforma->id,
                 'type'            => 'insurance',
                 'requested_count' => $filledGroups,
-                'unit_price'      => $unitPrice,
+                'unit_price'      => $insuranceTotal,
                 'vat_rate'        => $vatRate * 100,
                 'vat_amount'      => $vatAmount,
-                'total_amount'    => $insuranceTotal,
+                'total_amount'    => $totalWithVat,
                 'is_paid'         => !$proforma->insured,
                 'created_by'      => Auth::id(),
                 'created_at'      => now(),

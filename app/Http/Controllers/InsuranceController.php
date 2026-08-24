@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\User;
+use App\Models\InsuranceCost;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 class InsuranceController extends Controller
@@ -49,6 +50,8 @@ return redirect()->to('/admin/insurances');
                 'phone_number' => 'required|unique:users,phone_number',
                 'password' => 'nullable|min:6', // password can be null
                 'stamp_image' => 'required|file|image|max:10240',
+                'insured_cost' => 'nullable|numeric|min:0',
+                'insurance_proforma' => 'nullable|numeric|min:0',
             ]);
 
             // If password is null, default to 123456
@@ -66,6 +69,14 @@ return redirect()->to('/admin/insurances');
                 'registered_by' => auth()->user()->id,
                 'stamp_image' => $stampImagePath,
             ]);
+
+            if ($request->filled('insured_cost') || $request->filled('insurance_proforma')) {
+                InsuranceCost::create([
+                    'user_id'            => $user->id,
+                    'insured_cost'       => $request->insured_cost ?: null,
+                    'insurance_proforma' => $request->insurance_proforma ?: null,
+                ]);
+            }
 
             if (auth()->user()->role === 'admin') {
                 return redirect()->to('/admin/insurances')->with(['user' => $user]);
@@ -142,6 +153,8 @@ return redirect()->to('/admin/insurances');
             'email' => 'nullable|email|unique:users,email,' . $id,
             'phone_number' => 'required|unique:users,phone_number,' . $id,
             'stamp_image' => 'nullable|file|image|max:10240',
+            'insured_cost' => 'nullable|numeric|min:0',
+            'insurance_proforma' => 'nullable|numeric|min:0',
         ]);
 
         $updateData = [
@@ -162,8 +175,13 @@ return redirect()->to('/admin/insurances');
 
         $insurance->update($updateData);
 
-        // return redirect()->to('admin/insurances');
-
+        InsuranceCost::updateOrCreate(
+            ['user_id' => $insurance->id],
+            [
+                'insured_cost'       => $request->insured_cost ?: null,
+                'insurance_proforma' => $request->insurance_proforma ?: null,
+            ]
+        );
 
         if (auth()->user()->role === 'admin') {
             return redirect()->to('admin/insurances')->with(['user' => $user]);
