@@ -36,11 +36,13 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\NoCacheAuthenticated::class
         );
 
-        // Force Terms & Conditions agreement for all users on first login.
-        // Must be in the web group (not global) so StartSession has already run
-        // and Auth::user() is resolvable when this middleware executes.
+        // Force Terms & Conditions agreement, then Telegram connect, for all users
+        // on first login — regardless of role middleware (insurance, garage, shop, etc.).
+        // Must be in the web group so StartSession has run and Auth::user() resolves.
+        // Order matters: T&C must be agreed before the Telegram connect prompt appears.
         $middleware->web(append: [
             \App\Http\Middleware\TermsMiddleware::class,
+            \App\Http\Middleware\TelegramConnectMiddleware::class,
         ]);
 
         // Route middleware aliases

@@ -203,6 +203,7 @@
 <div style="text-align:center;">
     <form action="{{ route('logout') }}" method="POST" style="display:inline;">
         @csrf
+        @method('DELETE')
         <button type="submit" style="background:none;border:none;color:var(--etera-text-muted);font-size:0.82rem;cursor:pointer;padding:0;font-family:inherit;">
             <i class="bx bx-log-out"></i> Sign out instead
         </button>
