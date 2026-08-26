@@ -13,8 +13,10 @@ class TelegramConnectMiddleware
     {
         if (Auth::check()
             && empty(Auth::user()->telegram_chat_id)
+            && !session('telegram_skipped')
             && $request->isMethod('GET')
             && !$request->is('telegram-connect')
+            && !$request->is('telegram-skip')
             && !$request->is('telegram*')
             && !$request->is('terms-agree')
             && !$request->is('logout')

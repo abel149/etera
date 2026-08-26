@@ -4956,19 +4956,28 @@ Route::get('/telegram-connect', function (Request $request) {
     }
     $telegramService = app(\App\Services\TelegramService::class);
     $telegramLink = $telegramService->generateStartLink($user->id);
-    $skipUrl = match($user->role) {
-        'garage' => '/garage/proformas',
-        'shop' => '/spare-part-shops/proformas',
-        'admin' => '/admin',
-        'insurance' => '/insurance',
-        'others' => '/business-owner',
-        'marketer' => '/marketer',
-        'operator' => '/operator/dashboard',
-        'employee' => '/employee',
-        default => '/',
-    };
+    $skipUrl = '/telegram-skip';
     return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl'));
 })->name('telegram.connect');
+
+// Skip Telegram connect for this session
+Route::get('/telegram-skip', function () {
+    session(['telegram_skipped' => true]);
+    $user = auth()->user();
+    $redirect = match($user?->role) {
+        'garage'    => '/garage/proformas',
+        'shop'      => '/spare-part-shops/proformas',
+        'admin', 'superadmin' => '/admin',
+        'insurance' => '/insurance',
+        'others'    => '/business-owner',
+        'marketer'  => '/marketer',
+        'operator'  => '/operator/dashboard',
+        'employee'  => '/employee',
+        'accountant'=> '/finance',
+        default     => '/',
+    };
+    return redirect($redirect);
+})->name('telegram.skip');
 
 // Telegram Webhook handler (called by Telegram servers — no CSRF, no session needed)
 Route::post('/api/telegram/webhook', [\App\Http\Controllers\TelegramWebhookController::class, 'handle'])
