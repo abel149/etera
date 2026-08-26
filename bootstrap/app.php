@@ -36,11 +36,12 @@ return Application::configure(basePath: dirname(__DIR__))
             \App\Http\Middleware\NoCacheAuthenticated::class
         );
 
-        // Force Terms & Conditions agreement for admin-created users on first login.
-        // Runs globally so it covers ALL role middlewares (insurance, garage, shop, etc.)
-        $middleware->append(
-            \App\Http\Middleware\TermsMiddleware::class
-        );
+        // Force Terms & Conditions agreement for all users on first login.
+        // Must be in the web group (not global) so StartSession has already run
+        // and Auth::user() is resolvable when this middleware executes.
+        $middleware->web(append: [
+            \App\Http\Middleware\TermsMiddleware::class,
+        ]);
 
         // Route middleware aliases
         $middleware->alias([
