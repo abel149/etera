@@ -3116,18 +3116,29 @@ Route::prefix('insurance')
         })->name('insurance.proforma.request-close');
 
 Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
-        Route::get('/received-proformas', function () {
+        Route::get('/received-proformas', function (Request $request) {
     if (auth()->check()) {
         $user = auth()->user();
 
         // Mark all new proformas for this user as viewed
         $user->markReceivedProformasAsViewed();
 
-        $proformas = \App\Models\Proforma::where('poster_id', $user->id)
+        $query = \App\Models\Proforma::where('poster_id', $user->id)
             ->where('status', 'completed')
             ->where('verified', true)
-            ->orderBy('created_at','desc')
-            ->paginate(10);
+            ->orderBy('created_at', 'desc');
+
+        if ($request->filled('search')) {
+            $search = $request->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('file_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('license_plate_number', 'like', "%{$search}%")
+                  ->orWhere('customer_phone_number', 'like', "%{$search}%");
+            });
+        }
+
+        $proformas = $query->paginate(20)->withQueryString();
 
         return view('insurance.proformas', compact('proformas'));
     }
