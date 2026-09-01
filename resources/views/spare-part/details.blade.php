@@ -1178,7 +1178,7 @@
                         </button>
                         <button type="button" id="modePdfBtn" onclick="setSubmissionMode('pdf')"
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(255,255,255,0.12); background:transparent; color:#aaa; transition:all .2s;">
-                            <i class="bx bxs-file-pdf"></i> Upload PDF Quotation
+                            <i class="bx bxs-file-pdf"></i> Upload PDF / Image
                         </button>
                     </div>
                     @endif
@@ -1187,13 +1187,13 @@
                     {{-- PDF Upload Section (hidden until mode=pdf) --}}
                     <div class="margin-top-15" style="background: rgba(13,148,136,0.05); border: 1px dashed rgba(13,148,136,0.3); border-radius: 8px; padding: 14px 16px; display:none;" id="pdfUploadSection">
                         <label style="font-weight: 600; font-size: 0.88rem; color: var(--etera-teal-light, #4dd0c4); display:block; margin-bottom: 6px;">
-                            <i class="bx bx-file-pdf" style="margin-right:4px;"></i>PDF Quotation <span style="font-weight:400; color:#aaa;">(max 10MB)</span>
+                            <i class="bx bx-file" style="margin-right:4px;"></i>PDF or Image Quotation <span style="font-weight:400; color:#aaa;">(max 10MB — PDF, JPG, PNG, WEBP)</span>
                         </label>
-                        <input type="file" id="pdfFileInput" accept=".pdf" style="display:none;">
+                        <input type="file" id="pdfFileInput" accept=".pdf,.jpg,.jpeg,.png,.gif,.webp,.bmp" style="display:none;">
                         <div style="display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
                             <button type="button" onclick="document.getElementById('pdfFileInput').click()"
                                 style="background:rgba(13,148,136,0.12); color:var(--etera-teal-light,#4dd0c4); border:1px solid rgba(13,148,136,0.3); border-radius:6px; padding:7px 14px; font-size:0.85rem; cursor:pointer;">
-                                <i class="bx bx-upload"></i> Choose PDF
+                                <i class="bx bx-upload"></i> Choose File
                             </button>
                             <span id="pdfFileLabel" style="font-size:0.85rem; color:#aaa;">No file chosen</span>
                             <button type="button" id="pdfClearBtn" onclick="clearPdfUpload()" style="display:none; background:transparent; color:#ef4444; border:none; cursor:pointer; font-size:0.82rem;">
@@ -1838,7 +1838,7 @@
                             // Do NOT set prices_encrypted=1 here — the bubble handler manages price encryption separately
                         }
                     } else {
-                        setMsg('Reading PDF…');
+                        setMsg('Reading file…');
                         const b64 = await new Promise((res, rej) => { const r = new FileReader(); r.onload = e => res(e.target.result.split(',')[1]); r.onerror = rej; r.readAsDataURL(file); });
                         setProgress(90);
                         document.getElementById('hiddenPdfData').value = b64;
