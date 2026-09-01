@@ -1169,8 +1169,8 @@
                     @endif
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && $actsAsShop)
-                    @if (auth()->user()->dealers)
-                    {{-- Submission Mode Toggle (only for dealers who can choose between prices and PDF) --}}
+                    @if (auth()->user()->dealers || auth()->user()->shop_garage == 1)
+                    {{-- Submission Mode Toggle (only for dealers and dual service providers who can choose between prices and PDF) --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button type="button" id="modePriceBtn" onclick="setSubmissionMode('price')"
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(13,148,136,0.5); background:rgba(13,148,136,0.18); color:var(--etera-teal-light,#4dd0c4); transition:all .2s;">
