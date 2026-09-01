@@ -1168,7 +1168,7 @@
                     </div>
                     @endif
 
-                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && $actsAsShop)
+                    @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
                     @if (auth()->user()->dealers || auth()->user()->shop_garage == 1)
                     {{-- Submission Mode Toggle (only for dealers and dual service providers who can choose between prices and PDF) --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
@@ -1569,12 +1569,16 @@
                         }
                     } else {
                         // Garage: validate the repair estimate amount
-                        const amtInput = form.querySelector('#total-amount');
-                        const amt = amtInput ? parseFloat(amtInput.value) || 0 : 0;
-                        if (amt < 1) {
-                            alert('Please enter a valid repair estimate price (minimum 1 ETB).');
-                            if (amtInput) { amtInput.focus(); amtInput.select(); }
-                            return;
+                        // shop_garage providers may substitute a PDF/image in place of a price
+                        const isShopGarageProvider = {{ auth()->user()?->shop_garage == 1 ? 'true' : 'false' }};
+                        if (!(hasPdfData && isShopGarageProvider)) {
+                            const amtInput = form.querySelector('#total-amount');
+                            const amt = amtInput ? parseFloat(amtInput.value) || 0 : 0;
+                            if (amt < 1) {
+                                alert('Please enter a valid repair estimate price (minimum 1 ETB).');
+                                if (amtInput) { amtInput.focus(); amtInput.select(); }
+                                return;
+                            }
                         }
                     }
 

@@ -102,16 +102,20 @@ class ProformaApplicationController extends Controller
                     if ($isEncrypted) {
                         $request->validate(['encrypted_amount' => 'required|string']);
                     } else {
-                        $request->validate([
-                            'amount' => 'required|numeric|min:1',
-                            'expiry_date' => 'nullable|date|after:today',
-                        ], [
-                            'amount.required' => 'Price is required.',
-                            'amount.numeric' => 'Price must be a valid number.',
-                            'amount.min' => 'Price must be at least 1.',
-                            'expiry_date.date' => 'Expiry date must be a valid date.',
-                            'expiry_date.after' => 'Expiry date must be after today.',
-                        ]);
+                        $garagePdfBypass = auth()->user()->shop_garage == 1
+                            && ($request->filled('encrypted_pdf') || $request->filled('pdf_data'));
+                        if (!$garagePdfBypass) {
+                            $request->validate([
+                                'amount' => 'required|numeric|min:1',
+                                'expiry_date' => 'nullable|date|after:today',
+                            ], [
+                                'amount.required' => 'Price is required.',
+                                'amount.numeric' => 'Price must be a valid number.',
+                                'amount.min' => 'Price must be at least 1.',
+                                'expiry_date.date' => 'Expiry date must be a valid date.',
+                                'expiry_date.after' => 'Expiry date must be after today.',
+                            ]);
+                        }
                     }
                 } else { // Shop role or dual-service garage with shop_garage=1
                     // Check for PDF early so we can bypass price validation for PDF-only
@@ -186,8 +190,12 @@ class ProformaApplicationController extends Controller
                     // Encrypted mode: amount is a ciphertext; store 0 as numeric placeholder
                     $finalAmount = 0;
                 } elseif (!$useShopPath) {
-                    $netAmount = max($request->amount, 1);
-                    $finalAmount = round($netAmount * (1 + $vatRate), 2);
+                    if (isset($garagePdfBypass) && $garagePdfBypass) {
+                        $finalAmount = 0; // PDF-only submission; no price entered
+                    } else {
+                        $netAmount = max($request->amount, 1);
+                        $finalAmount = round($netAmount * (1 + $vatRate), 2);
+                    }
                 } else { // Shop role or dual-service garage with shop_garage=1
                     $totalAmount = 0;
                     foreach ($proforma->parts->sortBy('id')->values() as $index => $part) {
