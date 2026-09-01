@@ -364,29 +364,42 @@ class ProformaApplicationController extends Controller
                     'amount' => $application->amount,
                 ]);
 
-                // Step 4b: Handle PDF upload
+                // Step 4b: Handle PDF/image upload — save to local disk, not DB column
                 if ($hasPdf) {
                     try {
+                        $originalFilename = $request->pdf_filename ?? 'quotation.pdf';
+                        $ext = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) ?: 'pdf';
+
                         if ($request->filled('encrypted_pdf')) {
+                            // Store encrypted binary on disk; keep AES key + IV in DB (they are short strings)
+                            $encBytes  = base64_decode($request->encrypted_pdf);
+                            $filename  = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.enc';
+                            Storage::disk('local')->put('application-files/' . $filename, $encBytes);
+
                             ApplicationPdf::create([
                                 'application_id'    => $application->id,
                                 'storage_type'      => 'encrypted',
-                                'encrypted_pdf'     => $request->encrypted_pdf,
+                                'file_path'         => 'application-files/' . $filename,
                                 'encrypted_aes_key' => $request->encrypted_aes_key,
                                 'aes_iv'            => $request->aes_iv,
-                                'original_filename' => $request->pdf_filename ?? 'quotation.pdf',
+                                'original_filename' => $originalFilename,
                             ]);
                         } elseif ($request->filled('pdf_data')) {
+                            // Store plain file binary on disk
+                            $fileBytes = base64_decode($request->pdf_data);
+                            $filename  = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.' . $ext;
+                            Storage::disk('local')->put('application-files/' . $filename, $fileBytes);
+
                             ApplicationPdf::create([
                                 'application_id'    => $application->id,
                                 'storage_type'      => 'plain',
-                                'encrypted_pdf'     => $request->pdf_data,
-                                'original_filename' => $request->pdf_filename ?? 'quotation.pdf',
+                                'file_path'         => 'application-files/' . $filename,
+                                'original_filename' => $originalFilename,
                             ]);
                         }
-                        Log::info('Application PDF stored', ['application_id' => $application->id]);
+                        Log::info('Application file stored on disk', ['application_id' => $application->id]);
                     } catch (\Exception $e) {
-                        Log::error('Failed to store application PDF: ' . $e->getMessage());
+                        Log::error('Failed to store application file: ' . $e->getMessage());
                         throw $e;
                     }
                 }

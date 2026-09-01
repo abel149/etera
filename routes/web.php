@@ -724,6 +724,66 @@ Route::prefix('proforma-applications')->group(function () {
     Route::get('/real-time-updates', [ProformaApplicationDataController::class, 'getRealTimeUpdates'])->name('proforma.applications.real-time');
 });
 
+// ── Application file serving routes (PDF / image quotations) ─────────────────
+
+// Serve plain file bytes — used by the viewer JS for non-encrypted submissions.
+// Reads from disk (file_path); falls back to base64 in DB for old records.
+Route::get('/application/{application}/file', function (\App\Models\ProformaApplication $application) {
+    abort_if(!auth()->check(), 401);
+
+    $pdf = $application->pdf;
+    abort_if(!$pdf, 404);
+
+    if ($pdf->file_path && Storage::disk('local')->exists($pdf->file_path)) {
+        $bytes = Storage::disk('local')->get($pdf->file_path);
+    } elseif ($pdf->encrypted_pdf) {
+        // Legacy: base64 stored directly in the DB column
+        $bytes = base64_decode($pdf->encrypted_pdf);
+    } else {
+        abort(404);
+    }
+
+    $ext  = strtolower(pathinfo($pdf->original_filename, PATHINFO_EXTENSION));
+    $mime = match($ext) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png'         => 'image/png',
+        'gif'         => 'image/gif',
+        'webp'        => 'image/webp',
+        'bmp'         => 'image/bmp',
+        default       => 'application/pdf',
+    };
+
+    return response($bytes, 200)
+        ->header('Content-Type', $mime)
+        ->header('Content-Disposition', 'inline; filename="' . $pdf->original_filename . '"');
+})->middleware('auth.user')->name('application.pdf.serve');
+
+// Return encrypted payload as JSON — used by the viewer JS for encrypted submissions.
+// Reads encrypted bytes from disk, re-encodes to base64 for the browser to decrypt.
+Route::get('/application/{application}/file/encrypted', function (\App\Models\ProformaApplication $application) {
+    abort_if(!auth()->check(), 401);
+
+    $pdf = $application->pdf;
+    abort_if(!$pdf || !$pdf->isEncrypted(), 404);
+
+    if ($pdf->file_path && Storage::disk('local')->exists($pdf->file_path)) {
+        $encBase64 = base64_encode(Storage::disk('local')->get($pdf->file_path));
+    } elseif ($pdf->encrypted_pdf) {
+        // Legacy: already stored as base64 in DB
+        $encBase64 = $pdf->encrypted_pdf;
+    } else {
+        abort(404);
+    }
+
+    return response()->json([
+        'encrypted_pdf'     => $encBase64,
+        'encrypted_aes_key' => $pdf->encrypted_aes_key,
+        'aes_iv'            => $pdf->aes_iv,
+    ]);
+})->middleware('auth.user')->name('application.pdf.encrypted');
+
+// ─────────────────────────────────────────────────────────────────────────────
+
 
 
 Route::get('/', function () {
