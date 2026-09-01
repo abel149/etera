@@ -58,6 +58,10 @@
                             {{ $proforma->brand->name ?? 'N/A' }}, {{ $proforma->model ?? 'N/A' }}
                         </li>
                         <li>
+                            <i class="icon-material-outline-directions-car"></i> 
+                            {{ $proforma->license_plate_number ?? 'N/A' }}
+                        </li>
+                        <li>
                             <i class="icon-material-outline-access-time"></i> 
                             {{ $proforma->created_at->diffForHumans() }}
                         </li>
