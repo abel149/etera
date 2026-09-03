@@ -133,6 +133,8 @@
                                                     <div class="badge rounded-pill {{ $proforma->close_request ? 'bg-danger' : 'bg-warning' }} w-100">{{ $proforma->close_request ? 'Close Requested' : ($proforma->selected() && $proforma->status == 'pending' ? 'File Assigned' : ucfirst($proforma->status)) }}</div>
                                                 @elseif($proforma->status == 'closed')
                                                     <div class="badge rounded-pill bg-danger w-100">{{ ucfirst($proforma->status) }}</div>
+                                                @elseif($proforma->status == 'rejected')
+                                                    <div class="badge rounded-pill bg-secondary w-100">Rejected</div>
                                                 @endif
                                             </td>
                                             <td>
