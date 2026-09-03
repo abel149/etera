@@ -46,6 +46,12 @@
     };
 @endphp
 
+{{-- Pre-hide raw selects so the browser never paints them before Select2 initialises --}}
+<style>
+select.js-select2-shop,
+select.js-select2-garage { display: none; }
+</style>
+
 <div class="container-fluid py-4">
 
     {{-- Back + Title --}}

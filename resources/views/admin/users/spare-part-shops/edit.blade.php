@@ -279,10 +279,17 @@
                     @enderror
 
                     <div class="col-md-6">
-                        <label for="multiple-select-clear-field" class="form-label">Car Brands To Serve</label>
-                        <select required name="brands[]" class="form-select" id="multiple-select-clear-field" data-placeholder="Add Brands..." multiple>
+                        <label class="form-label d-flex justify-content-between align-items-center">
+                            <span>Car Brands To Serve</span>
+                            <span id="brands-count" class="badge bg-primary rounded-pill" style="display:none;">0 selected</span>
+                        </label>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" id="brands-select-all" class="btn btn-sm btn-outline-secondary"><i class="bx bx-check-double"></i> Select All</button>
+                            <button type="button" id="brands-clear-all" class="btn btn-sm btn-outline-secondary"><i class="bx bx-x"></i> Clear All</button>
+                        </div>
+                        <select required name="brands[]" id="multiple-select-clear-field" multiple style="width:100%">
                             @foreach ($allBrands as $brand)
-                                <option value="{{ $brand->id }}" 
+                                <option value="{{ $brand->id }}"
                                         @if(in_array($brand->id, $brands)) selected @endif>
                                     {{ $brand->name }}
                                 </option>
@@ -427,6 +434,35 @@
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
+
+    // ── Brands Select2 ───────────────────────────────────────────────────────
+    const $brands = $('#multiple-select-clear-field');
+
+    $brands.select2({
+        placeholder: '🔍 Search and select car brands…',
+        closeOnSelect: false,
+        width: '100%',
+        theme: 'bootstrap-5',
+    });
+
+    function updateBrandsBadge() {
+        const count = ($brands.val() || []).length;
+        const badge = document.getElementById('brands-count');
+        if (!badge) return;
+        badge.textContent = count + ' selected';
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    $brands.on('change', updateBrandsBadge);
+    updateBrandsBadge(); // run on load for pre-selected brands
+
+    document.getElementById('brands-select-all').addEventListener('click', function () {
+        $brands.find('option').prop('selected', true).trigger('change');
+    });
+    document.getElementById('brands-clear-all').addEventListener('click', function () {
+        $brands.val(null).trigger('change');
+    });
+    // ─────────────────────────────────────────────────────────────────────────
+
     FilePond.registerPlugin(FilePondPluginImagePreview, FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
 
     const serverConfig = {

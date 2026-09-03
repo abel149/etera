@@ -47,11 +47,17 @@
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
-                    <!-- ✅ BRANDS -->
+                    <!-- BRANDS -->
                     <div class="col-md-6">
-                        <label class="form-label">Car Brands To Serve</label>
-                        <select name="brands[]" id="brands-select" class="form-select" multiple required>
-
+                        <label class="form-label d-flex justify-content-between align-items-center">
+                            <span>Car Brands To Serve</span>
+                            <span id="brands-count" class="badge bg-primary rounded-pill" style="display:none;">0 selected</span>
+                        </label>
+                        <div class="d-flex gap-2 mb-2">
+                            <button type="button" id="brands-select-all" class="btn btn-sm btn-outline-secondary"><i class="bx bx-check-double"></i> Select All</button>
+                            <button type="button" id="brands-clear-all" class="btn btn-sm btn-outline-secondary"><i class="bx bx-x"></i> Clear All</button>
+                        </div>
+                        <select name="brands[]" id="brands-select" multiple required style="width:100%">
                             @foreach($brands as $brand)
                                 <option value="{{ $brand->id }}">{{ $brand->name }}</option>
                             @endforeach
@@ -142,9 +148,27 @@ $(document).ready(function () {
     const $select = $('#brands-select');
 
     $select.select2({
-        placeholder: "Select car brands",
+        placeholder: '🔍 Search and select car brands…',
         closeOnSelect: false,
-        width: '100%'
+        width: '100%',
+        theme: 'bootstrap-5',
+        selectionCssClass: 'select2--small',
+    });
+
+    function updateBrandsBadge() {
+        const count = ($select.val() || []).length;
+        const badge = document.getElementById('brands-count');
+        if (!badge) return;
+        badge.textContent = count + ' selected';
+        badge.style.display = count > 0 ? 'inline-block' : 'none';
+    }
+    $select.on('change', updateBrandsBadge);
+
+    document.getElementById('brands-select-all').addEventListener('click', function () {
+        $select.find('option').prop('selected', true).trigger('change');
+    });
+    document.getElementById('brands-clear-all').addEventListener('click', function () {
+        $select.val(null).trigger('change');
     });
 
     // Initialize FilePond with upload progress
