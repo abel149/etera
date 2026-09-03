@@ -4074,10 +4074,11 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             Proforma $proforma
         ) {
             $isEncrypted = $request->boolean('prices_encrypted', false);
+            $hasPdf      = $request->filled('encrypted_pdf') || $request->filled('pdf_data');
 
             if ($isEncrypted) {
                 $request->validate(['encrypted_amount' => 'required|string']);
-            } else {
+            } elseif (!$hasPdf) {
                 $request->validate([
                     'amount'   => 'required|numeric|min:1',
                     'discount' => 'nullable|numeric|min:0|max:100',
@@ -4108,7 +4109,7 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             $discount     = $request->discount ?? 0;
             $finalAmount  = 0;
 
-            if (!$isEncrypted) {
+            if (!$isEncrypted && !$hasPdf) {
                 $initialPrice = $request->amount;
                 $finalAmount  = $initialPrice - ($initialPrice * $discount / 100);
                 $finalAmount  = max($finalAmount, 1);
@@ -4137,6 +4138,40 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                 $appData['amount_is_encrypted'] = true;
             }
             $application = $proforma->applications()->create($appData);
+
+            // ── PDF / image quotation storage ──────────────────────────────────
+            if ($hasPdf) {
+                try {
+                    $originalFilename = $request->pdf_filename ?? 'quotation.pdf';
+                    $ext = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) ?: 'pdf';
+
+                    if ($request->filled('encrypted_pdf')) {
+                        $encBytes = base64_decode($request->encrypted_pdf);
+                        $filename = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.enc';
+                        Storage::disk('local')->put('application-files/' . $filename, $encBytes);
+                        \App\Models\ApplicationPdf::create([
+                            'application_id'    => $application->id,
+                            'storage_type'      => 'encrypted',
+                            'file_path'         => 'application-files/' . $filename,
+                            'encrypted_aes_key' => $request->encrypted_aes_key,
+                            'aes_iv'            => $request->aes_iv,
+                            'original_filename' => $originalFilename,
+                        ]);
+                    } elseif ($request->filled('pdf_data')) {
+                        $fileBytes = base64_decode($request->pdf_data);
+                        $filename  = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.' . $ext;
+                        Storage::disk('local')->put('application-files/' . $filename, $fileBytes);
+                        \App\Models\ApplicationPdf::create([
+                            'application_id'    => $application->id,
+                            'storage_type'      => 'plain',
+                            'file_path'         => 'application-files/' . $filename,
+                            'original_filename' => $originalFilename,
+                        ]);
+                    }
+                } catch (\Exception $e) {
+                    Log::error('Failed to store garage application file: ' . $e->getMessage());
+                }
+            }
 
             // ── Inbox cleanup ─────────────────────────────────────────────────
             // Remove own inbox record
