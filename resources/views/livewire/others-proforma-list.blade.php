@@ -178,6 +178,36 @@
                                                 </a>
                                             </td>
                                             @endif
+                                            @if($proforma->status === 'pending')
+                                            <td>
+                                                <button type="button" class="btn btn-danger btn-sm"
+                                                        data-bs-toggle="modal"
+                                                        data-bs-target="#rejectModal{{ $proforma->id }}">
+                                                    Reject
+                                                </button>
+                                                <div class="modal fade" id="rejectModal{{ $proforma->id }}" tabindex="-1" aria-hidden="true">
+                                                    <div class="modal-dialog modal-dialog-centered">
+                                                        <div class="modal-content">
+                                                            <form action="{{ route('proformas.reject', $proforma->id) }}" method="POST">
+                                                                @csrf
+                                                                <div class="modal-header">
+                                                                    <h5 class="modal-title text-danger">Reject Proforma #{{ $proforma->file_number }}</h5>
+                                                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                                                                </div>
+                                                                <div class="modal-body">
+                                                                    <p>To confirm rejection, type <strong>reject</strong> below:</p>
+                                                                    <input type="text" name="confirmation" class="form-control" placeholder="Type 'reject' here" required autocomplete="off">
+                                                                </div>
+                                                                <div class="modal-footer">
+                                                                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                                                                    <button type="submit" class="btn btn-danger">Reject</button>
+                                                                </div>
+                                                            </form>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            @endif
                                             @if($proforma->status == 'closed')
                                             <td>
                                                 <a href="/admin/verify/{{ $proforma->id }}" class="btn btn-primary">

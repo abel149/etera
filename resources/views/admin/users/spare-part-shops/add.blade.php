@@ -54,7 +54,6 @@
                             <span id="brands-count" class="badge bg-primary rounded-pill" style="display:none;">0 selected</span>
                         </label>
                         <div class="d-flex gap-2 mb-2">
-                            <button type="button" id="brands-select-all" class="btn btn-sm btn-outline-secondary"><i class="bx bx-check-double"></i> Select All</button>
                             <button type="button" id="brands-clear-all" class="btn btn-sm btn-outline-secondary"><i class="bx bx-x"></i> Clear All</button>
                         </div>
                         <select name="brands[]" id="brands-select" multiple required style="width:100%">
@@ -164,9 +163,6 @@ $(document).ready(function () {
     }
     $select.on('change', updateBrandsBadge);
 
-    document.getElementById('brands-select-all').addEventListener('click', function () {
-        $select.find('option').prop('selected', true).trigger('change');
-    });
     document.getElementById('brands-clear-all').addEventListener('click', function () {
         $select.val(null).trigger('change');
     });
