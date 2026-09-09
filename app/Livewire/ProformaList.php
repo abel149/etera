@@ -79,14 +79,33 @@ class ProformaList extends Component
         }
 
         if (! empty($this->search)) {
-            $query->where(function($q) {
+            // Map friendly terms to DB proforma_type values
+            $typeKeywords = [
+                'dual'         => 'insurance_shop_garage',
+                'shop only'    => 'insurance_shop_only',
+                'garage only'  => 'insurance_garage_only',
+                'shop garage'  => 'insurance_shop_garage',
+                'etera'        => null,
+            ];
+            $searchLower = strtolower(trim($this->search));
+
+            $query->where(function($q) use ($searchLower, $typeKeywords) {
                 $q->where('file_number', 'like', '%'.$this->search.'%')
                   ->orWhere('customer_name', 'like', '%'.$this->search.'%')
                   ->orWhere('customer_phone_number', 'like', '%'.$this->search.'%')
                   ->orWhere('license_plate_number', 'like', '%'.$this->search.'%')
+                  ->orWhere('proforma_type', 'like', '%'.$this->search.'%')
                   ->orWhereHas('poster', function($pq) {
                       $pq->where('name', 'like', '%'.$this->search.'%');
                   });
+                if (array_key_exists($searchLower, $typeKeywords)) {
+                    $mapped = $typeKeywords[$searchLower];
+                    if ($mapped === null) {
+                        $q->orWhereNull('proforma_type'); // etera chereta has no type
+                    } else {
+                        $q->orWhere('proforma_type', $mapped);
+                    }
+                }
             });
         }
 

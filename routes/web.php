@@ -3748,18 +3748,22 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance')
                 'call_customer' => $request->has('call_customer'),
             ]);
 
-            foreach ($request->parts as $partData) {
-                // Create a new part record
-                $part = $proforma->parts()->create([
-                    'number' => $partData['number'],
-                    'grade' => $partData['grade'] ?? null,
-                    'country' => $partData['country'] ?? null,
-                    'quantity' => $partData['quantity'] ?? null,
-                    'condition' => $partData['condition'] ?? null,
-                    'component' => $partData['component'] ?? null,
-                    'repair_renew' => $partData['repair_renew'] ?? null,
-                ]);
-
+            if (!empty($request->parts)) {
+                $now = now();
+                DB::table('proforma_part')->insert(
+                    collect($request->parts)->map(fn($p) => [
+                        'proforma_id'  => $proforma->id,
+                        'number'       => $p['number'],
+                        'grade'        => $p['grade'] ?? null,
+                        'country'      => $p['country'] ?? null,
+                        'quantity'     => $p['quantity'] ?? null,
+                        'condition'    => $p['condition'] ?? null,
+                        'component'    => $p['component'] ?? null,
+                        'repair_renew' => $p['repair_renew'] ?? null,
+                        'created_at'   => $now,
+                        'updated_at'   => $now,
+                    ])->toArray()
+                );
             }
             
             // ── Insurance inbox groups (each group = 1 required slot) ────────────
