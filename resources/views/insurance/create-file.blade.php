@@ -745,7 +745,7 @@
                                     <div class="col-12">
                                         <div class="d-flex align-items-center gap-3">
                                             <button type="button" class="btn btn-outline-secondary rounded-pill px-4" onclick="stepper3.previous()"><i class='bx bx-left-arrow-alt me-2'></i>Previous</button>
-                                            <button type="submit" class="btn btn-success rounded-pill px-4">Submit</button>
+                                            <button type="submit" id="proformaSubmitBtn" class="btn btn-success rounded-pill px-4">Submit</button>
                                         </div>
                                     </div>
                                 </div>
@@ -1575,4 +1575,21 @@ $(document).ready(function () {
 }());
 </script>
 {{-- ── End Excel Import Logic ───────────────────────────────────────── --}}
+@endpush
+
+@push('scripts')
+<script>
+(function () {
+    var form = document.getElementById('insuranceProformaForm');
+    var btn  = document.getElementById('proformaSubmitBtn');
+    if (!form || !btn) return;
+    var submitted = false;
+    form.addEventListener('submit', function () {
+        if (submitted) { return false; }
+        submitted = true;
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Submitting…';
+    });
+})();
+</script>
 @endpush
