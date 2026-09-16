@@ -4,10 +4,7 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
-use Illuminate\Support\Facades\Event;
-use Illuminate\Support\Facades\Log;
 use Illuminate\Auth\AuthenticationException;
-use Illuminate\Auth\Events\Logout;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
 use Symfony\Component\HttpKernel\Exception\HttpException;
@@ -27,22 +24,6 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
-        // ---------------------------------------------------------------
-        // Diagnostic: log a stack trace every time Auth::logout() is called.
-        // This tells us EXACTLY which code path is destroying the session.
-        // Remove this listener once the root cause is confirmed and fixed.
-        // ---------------------------------------------------------------
-        Event::listen(Logout::class, function (Logout $event) {
-            Log::warning('Auth::logout() fired — session will lose login_web_* key', [
-                'user_id'    => $event->user?->id,
-                'user_role'  => $event->user?->role,
-                'guard'      => $event->guard,
-                'stacktrace' => collect(debug_backtrace(DEBUG_BACKTRACE_IGNORE_ARGS, 20))
-                    ->map(fn($f) => ($f['class'] ?? '') . ($f['type'] ?? '') . ($f['function'] ?? '') . ' ' . ($f['file'] ?? '') . ':' . ($f['line'] ?? ''))
-                    ->implode(' → '),
-            ]);
-        });
-
         $handler = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class);
 
         // Handle unauthenticated exceptions - redirect to login

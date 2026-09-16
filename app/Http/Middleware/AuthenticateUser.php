@@ -25,10 +25,6 @@ class AuthenticateUser
 
         // Check if session is expired
         if ($this->isSessionExpired()) {
-            // For AJAX/JSON background requests (e.g. notification polling,
-            // WebSocket auth), do NOT flush the session.  Destroying the
-            // session from a background request causes the very next browser
-            // navigation to see an empty session and get redirected to login.
             if (!$request->ajax() && !$request->wantsJson()) {
                 $this->handleSessionExpiration($request);
             }
@@ -37,7 +33,6 @@ class AuthenticateUser
 
         // Check if user account is approved
         if (!$this->isUserApproved()) {
-            // Same guard: never flush the session from a background AJAX call.
             if (!$request->ajax() && !$request->wantsJson()) {
                 $this->handleUnapprovedUser($request);
             }
@@ -46,7 +41,6 @@ class AuthenticateUser
 
         // Check if user has a valid role
         if (empty(Auth::user()->role)) {
-            // Same guard: never flush the session from a background AJAX call.
             if (!$request->ajax() && !$request->wantsJson()) {
                 $this->handleNullRole($request);
             }
@@ -173,8 +167,6 @@ class AuthenticateUser
      */
     protected function redirectToLogin(Request $request): Response
     {
-        // Store intended URL for redirect after login
-        // Skip API routes so login doesn't redirect to /api/notifications etc.
         if ($request->isMethod('get') && !str_starts_with($request->path(), 'api/')) {
             Session::put('url.intended', $request->url());
         }
