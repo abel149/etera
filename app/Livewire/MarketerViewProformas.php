@@ -14,33 +14,33 @@ class MarketerViewProformas extends Component
 
     protected $paginationTheme = 'bootstrap';
 
+    public $search = '';
+
     public $filters = [
-        'license'   => '',
         'type'      => 'default',
-        'component' => 'Both',
         'car_type'  => 'All',
         'grade'     => 'All',
+        'component' => 'Both',
     ];
 
     public $sortBy = 'desc';
 
     public function updating($name, $value)
     {
-        if (str_starts_with($name, 'filters.')) {
+        if (str_starts_with($name, 'filters.') || $name === 'search') {
             $this->resetPage();
         }
     }
 
     public function clearFilters()
     {
+        $this->search = '';
         $this->filters = [
-            'license'   => '',
             'type'      => 'default',
-            'component' => 'Both',
             'car_type'  => 'All',
             'grade'     => 'All',
+            'component' => 'Both',
         ];
-
         $this->resetPage();
     }
 
@@ -49,31 +49,10 @@ class MarketerViewProformas extends Component
         $user   = Auth::user();
         $userId = $user->id;
 
-        /**
-         * Base Query
-         */
         $query = Proforma::query()
             ->where('status', 'published');
 
-        /**
-         * ✅ Brand filter — ONLY brands accepted by logged-in user
-         */
-        /**
- * Brand filter — uses car_brand_id (correct column)
- */
-// $acceptedBrandIds = $user->brands()->pluck('brands.id')->toArray();
-
-// if (!empty($acceptedBrandIds)) {
-//     $query->whereIn('car_brand_id', $acceptedBrandIds);
-// } else {
-//     // No brands assigned → return empty result
-//     $query->whereRaw('1 = 0');
-// }
-
-
-        /**
-         * Exclude already applied proformas
-         */
+        // Exclude already applied proformas
         $appliedProformaIds = ProformaApplication::where('application_by', $userId)
             ->pluck('proforma_id')
             ->toArray();
@@ -82,9 +61,26 @@ class MarketerViewProformas extends Component
             $query->whereNotIn('id', $appliedProformaIds);
         }
 
-        /**
-         * Filter: Poster Type
-         */
+        // Global search — searches the WHOLE list, not just the current page
+        if (!empty($this->search)) {
+            $search = $this->search;
+            $query->where(function ($q) use ($search) {
+                $q->where('file_number', 'like', "%{$search}%")
+                  ->orWhere('customer_name', 'like', "%{$search}%")
+                  ->orWhere('customer_phone_number', 'like', "%{$search}%")
+                  ->orWhere('license_plate_number', 'like', "%{$search}%")
+                  ->orWhere('model', 'like', "%{$search}%")
+                  ->orWhere('year', 'like', "%{$search}%")
+                  ->orWhereHas('poster', function ($pq) use ($search) {
+                      $pq->where('name', 'like', "%{$search}%");
+                  })
+                  ->orWhereHas('brand', function ($bq) use ($search) {
+                      $bq->where('name', 'like', "%{$search}%");
+                  });
+            });
+        }
+
+        // Filter: Poster Type
         switch ($this->filters['type']) {
             case 'insurance':
                 $query->whereHas('poster', fn ($q) =>
@@ -99,41 +95,12 @@ class MarketerViewProformas extends Component
                 break;
         }
 
-        /**
-         * Filter: License Plate OR Phone
-         */
-        if (!empty($this->filters['license'])) {
-            $search = trim($this->filters['license']);
-
-            $query->where(function ($q) use ($search) {
-                $q->where('license_plate_number', 'like', "%{$search}%")
-                  ->orWhereHas('poster', fn ($q2) =>
-                      $q2->where('customer_phone_number', 'like', "%{$search}%")
-                  );
-            });
-        }
-
-        /**
-         * Filter: Component
-         */
-        if ($this->filters['component'] !== 'Both') {
-            $query->whereIn('id', function ($sub) {
-                $sub->select('proforma_id')
-                    ->from('proforma_part')
-                    ->where('component', $this->filters['component']);
-            });
-        }
-
-        /**
-         * Filter: Car Type
-         */
+        // Filter: Car Type
         if ($this->filters['car_type'] !== 'All') {
             $query->where('car_type', $this->filters['car_type']);
         }
 
-        /**
-         * Filter: Grade (partial match from proforma_part)
-         */
+        // Filter: Grade (partial match from proforma_part)
         if ($this->filters['grade'] !== 'All') {
             $query->whereIn('id', function ($sub) {
                 $sub->select('proforma_id')
@@ -142,7 +109,14 @@ class MarketerViewProformas extends Component
             });
         }
 
-  
+        // Filter: Component
+        if ($this->filters['component'] !== 'Both') {
+            $query->whereIn('id', function ($sub) {
+                $sub->select('proforma_id')
+                    ->from('proforma_part')
+                    ->where('component', $this->filters['component']);
+            });
+        }
 
         $proformas = $query->orderBy('created_at', $this->sortBy)->paginate(10);
 
