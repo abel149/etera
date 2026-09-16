@@ -9,7 +9,10 @@ use App\Http\Controllers\PartnerController;
 use Illuminate\Support\Facades\Broadcast;
 
 // Register broadcast authentication routes for Reverb
-Broadcast::routes(['middleware' => ['web', 'auth.user']]);
+// Using standard 'auth' middleware (NOT 'auth.user') so that a failed WebSocket
+// auth check does NOT call Session::flush() / Auth::logout() and destroy the
+// user's active session for other page navigations.
+Broadcast::routes(['middleware' => ['web', 'auth']]);
 
 // Load broadcast channel authorization
 require __DIR__ . '/channels.php';
@@ -2887,6 +2890,7 @@ Route::get('/parts', function (Request $request) {
 
         // ******************Insurance Side******************
     });
+    
 
 Route::prefix('marketer')
     ->middleware([\App\Http\Middleware\MarketerMiddleware::class])

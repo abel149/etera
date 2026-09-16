@@ -25,19 +25,31 @@ class AuthenticateUser
 
         // Check if session is expired
         if ($this->isSessionExpired()) {
-            $this->handleSessionExpiration($request);
+            // For AJAX/JSON background requests (e.g. notification polling,
+            // WebSocket auth), do NOT flush the session.  Destroying the
+            // session from a background request causes the very next browser
+            // navigation to see an empty session and get redirected to login.
+            if (!$request->ajax() && !$request->wantsJson()) {
+                $this->handleSessionExpiration($request);
+            }
             return $this->redirectToLogin($request);
         }
 
         // Check if user account is approved
         if (!$this->isUserApproved()) {
-            $this->handleUnapprovedUser($request);
+            // Same guard: never flush the session from a background AJAX call.
+            if (!$request->ajax() && !$request->wantsJson()) {
+                $this->handleUnapprovedUser($request);
+            }
             return $this->redirectToLogin($request);
         }
 
         // Check if user has a valid role
         if (empty(Auth::user()->role)) {
-            $this->handleNullRole($request);
+            // Same guard: never flush the session from a background AJAX call.
+            if (!$request->ajax() && !$request->wantsJson()) {
+                $this->handleNullRole($request);
+            }
             return $this->redirectToLogin($request);
         }
 
