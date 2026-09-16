@@ -1,12 +1,10 @@
 <div>
-    <div class="page-wrapper">
-        <div class="page-content">
-            <h3>All Proformas</h3>
+    <h3>All Proformas</h3>
 
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-body">
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
                             {{-- Search bar + sort --}}
                             <div class="page-breadcrumb d-flex align-items-center mb-3">
                                 <form wire:submit.prevent>
@@ -169,6 +167,4 @@
                     </div>
                 </div>
             </div>
-        </div>
-    </div>
 </div>
