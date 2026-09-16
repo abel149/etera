@@ -14,7 +14,7 @@ class MarketerMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         if (!Auth::check()) {
-            // Log session state so we can diagnose why the user is not authenticated.
+            // Log full session state so we can see exactly why login_web_* is missing.
             Log::warning('MarketerMiddleware: Auth::check() failed — session may have been cleared', [
                 'url'            => $request->fullUrl(),
                 'session_id'     => Session::getId(),
@@ -22,18 +22,25 @@ class MarketerMiddleware
                 'has_activity'   => Session::has('last_activity'),
                 'last_activity'  => Session::get('last_activity'),
                 'time_now'       => time(),
+                'flash'          => Session::get('_flash'),
+                'previous_url'   => Session::get('_previous.url'),
+                'telegram_skip'  => Session::get('telegram_skipped'),
                 'ip'             => $request->ip(),
             ]);
             return redirect('/login')->with('error', 'Please login again!');
         }
 
         if (Auth::user()->role !== 'marketer') {
-            Log::warning('MarketerMiddleware: role mismatch', [
+            Log::warning('MarketerMiddleware: role mismatch — blocking access but NOT destroying session', [
                 'user_id' => Auth::id(),
                 'role'    => Auth::user()->role,
                 'url'     => $request->fullUrl(),
             ]);
-            Auth::logout();
+            // Do NOT call Auth::logout() here — that would remove login_web_* from the
+            // session and make every subsequent page navigate look like "not authenticated".
+            // Simply redirect; the user remains authenticated so they can reach their
+            // own dashboard if the role is genuinely different, or retry if it was a
+            // transient DB fetch issue.
             return redirect('/login')->with('error', 'Please login again!');
         }
 
