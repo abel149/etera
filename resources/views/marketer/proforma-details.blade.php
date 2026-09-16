@@ -190,6 +190,185 @@
                     </table>
                 </div>
 
+                @php
+                    $shopInboxes   = $proforma->inboxes->filter(fn($i) => optional($i->user)->role === 'shop');
+                    $garageInboxes = $proforma->inboxes->filter(fn($i) => optional($i->user)->role === 'garage');
+                    $shopApps   = $proforma->applications->where('from', 'shop');
+                    $garageApps = $proforma->applications->where('from', 'garage');
+                    $progress   = $proforma->partsPricingProgress();
+                    $reqShops   = (int) ($proforma->required_number_of_shops ?? 0);
+                    $reqGarages = (int) ($proforma->required_number_of_garages ?? 0);
+                    $isChereta  = $proforma->isEteraCheretaMode();
+                    $hasPartials = $shopApps->contains(fn($a) => (int)($a->filled_parts_count ?? 0) < (int)($a->total_parts_count ?? 0) && (int)($a->total_parts_count ?? 0) > 0);
+                @endphp
+
+                {{-- Parts Pricing Progress (clarifies remaining=0 with partials) --}}
+                @if (!$isChereta && $progress['total'] > 0)
+                    @php
+                        $pct = $progress['total'] > 0 ? min(100, round(($progress['filled'] / $progress['total']) * 100)) : 0;
+                        $allFilled = $progress['filled'] >= $progress['total'];
+                    @endphp
+                    <div class="card radius-10 margin-top-20">
+                        <div class="card-body">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <h6 class="mb-0"><i class="icon-material-outline-trending-up me-1"></i> Parts Pricing Progress</h6>
+                                <span class="badge {{ $allFilled ? 'bg-success' : 'bg-warning text-dark' }}">
+                                    {{ $progress['filled'] }} / {{ $progress['total'] }} parts filled
+                                </span>
+                            </div>
+                            <div class="progress" style="height: 10px;">
+                                <div class="progress-bar {{ $allFilled ? 'bg-success' : 'bg-warning' }}"
+                                     role="progressbar"
+                                     style="width: {{ $pct }}%;"
+                                     aria-valuenow="{{ $pct }}"
+                                     aria-valuemin="0"
+                                     aria-valuemax="100"></div>
+                            </div>
+                            @if (!$allFilled && $proforma->remaining_shops == 0 && $hasPartials)
+                                <p class="text-muted small mt-2 mb-0">
+                                    <i class="icon-material-outline-info me-1"></i>
+                                    All shop slots are taken, but some quotes are still <strong>partial</strong>.
+                                    This proforma will complete once all parts are priced.
+                                </p>
+                            @elseif ($allFilled)
+                                <p class="text-muted small mt-2 mb-0">
+                                    <i class="icon-material-outline-check me-1"></i>
+                                    All required parts have been priced.
+                                </p>
+                            @endif
+                        </div>
+                    </div>
+                @endif
+
+                {{-- Inboxed Shops & Garages --}}
+                <div class="card radius-10 margin-top-20">
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="icon-material-outline-business me-1"></i> Inboxed Shops & Garages</h6>
+                        @if ($shopInboxes->isEmpty() && $garageInboxes->isEmpty())
+                            <p class="text-muted mb-0">No shops or garages have been inboxed for this proforma.</p>
+                        @else
+                            <div class="row g-3">
+                                @if ($shopInboxes->isNotEmpty())
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bx bx-store me-1 text-primary"></i>
+                                            <strong>Shops ({{ $shopInboxes->count() }})</strong>
+                                        </div>
+                                        <ul class="list-group list-group-flush">
+                                            @foreach ($shopInboxes as $inbox)
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                                                    <span>{{ $inbox->user?->name ?? 'N/A' }}</span>
+                                                    <span class="badge {{ $inbox->source === 'admin' ? 'bg-info text-dark' : 'bg-primary' }}">
+                                                        {{ ucfirst($inbox->source ?? 'N/A') }}
+                                                        @if ($inbox->inbox_group)
+                                                            · Grp {{ $inbox->inbox_group }}
+                                                        @endif
+                                                    </span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+                                @if ($garageInboxes->isNotEmpty())
+                                    <div class="col-md-6">
+                                        <div class="d-flex align-items-center mb-2">
+                                            <i class="bx bx-wrench me-1 text-secondary"></i>
+                                            <strong>Garages ({{ $garageInboxes->count() }})</strong>
+                                        </div>
+                                        <ul class="list-group list-group-flush">
+                                            @foreach ($garageInboxes as $inbox)
+                                                <li class="list-group-item d-flex justify-content-between align-items-center px-0 py-1">
+                                                    <span>{{ $inbox->user?->name ?? 'N/A' }}</span>
+                                                    <span class="badge {{ $inbox->source === 'admin' ? 'bg-info text-dark' : 'bg-primary' }}">
+                                                        {{ ucfirst($inbox->source ?? 'N/A') }}
+                                                        @if ($inbox->inbox_group)
+                                                            · Grp {{ $inbox->inbox_group }}
+                                                        @endif
+                                                    </span>
+                                                </li>
+                                            @endforeach
+                                        </ul>
+                                    </div>
+                                @endif
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
+                {{-- Submitted Applications --}}
+                <div class="card radius-10 margin-top-20">
+                    <div class="card-body">
+                        <h6 class="mb-3"><i class="icon-material-outline-clipboard me-1"></i> Submitted Applications</h6>
+                        @if ($shopApps->isEmpty() && $garageApps->isEmpty())
+                            <p class="text-muted mb-0">No applications submitted yet.</p>
+                        @else
+                            <div class="table-container">
+                                <table class="basic-table">
+                                    <thead>
+                                        <tr>
+                                            <th>#</th>
+                                            <th>Applicant</th>
+                                            <th>Type</th>
+                                            <th>Source</th>
+                                            <th>Parts Filled</th>
+                                            <th>Status</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @php $i = 1; @endphp
+                                        @foreach ($shopApps as $app)
+                                            @php
+                                                $filled = (int) ($app->filled_parts_count ?? 0);
+                                                $total  = (int) ($app->total_parts_count ?? 0);
+                                                $isPartial = $total > 0 && $filled < $total;
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $i++ }}</td>
+                                                <td>{{ $app->applicationBy?->name ?? 'N/A' }}</td>
+                                                <td><span class="badge bg-primary">Shop</span></td>
+                                                <td>{{ ucfirst($app->application_source ?? 'N/A') }}</td>
+                                                <td>{{ $filled }} / {{ $total ?: '—' }}</td>
+                                                <td>
+                                                    @if ($isPartial)
+                                                        <span class="badge bg-warning text-dark">Partial</span>
+                                                    @elseif ($total > 0 && $filled >= $total)
+                                                        <span class="badge bg-success">Complete</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">Submitted</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                        @foreach ($garageApps as $app)
+                                            @php
+                                                $filled = (int) ($app->filled_parts_count ?? 0);
+                                                $total  = (int) ($app->total_parts_count ?? 0);
+                                                $isPartial = $total > 0 && $filled < $total;
+                                            @endphp
+                                            <tr>
+                                                <td>{{ $i++ }}</td>
+                                                <td>{{ $app->applicationBy?->name ?? 'N/A' }}</td>
+                                                <td><span class="badge bg-secondary">Garage</span></td>
+                                                <td>{{ ucfirst($app->application_source ?? 'N/A') }}</td>
+                                                <td>{{ $filled }} / {{ $total ?: '—' }}</td>
+                                                <td>
+                                                    @if ($isPartial)
+                                                        <span class="badge bg-warning text-dark">Partial</span>
+                                                    @elseif ($total > 0 && $filled >= $total)
+                                                        <span class="badge bg-success">Complete</span>
+                                                    @else
+                                                        <span class="badge bg-secondary">Submitted</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                        @endif
+                    </div>
+                </div>
+
                 <div class="alert alert-info margin-top-20">
                     <i class="icon-material-outline-info"></i>
                     This is a read-only view. Marketers cannot submit quotes for proformas.

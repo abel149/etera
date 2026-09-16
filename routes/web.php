@@ -2899,7 +2899,10 @@ Route::prefix('marketer')
 
         // Marketer Proforma Details (Read-only view)
         Route::get('/proforma-details', function (Request $request) {
-            $proforma = \App\Models\Proforma::find($request->query('proforma'));
+            $proforma = \App\Models\Proforma::with([
+                'inboxes.user',
+                'applications.applicationBy',
+            ])->find($request->query('proforma'));
             if (!$proforma) {
                 return redirect()->back();
             }
