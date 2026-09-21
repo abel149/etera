@@ -1502,7 +1502,7 @@ Route::get('/float', function (Request $request) {
     event(new ProformaPublished($proforma));
 
     return redirect()->back();
-});
+})->middleware(['auth.user', \App\Http\Middleware\AdminMiddleware::class]);
 
 // ******************Admin Side******************
 
