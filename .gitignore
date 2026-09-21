@@ -25,3 +25,6 @@ package-lock.json
 
 # Laravel logs & caches
 storage
+
+# Load testing (local tool + binary + real test credentials, never commit)
+/load-tests

@@ -372,7 +372,7 @@ Route::post('/login', function (Request $request) {
     }
 
     return back()->withErrors(['email_or_phone' => 'Invalid credentials.'])->withInput();
-})->name('login');
+});
 
 
 
