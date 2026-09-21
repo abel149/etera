@@ -754,7 +754,7 @@ Route::get('/application/{application}/file', function (\App\Models\ProformaAppl
     return response($bytes, 200)
         ->header('Content-Type', $mime)
         ->header('Content-Disposition', 'inline; filename="' . $pdf->original_filename . '"');
-})->middleware('auth.user')->name('application.pdf.serve');
+})->middleware('auth.user')->name('application.pdf.serve.orig');
 
 // Return encrypted payload as JSON — used by the viewer JS for encrypted submissions.
 // Reads encrypted bytes from disk, re-encodes to base64 for the browser to decrypt.
@@ -778,7 +778,7 @@ Route::get('/application/{application}/file/encrypted', function (\App\Models\Pr
         'encrypted_aes_key' => $pdf->encrypted_aes_key,
         'aes_iv'            => $pdf->aes_iv,
     ]);
-})->middleware('auth.user')->name('application.pdf.encrypted');
+})->middleware('auth.user')->name('application.pdf.encrypted.orig');
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -958,7 +958,7 @@ Route::put('/profile/update', function (Request $request) {
 
     // Redirect with success message
     return redirect()->back()->with('success', 'Profile updated successfully!');
-})->middleware('auth')->name('profile.update');
+})->middleware('auth')->name('profile.update.2');
 
 
 
@@ -995,7 +995,7 @@ Route::put('/profile/update', function (Request $request) {
 Route::get('/profile', function () {
     return view('admin.profile.profile');
     // Ensure this Blade file exists in resources/views/admin/
-})->middleware('auth')->name('profile.show');
+})->middleware('auth')->name('profile.show.2');
 
 // Update Profile
 Route::put('/profile/update', function (Request $request) {
@@ -1025,7 +1025,7 @@ Route::put('/profile/update', function (Request $request) {
     $user->save();
 
     return redirect()->back()->with('success', 'Profile updated successfully!');
-})->middleware('auth')->name('profile.update');
+})->middleware('auth')->name('profile.update.3');
 
 
 
@@ -1034,17 +1034,17 @@ Route::put('/profile/update', function (Request $request) {
         // Register Users
 
 
-        Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup');
+        Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup.2');
         Route::post('/add-register', [\App\Http\Controllers\RegisterController::class, 'store'])->name('add-register');
 
         // Separate signup routes for different user types
-        Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual');
+        Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual.2');
         Route::post('/register/individual', [\App\Http\Controllers\RegisterController::class, 'storeIndividual'])->name('register.individual');
         
-        Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner');
+        Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner.2');
         Route::post('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'storeBusinessOwner'])->name('register.business-owner');
         
-        Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart');
+        Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart.2');
         Route::post('/register/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'storeGarageSparepart'])->name('register.garage-sparepart');
 
 
@@ -4309,7 +4309,7 @@ Route::get('/received-details', function (Request $request) {
 
 Route::get('/create-file', function () {
     return view('spare-part.posts');
-})->name('garage.create-file');
+})->name('garage.create-file.orig');
 
 // use Illuminate\Http\Request;
 // use Illuminate\Support\Facades\DB;
@@ -4330,7 +4330,7 @@ Route::prefix('garage')
         Route::get('create-file', function () {
             Log::info('🔍 GET request to garage/create-file');
             return view('spare-part.posts');
-        })->name('garage.create-file');
+        })->name('garage.create-file.2');
 
         /**
          * Handle FilePond uploads
@@ -4686,7 +4686,7 @@ Route::prefix('spare-part-shops')
             }
 
             return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId', 'applicationMode'));
-        })->name('proforma-details');
+        })->name('proforma-details.2');
 
 Route::post('apply/{proforma}', function (
     Request $request,
@@ -5050,7 +5050,7 @@ Route::get('/telegram-connect', function (Request $request) {
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = '/telegram-skip';
     return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl'));
-})->name('telegram.connect');
+})->name('telegram.connect.2');
 
 // Skip Telegram connect for this session
 Route::get('/telegram-skip', function () {
@@ -5177,7 +5177,7 @@ $brands = \App\Models\Brand::where('is_test', $userIsTest)
             $garage_partners = auth()->user()->garagePartners();
 
             return view('business-owner.create-file', compact('brands','parts','spare_part_partners','garage_partners'));
-        })->name('business-owner.create-file');
+        })->name('business-owner.create-file.orig');
         
 Route::prefix('business-owner')
     ->middleware([\App\Http\Middleware\BusinessOwnerMiddleware::class])
@@ -5194,7 +5194,7 @@ Route::prefix('business-owner')
             $garage_partners = auth()->user()->garagePartners();
 
             return view('business-owner.create-file', compact('brands','parts','spare_part_partners','garage_partners'));
-        })->name('business-owner.create-file');
+        })->name('business-owner.create-file.2');
         Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
 
     Log::info("🔵 Route hit: Start request-close", [
