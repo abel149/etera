@@ -57,7 +57,6 @@ use App\Http\Controllers\GarageController;
 use App\Http\Controllers\BusinessOwnerController;
 use App\Http\Controllers\MarketerController;
 
-use App\Http\Controllers\MarketerBusinessController;
 use App\Http\Controllers\ProfileController;
 
 use App\Http\Controllers\NotificationController;
@@ -2780,18 +2779,9 @@ Route::get('/brands', function () {
 
 
 
-Route::prefix('marketer')->group(function () {
-    Route::get('/business-owners/{id}/edit', [MarketerBusinessController::class, 'edit'])
-        ->name('marketer.business-owners.edit');
-
-    Route::put('/business-owners/{id}', [MarketerBusinessController::class, 'update'])
-        ->name('marketer.business-owners.update');
-
-    Route::delete('/business-owners/{id}', [MarketerBusinessController::class, 'destroy'])
-        ->name('marketer.business-owners.destroy');
-    
-
-});
+// NOTE: MarketerBusinessController::edit/update/destroy are commented-out dead code.
+// The real, working business-owner edit/update flow (for both admin and marketer roles)
+// is BusinessOwnerController, registered further below with the same route names.
 
 
 
