@@ -3168,7 +3168,7 @@ Route::prefix('insurance')
             return back()->with('success', 'Close request submitted.');
         })->name('insurance.proforma.request-close');
 
-Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance.balance');
         Route::get('/received-proformas', function (Request $request) {
     if (auth()->check()) {
         $user = auth()->user();
@@ -4293,7 +4293,7 @@ Route::get('/received-details', function (Request $request) {
 
     return view('spare-part.received-details', compact('proforma', 'applications'));
 });
-        Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/balance', [UserBalanceController::class, 'index'])->name('garage.balance');
         Route::get('/inbox', function () {
             return view('spare-part.inbox');
         });
@@ -4577,7 +4577,7 @@ Route::prefix('spare-part-shops')
         Route::get('/proformas', function () {
             return view('spare-part.proformas');
         });
-        Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/balance', [UserBalanceController::class, 'index'])->name('shop.balance');
         Route::get('/inbox', function () {
             return view('spare-part.inbox');
         });
