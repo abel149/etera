@@ -5545,51 +5545,59 @@ Route::get('proforma-details', function (Request $request) {
 		Route::delete('delete', [TemporaryFileController::class, 'destroy']);
 	});
 
-// Etera-Chereta Service Status Route
-Route::get('/etera-chereta/status', function () {
-    try {
-        $cacheKey = 'etera_chereta_service_running';
-        $isRunning = Cache::has($cacheKey);
-        $lastCheck = Cache::get($cacheKey);
-        
-        // Check if the process is actually running
-        $processRunning = false;
-        if (PHP_OS_FAMILY === 'Windows') {
-            if (function_exists('shell_exec')) {
-                $output = shell_exec('tasklist /FI "IMAGENAME eq php.exe" /FO CSV 2>nul');
-                $processRunning = strpos($output, 'etera-chereta:check-expiration') !== false;
-            } else {
-                $processRunning = false;
-            }
-        } else {
-            if (function_exists('shell_exec')) {
-                $output = shell_exec('ps aux | grep "etera-chereta:check-expiration" | grep -v grep');
-                $processRunning = !empty($output);
-            } else {
-                $processRunning = false;
-            }
-        }
-        
-        $status = [
-            'status' => $isRunning && $processRunning ? 'running' : 'stopped',
-            'last_check' => $lastCheck ? $lastCheck->toISOString() : null,
-            'auto_start_enabled' => true,
-            'platform' => PHP_OS_FAMILY,
-            'process_running' => $processRunning,
-            'cache_status' => $isRunning ? 'active' : 'inactive',
-            'timestamp' => now()->toISOString(),
-        ];
-        
-        return response()->json($status);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'error' => $e->getMessage(),
-            'timestamp' => now()->toISOString(),
-        ], 500);
-    }
-})->name('etera-chereta.status');
+// Disabled: this route reported on the per-request "auto-start Etera-Chereta
+// daemon" (AutoStartEteraCheretaMiddleware / EteraCheretaAutoStartServiceProvider),
+// which had no real process check on Linux and could spawn duplicate daemons —
+// each holding a persistent PDO connection — exhausting MySQL's connection pool
+// and taking the site down. Etera-Chereta expiration is handled safely instead by
+// the existing scheduled command `proformas:close-expired` (see routes/console.php,
+// runs every minute via Laravel's scheduler), which only processes proformas that
+// actually have `timer_expires_at` set, with no persistent process or connection.
+//
+// Route::get('/etera-chereta/status', function () {
+//     try {
+//         $cacheKey = 'etera_chereta_service_running';
+//         $isRunning = Cache::has($cacheKey);
+//         $lastCheck = Cache::get($cacheKey);
+//
+//         // Check if the process is actually running
+//         $processRunning = false;
+//         if (PHP_OS_FAMILY === 'Windows') {
+//             if (function_exists('shell_exec')) {
+//                 $output = shell_exec('tasklist /FI "IMAGENAME eq php.exe" /FO CSV 2>nul');
+//                 $processRunning = strpos($output, 'etera-chereta:check-expiration') !== false;
+//             } else {
+//                 $processRunning = false;
+//             }
+//         } else {
+//             if (function_exists('shell_exec')) {
+//                 $output = shell_exec('ps aux | grep "etera-chereta:check-expiration" | grep -v grep');
+//                 $processRunning = !empty($output);
+//             } else {
+//                 $processRunning = false;
+//             }
+//         }
+//
+//         $status = [
+//             'status' => $isRunning && $processRunning ? 'running' : 'stopped',
+//             'last_check' => $lastCheck ? $lastCheck->toISOString() : null,
+//             'auto_start_enabled' => true,
+//             'platform' => PHP_OS_FAMILY,
+//             'process_running' => $processRunning,
+//             'cache_status' => $isRunning ? 'active' : 'inactive',
+//             'timestamp' => now()->toISOString(),
+//         ];
+//
+//         return response()->json($status);
+//
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'status' => 'error',
+//             'error' => $e->getMessage(),
+//             'timestamp' => now()->toISOString(),
+//         ], 500);
+//     }
+// })->name('etera-chereta.status');
 
 
 
