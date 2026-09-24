@@ -117,35 +117,11 @@ Route::post('/reviews/store', [UserReviewController::class, 'store'])
     ->name('reviews.store');
 
 
-// Helper function to process temporary files
-if (!function_exists('processTemporaryFile')) {
-function processTemporaryFile($tempFile, $destinationFolder) {
-    \Log::info('Upload: processing temp file', [
-        'temp_folder' => is_string($tempFile) ? $tempFile : 'NON_STRING',
-        'destination' => $destinationFolder,
-    ]);
-    if (is_string($tempFile)) {
-        // If it's a folder name from FilePond
-        $tempFileModel = \App\Models\TemporaryFile::where('folder', $tempFile)->first();
-        if ($tempFileModel) {
-            $tempPath = 'temporary/tmp/' . $tempFile . '/' . $tempFileModel->file;
-            $newPath = $destinationFolder . '/' . time() . '_' . $tempFileModel->file;
-            
-            if (Storage::disk('local')->exists($tempPath)) {
-                // Copy file to permanent location
-                Storage::disk('public')->put($newPath, Storage::disk('local')->get($tempPath));
-                
-                // Clean up temporary file
-                Storage::disk('local')->deleteDirectory('temporary/tmp/' . $tempFile);
-                $tempFileModel->delete();
-                
-                return $newPath;
-            }
-        }
-    }
-    return null;
-}
-}
+// NOTE: processTemporaryFile() moved to app/helpers.php (autoloaded via
+// composer.json "files") — it MUST NOT live here. Once route:cache is
+// active, this file is no longer included per-request, so any top-level
+// function defined here silently stops existing ("Call to undefined
+// function ..."). See app/helpers.php for details.
 
 Route::post('/upload-part-image', [TempController::class, 'uploadPartImage'])->name('upload.part.image');
 Route::delete('/delete-part-image', [TempController::class, 'revert'])->name('upload.part.image.revert');
@@ -2146,65 +2122,11 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
  * 🔹 Helper function to create PaidUser commission records
  */
  
- if (!function_exists('addCommissionRecord')) {
- 
-function addCommissionRecord($user, $proformaId, $applicationId, $amount)
-{
-    $role = $user->role; // 'shop', 'garage', or 'insurance'
-
-    // 0. Idempotency guard: never create the same commission twice
-    // (re-verification would otherwise inflate balances and analytics).
-    $alreadyExists = PaidUser::where('user_id', $user->id)
-        ->where('proforma_id', $proformaId)
-        ->when(
-            $applicationId,
-            fn($q) => $q->where('application_id', $applicationId),
-            fn($q) => $q->whereNull('application_id')
-        )
-        ->exists();
-
-    if ($alreadyExists) {
-        Log::info('Skipped duplicate commission record', [
-            'user_id' => $user->id,
-            'proforma_id' => $proformaId,
-            'application_id' => $applicationId,
-        ]);
-        return null;
-    }
-
-    // 1. Create PaidUser record (Legacy/Work Log)
-    $record = PaidUser::create([
-        'user_id'       => $user->id,
-        'proforma_id'   => $proformaId,
-        'application_id'=> $applicationId,
-        'amount'        => $amount,
-        'is_paid'       => false,
-        'paid_at'       => null,
-    ]);
-
-    Log::info('PaidUser record created', [
-        'user_id' => $user->id,
-        'role' => $role,
-        'amount' => $amount,
-        'proforma_id' => $proformaId,
-        'application_id' => $applicationId,
-    ]);
-
-    // 2. Create Transaction (Ledger)
-    // Commission is "Money In" (Credit) for the user
-    $walletService = new \App\Services\WalletService();
-    $walletService->processTransaction(
-        $user,
-        -$amount,
-        'commission',
-        'Commission for Proforma #' . $proformaId,
-        $record
-    );
-
-    return $record;
-}
-
-}
+// NOTE: addCommissionRecord() moved to app/helpers.php (autoloaded via
+// composer.json "files") — it MUST NOT live here. Once route:cache is
+// active, this file is no longer included per-request, so any top-level
+// function defined here silently stops existing ("Call to undefined
+// function ..."). See app/helpers.php for details.
 
 
 
