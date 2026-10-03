@@ -3,6 +3,31 @@
 <div class="row row-cols-12 row-cols-lg-12 row-cols-xl-12">
 	<div class="col mx-auto">
 		<div class="my-5 my-lg-0 shadow-none">
+
+			{{-- ── Collapsible Agent Overview Chart (insurance with agents only) ──────── --}}
+			<div class="card radius-10 mb-3" id="agentChartCard" style="display:none;">
+				<div class="card-header d-flex align-items-center justify-content-between" style="cursor:pointer;" id="agentChartToggle">
+					<div class="d-flex align-items-center gap-2">
+						<i class="bx bx-bar-chart-alt-2 text-primary fs-5"></i>
+						<span class="fw-semibold">Claim Officers — Proforma Status Overview</span>
+					</div>
+					<button type="button" class="btn btn-sm btn-outline-primary px-3" id="agentChartBtn">
+						<i class="bx bx-expand-alt me-1"></i> Show Overview
+					</button>
+				</div>
+				<div id="agentChartBody" style="display:none;" class="card-body">
+					<div id="agentChartLoading" class="text-center py-4 text-muted">
+						<div class="spinner-border spinner-border-sm me-2" role="status"></div>Loading…
+					</div>
+					<div id="agentChartContent" style="display:none;">
+						<canvas id="agentBarChart" style="max-height:340px;"></canvas>
+						<div id="agentChartEmpty" class="text-center text-muted py-3" style="display:none;">
+							No claim officer proformas found.
+						</div>
+					</div>
+				</div>
+			</div>
+
 			<div class="row g-3">
 				<div class="col-12 col-lg-3">
 					<div class="card radius-10">
@@ -203,6 +228,119 @@
 		</div>
 	</div>
 </div>
+
+<!-- ── Agent Overview Chart ── -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+(function () {
+    const STATS_URL = '/insurance/api/agent-proforma-stats';
+    const STATUS_COLORS = {
+        pending:                  '#ffc107',
+        opened:                   '#0dcaf0',
+        published:                '#0d6efd',
+        'waiting for approval':   '#6f42c1',
+        'waiting for payment':    '#fd7e14',
+        'payment collected':      '#20c997',
+        completed:                '#198754',
+        closed:                   '#6c757d',
+        returned:                 '#dc3545',
+    };
+
+    let chartInstance = null;
+    let dataLoaded    = false;
+
+    function buildChart(rows) {
+        const agents   = [...new Set(rows.map(r => r.name))];
+        const statuses = [...new Set(rows.map(r => r.status))];
+
+        if (agents.length === 0) {
+            document.getElementById('agentChartEmpty').style.display = '';
+            document.getElementById('agentChartLoading').style.display = 'none';
+            document.getElementById('agentChartContent').style.display = '';
+            return;
+        }
+
+        // Build datasets: one per status
+        const datasets = statuses.map(status => ({
+            label:           status.charAt(0).toUpperCase() + status.slice(1),
+            backgroundColor: STATUS_COLORS[status] || '#adb5bd',
+            data:            agents.map(agent => {
+                const row = rows.find(r => r.name === agent && r.status === status);
+                return row ? row.count : 0;
+            }),
+        }));
+
+        document.getElementById('agentChartLoading').style.display = 'none';
+        document.getElementById('agentChartContent').style.display  = '';
+
+        const ctx = document.getElementById('agentBarChart').getContext('2d');
+        chartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: { labels: agents, datasets },
+            options: {
+                responsive: true,
+                plugins: {
+                    legend: { position: 'top' },
+                    tooltip: { mode: 'index', intersect: false },
+                },
+                scales: {
+                    x: { stacked: false },
+                    y: { beginAtZero: true, ticks: { precision: 0 } },
+                },
+            },
+        });
+    }
+
+    async function loadAndRender() {
+        if (dataLoaded) return;
+        dataLoaded = true;
+        try {
+            const res  = await fetch(STATS_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+            const rows = await res.json();
+            buildChart(rows);
+        } catch (e) {
+            document.getElementById('agentChartLoading').innerHTML =
+                '<span class="text-danger">Failed to load data.</span>';
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Show/hide the entire card based on whether this insurance has agents
+        // (detected after the first fetch — avoids an extra count query on load)
+        let expanded = false;
+
+        const card   = document.getElementById('agentChartCard');
+        const body   = document.getElementById('agentChartBody');
+        const btn    = document.getElementById('agentChartBtn');
+        const toggle = document.getElementById('agentChartToggle');
+
+        // Probe silently — show card only if agents exist
+        fetch(STATS_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
+            .then(r => r.json())
+            .then(rows => {
+                if (rows && rows.length > 0) {
+                    card.style.display = '';
+                    dataLoaded = false; // reset so full render fires on click
+                }
+            })
+            .catch(() => {});
+
+        function toggleChart() {
+            expanded = !expanded;
+            if (expanded) {
+                body.style.display = '';
+                btn.innerHTML = '<i class="bx bx-collapse-alt me-1"></i> Hide Overview';
+                loadAndRender();
+            } else {
+                body.style.display = 'none';
+                btn.innerHTML = '<i class="bx bx-expand-alt me-1"></i> Show Overview';
+            }
+        }
+
+        toggle.addEventListener('click', toggleChart);
+    });
+})();
+</script>
 
 <!-- ✅ Search Script (seamless AJAX) -->
 <script>

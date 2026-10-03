@@ -20,13 +20,20 @@ public function index()
 
     $users = User::whereIn('role', ['garage', 'shop', 'insurance', 'operator'])->get();
 
-    // Process users by type
+    // Load all insurance_agent users in one query, grouped by parent_insurance_id
+    $allAgents = User::where('role', 'insurance_agent')
+        ->whereNotNull('parent_insurance_id')
+        ->orderBy('name')
+        ->get()
+        ->groupBy('parent_insurance_id');
+
     $garageShopUsers = $this->processUsers(
         $users->whereIn('role', ['garage', 'shop'])
     );
 
-    $insuranceUsers = $this->processUsers(
-        $users->where('role', 'insurance')
+    $insuranceUsers = $this->processInsuranceUsers(
+        $users->where('role', 'insurance'),
+        $allAgents
     );
 
     $operatorUsers = $this->processUsers(
@@ -38,17 +45,15 @@ public function index()
         ->merge($operatorUsers)
         ->keyBy(fn ($u) => $u->user->id);
 
-    // Return view based on requester role
     switch ($currentUser->role) {
         case 'admin':
-               return view('admin.analytics.index', compact(
+            return view('admin.analytics.index', compact(
                 'garageShopUsers',
                 'insuranceUsers',
                 'operatorUsers',
                 'allUsers'
             ));
         default:
-            // Admin or accountant sees everything
             return view('accountant.dashboard', compact(
                 'garageShopUsers',
                 'insuranceUsers',
@@ -101,6 +106,99 @@ public function receivePayment($userId)
     return back()->with('success', 'All unpaid invoices marked as paid.');
 }
 
+
+    // ---------------------------
+    // PROCESS INSURANCE USERS (with agent aggregation)
+    // ---------------------------
+    private function processInsuranceUsers($insurances, $allAgents)
+    {
+        if ($insurances->isEmpty()) return collect();
+
+        $insuranceIds = $insurances->pluck('id')->toArray();
+
+        // Build flat list of all agent users + a map: agent_id → parent_insurance_id
+        $allAgentUsers   = $allAgents->flatten(1);
+        $agentIds        = $allAgentUsers->pluck('id')->toArray();
+        $agentParentMap  = $allAgentUsers->pluck('parent_insurance_id', 'id');
+
+        // All poster IDs (insurance accounts + all their agents) for batch loading
+        $allPosterIds = array_merge($insuranceIds, $agentIds);
+
+        // 1. PaidUser records for the insurance accounts themselves (agents don't earn commissions)
+        $allPaidUsers = PaidUser::whereIn('user_id', $insuranceIds)
+            ->get()
+            ->groupBy('user_id');
+
+        // 2. All invoices for proformas posted by insurance accounts OR any of their agents
+        $allInvoices = ProformaInvoice::whereHas('proforma', function ($q) use ($allPosterIds) {
+            $q->whereIn('poster_id', $allPosterIds)->where('insured', true);
+        })
+        ->with('proforma:id,poster_id')
+        ->get();
+
+        // Group invoices by agent's poster_id for the per-agent breakdown
+        $invoicesByPosterId = $allInvoices->groupBy(fn ($inv) => $inv->proforma->poster_id);
+
+        // Group ALL invoices by the root insurance id (agents mapped to their parent)
+        $invoicesByInsuranceId = $allInvoices->groupBy(function ($inv) use ($agentParentMap, $insuranceIds) {
+            $posterId = $inv->proforma->poster_id;
+            return $agentParentMap->get($posterId, $posterId);
+        });
+
+        return $insurances->map(function ($user) use (
+            $allPaidUsers, $invoicesByInsuranceId, $invoicesByPosterId, $allAgents, $agentParentMap
+        ) {
+            $agents = $allAgents->get($user->id, collect());
+
+            /* === PaidUser (commissions) for this insurance account === */
+            $paidUsers   = $allPaidUsers->get($user->id, collect());
+            $totalEarned = $paidUsers->sum('amount');
+            $totalPaid   = $paidUsers->where('is_paid', true)->sum('amount');
+            $remaining   = $totalEarned - $totalPaid;
+
+            /* === Invoices: insurance account + ALL agents combined === */
+            $invoices      = $invoicesByInsuranceId->get($user->id, collect());
+            $invoiceTotal  = $invoices->sum('total_amount');
+            $invoicePaid   = $invoices->where('is_paid', true)->sum('total_amount');
+            $invoiceUnpaid = $invoiceTotal - $invoicePaid;
+
+            /* === Per-agent breakdown (already-loaded data, no extra queries) === */
+            $agentBreakdown = $agents->map(function ($agent) use ($invoicesByPosterId) {
+                $agentInvoices = $invoicesByPosterId->get($agent->id, collect());
+                return (object) [
+                    'id'      => $agent->id,
+                    'name'    => $agent->name,
+                    'total'   => (float) $agentInvoices->sum('total_amount'),
+                    'paid'    => (float) $agentInvoices->where('is_paid', true)->sum('total_amount'),
+                    'pending' => (float) $agentInvoices->where('is_paid', false)->sum('total_amount'),
+                    'count'   => $agentInvoices->count(),
+                ];
+            })->values();
+
+            return (object) [
+                'user'  => $user,
+                'role'  => $user->role,
+
+                'filled_applications' => $paidUsers->whereNotNull('application_id')->count(),
+                'filled_proformas'    => $paidUsers->whereNotNull('proforma_id')->count(),
+
+                'total_earned' => $totalEarned,
+                'total_paid'   => $totalPaid,
+                'remaining'    => $remaining,
+
+                // Combined insurance + agents invoice totals
+                'insurance_proforma_count'  => $invoices->count(),
+                'insurance_proforma_total'  => $invoiceTotal,
+                'insurance_proforma_paid'   => $invoicePaid,
+                'insurance_proforma_unpaid' => $invoiceUnpaid,
+
+                'invoices'        => $invoices,
+                'transactions'    => $paidUsers,
+                'agents'          => $agents,
+                'agent_breakdown' => $agentBreakdown,
+            ];
+        })->values();
+    }
 
     // ---------------------------
     // PROCESS USERS

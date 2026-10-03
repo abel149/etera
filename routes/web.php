@@ -3118,6 +3118,25 @@ Route::prefix('insurance')
             return view('insurance.index', compact('proformas'));
         });
 
+        // Agent proforma status stats — single GROUP-BY query, loaded lazily by the
+        // collapsible chart on the insurance dashboard so it never runs on page load.
+        Route::get('/api/agent-proforma-stats', function () {
+            $user = auth()->user();
+            if (!$user || $user->role !== 'insurance') {
+                return response()->json([]);
+            }
+
+            $rows = DB::table('proformas')
+                ->join('users as agents', 'proformas.poster_id', '=', 'agents.id')
+                ->where('agents.parent_insurance_id', $user->id)
+                ->where('agents.role', 'insurance_agent')
+                ->select('agents.id', 'agents.name', 'proformas.status', DB::raw('COUNT(*) as count'))
+                ->groupBy('agents.id', 'agents.name', 'proformas.status')
+                ->get();
+
+            return response()->json($rows);
+        })->name('insurance.agent-proforma-stats');
+
         Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             $proforma = \App\Models\Proforma::find($proformaId);
             if (!$proforma) {
