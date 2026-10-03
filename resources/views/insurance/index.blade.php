@@ -5,7 +5,7 @@
 		<div class="my-5 my-lg-0 shadow-none">
 
 			{{-- ── Collapsible Agent Overview Chart (insurance with agents only) ──────── --}}
-			<div class="card radius-10 mb-3" id="agentChartCard" style="display:none;">
+			<div class="card radius-10 mb-3" id="agentChartCard" @unless($hasAgents) style="display:none;" @endunless>
 				<div class="card-header d-flex align-items-center justify-content-between" style="cursor:pointer;" id="agentChartToggle">
 					<div class="d-flex align-items-center gap-2">
 						<i class="bx bx-bar-chart-alt-2 text-primary fs-5"></i>
@@ -305,8 +305,6 @@
     }
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Show/hide the entire card based on whether this insurance has agents
-        // (detected after the first fetch — avoids an extra count query on load)
         let expanded = false;
 
         const card   = document.getElementById('agentChartCard');
@@ -314,16 +312,7 @@
         const btn    = document.getElementById('agentChartBtn');
         const toggle = document.getElementById('agentChartToggle');
 
-        // Probe silently — show card only if agents exist
-        fetch(STATS_URL, { headers: { 'X-Requested-With': 'XMLHttpRequest' } })
-            .then(r => r.json())
-            .then(rows => {
-                if (rows && rows.length > 0) {
-                    card.style.display = '';
-                    dataLoaded = false; // reset so full render fires on click
-                }
-            })
-            .catch(() => {});
+        if (!card || card.style.display === 'none') return;
 
         function toggleChart() {
             expanded = !expanded;

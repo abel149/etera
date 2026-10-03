@@ -3113,9 +3113,10 @@ Route::prefix('insurance')
                 });
             }
 
-            $proformas = $query->paginate(20)->withQueryString();
+            $proformas  = $query->paginate(20)->withQueryString();
+            $hasAgents  = auth()->user()->agents()->exists();
 
-            return view('insurance.index', compact('proformas'));
+            return view('insurance.index', compact('proformas', 'hasAgents'));
         });
 
         // Agent proforma status stats — single GROUP-BY query, loaded lazily by the
