@@ -406,48 +406,61 @@ Route::get('/api/admin/proformas', function () {
 
     $user = auth()->user();
 
-    $data = Cache::remember('admin_proformas_data', 10, function () {
-        $proformasQuery = \App\Models\Proforma::with('poster')
-            ->whereHas('poster')
-            ->orderBy('created_at', 'desc');
+    // No cache: polling interval is 30s but TTL was 10s, so the cache was always
+    // expired before the next poll fired — it never helped. The query is now fast
+    // (1 main query + 2 inline COUNT subqueries via withCount) so run fresh every poll.
+    $proformasQuery = \App\Models\Proforma::with('poster')
+        ->withCount(['applicationsFromShops', 'applicationsFromGarages'])
+        ->whereHas('poster')
+        ->orderBy('created_at', 'desc');
 
-        if (!(auth()->user()->is_superadmin == 1)) {
-            $proformasQuery->where(function ($q) {
-                $q->whereNull('processed_by')->orWhere('processed_by', auth()->id());
-            });
-        }
+    if (!($user->is_superadmin == 1)) {
+        $proformasQuery->where(function ($q) use ($user) {
+            $q->whereNull('processed_by')->orWhere('processed_by', $user->id);
+        });
+    }
 
-        $proformas = $proformasQuery
-            ->limit(100)
-            ->get()
-            ->map(function ($p) {
-                $label = $p->poster ? ($p->poster->role == 'business_owner' ? 'Business Owner' : ucfirst($p->poster->role)) : 'Unknown';
-                return [
-                    'id' => $p->id,
-                    'file_number' => $p->file_number ?? 'N/A',
-                    'from' => $label,
-                    'customer_name' => $p->customer_name ?? 'N/A',
-                    'garage_count' => $p->applicationsFromGarages ? $p->applicationsFromGarages->count() : 0,
-                    'shop_count' => $p->applicationsFromShops ? $p->applicationsFromShops->count() : 0,
-                    'status' => $p->status ?? 'pending',
-                    'is_from_others' => $p->poster ? $p->isFromOthers() : false,
-                    'is_etera_chereta' => $p->isEteraCheretaMode(),
-                    'remaining_time' => $p->isEteraCheretaMode() ? $p->getFormattedRemainingTime() : 'N/A',
-                    'timer_expires_at' => $p->timer_expires_at ? $p->timer_expires_at->toISOString() : null,
-                    'created_at' => $p->created_at ? $p->created_at->format('D M d, Y h:i A') : 'N/A',
-                ];
-            });
+    $proformas = $proformasQuery
+        ->limit(100)
+        ->get()
+        ->map(function ($p) {
+            $label = $p->poster ? ($p->poster->role == 'business_owner' ? 'Business Owner' : ucfirst($p->poster->role)) : 'Unknown';
+            return [
+                'id' => $p->id,
+                'file_number' => $p->file_number ?? 'N/A',
+                'from' => $label,
+                'customer_name' => $p->customer_name ?? 'N/A',
+                'garage_count' => $p->applications_from_garages_count ?? 0,
+                'shop_count' => $p->applications_from_shops_count ?? 0,
+                'status' => $p->status ?? 'pending',
+                'is_from_others' => $p->poster ? $p->isFromOthers() : false,
+                'is_etera_chereta' => $p->isEteraCheretaMode(),
+                'remaining_time' => $p->isEteraCheretaMode() ? $p->getFormattedRemainingTime() : 'N/A',
+                'timer_expires_at' => $p->timer_expires_at ? $p->timer_expires_at->toISOString() : null,
+                'created_at' => $p->created_at ? $p->created_at->format('D M d, Y h:i A') : 'N/A',
+            ];
+        });
 
-        return [
-            'stats' => [
-                'insurance_total' => \App\Models\Proforma::fromInsurances()->count(),
-                'insurance_completed' => \App\Models\Proforma::fromInsurances()->where('status', 'completed')->count(),
-                'others_total' => \App\Models\Proforma::fromOthers()->count(),
-                'others_completed' => \App\Models\Proforma::fromOthers()->where('status', 'completed')->count(),
-            ],
-            'proformas' => $proformas,
-        ];
-    });
+    // Collapse 4 separate Proforma::fromX()->count() calls into 1 JOIN query
+    $statsRow = DB::table('proformas')
+        ->join('users as poster', 'proformas.poster_id', '=', 'poster.id')
+        ->selectRaw("
+            SUM(CASE WHEN poster.role IN ('insurance','insurance_agent') THEN 1 ELSE 0 END) AS insurance_total,
+            SUM(CASE WHEN poster.role IN ('insurance','insurance_agent') AND proformas.status = 'completed' THEN 1 ELSE 0 END) AS insurance_completed,
+            SUM(CASE WHEN poster.role IN ('business_owner','garage','others') THEN 1 ELSE 0 END) AS others_total,
+            SUM(CASE WHEN poster.role IN ('business_owner','garage','others') AND proformas.status = 'completed' THEN 1 ELSE 0 END) AS others_completed
+        ")
+        ->first();
+
+    $data = [
+        'stats' => [
+            'insurance_total'     => (int) ($statsRow->insurance_total ?? 0),
+            'insurance_completed' => (int) ($statsRow->insurance_completed ?? 0),
+            'others_total'        => (int) ($statsRow->others_total ?? 0),
+            'others_completed'    => (int) ($statsRow->others_completed ?? 0),
+        ],
+        'proformas' => $proformas,
+    ];
 
     return response()->json($data);
 })->middleware('auth.user');
@@ -1693,7 +1706,31 @@ Route::prefix('/admin')
 
         Route::get('/profile', function () {
             return view('admin.profile.profile');
-        });
+        })->name('admin.profile.show');
+
+        Route::put('/profile/update', function (Request $request) {
+            $user = Auth::user();
+
+            $request->merge([
+                'email' => $request->filled('email') ? $request->email : null,
+            ]);
+
+            $request->validate([
+                'name'         => 'required|string|max:255',
+                'email'        => 'nullable|email|unique:users,email,' . $user->id,
+                'phone_number' => 'nullable|string|max:20',
+                'password'     => 'nullable|min:6|confirmed',
+            ]);
+
+            $user->update([
+                'name'         => $request->name,
+                'email'        => $request->email,
+                'phone_number' => $request->phone_number,
+                'password'     => $request->filled('password') ? Hash::make($request->password) : $user->password,
+            ]);
+
+            return redirect()->back()->with('success', 'Profile updated successfully!');
+        })->name('admin.profile.update');
 
 
 

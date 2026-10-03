@@ -27,7 +27,7 @@
                             <div class="card-body">
                                 <h4 class="text-center mb-4 mt-1">Account Details</h4>
 
-                                <form action="{{ route('profile.update') }}" method="POST">
+                                <form action="{{ route('admin.profile.update') }}" method="POST">
                                     @csrf
                                     @method('PUT')
 
