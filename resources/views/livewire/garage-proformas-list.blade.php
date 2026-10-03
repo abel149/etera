@@ -230,6 +230,7 @@
 
                 <!-- Proforma List -->
                 <div class="listings-container compact-list-layout margin-top-35">
+                    @php $isDealer = auth()->user()->shop_garage == 1; @endphp
                     @foreach($proformas as $proforma)
 
                         @if($proforma->userAlreadyApplied(auth()->id()))
@@ -247,8 +248,15 @@
                                     </div>
 
                                     <div class="job-listing-description">
+                                        @php
+                                            $p = $proforma->poster;
+                                            $pIsAgent = $p?->role === 'insurance_agent';
+                                        @endphp
                                         <h3 class="job-listing-title">
-                                            {{ $proforma->poster->name ?? 'N/A' }}
+                                            {{ $p?->name ?? 'N/A' }}
+                                            @if($pIsAgent)
+                                                <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                            @endif
                                         </h3>
 
                                         <div class="job-listing-footer">
@@ -258,12 +266,12 @@
                                                     {{ $proforma->year }},
                                                     {{ $proforma->brand?->name }},
                                                     {{ $proforma->model }}
-                                                    [{{ $proforma->license_plate_number }}]
+                                                    @if($isDealer)[{{ $proforma->license_plate_number }}]@endif
                                                 </li>
 
                                                 <li>
                                                     <i class="icon-material-outline-business"></i>
-                                                    {{ ucfirst($proforma->poster->role ?? 'N/A') }}
+                                                    {{ $pIsAgent ? 'Insurance (Claim Officer)' : ucfirst($p?->role ?? 'N/A') }}
                                                 </li>
 
                                                 @if(auth()->user()->role == 'shop')

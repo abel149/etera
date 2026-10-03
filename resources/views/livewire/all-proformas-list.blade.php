@@ -296,6 +296,7 @@
 
                 <!-- Proforma List -->
                 <div class="listings-container">
+                    @php $isDealer = auth()->user()->shop_garage == 1; @endphp
                     @forelse($proformas as $proforma)
 
                         @if($proforma->userAlreadyApplied(auth()->id()))
@@ -321,23 +322,32 @@
                                     <div class="job-listing-description">
                                         <span class="badge-partial">&#x1F512; Partial Proforma</span>
 
-                                        @if($proforma->poster->role == 'garage')
+                                        @php
+                                            $p = $proforma->poster;
+                                            $pIsAgent = $p?->role === 'insurance_agent';
+                                        @endphp
+                                        @if($p?->role === 'garage')
                                             <h3 class="job-listing-title h5 mb-1">Garage</h3>
-                                        @elseif($proforma->poster->role == 'insurance')
-                                            <h3 class="job-listing-title h5 mb-1">{{ $proforma->poster->name ?? 'N/A' }}</h3>
+                                        @elseif($p?->role === 'insurance' || $pIsAgent)
+                                            <h3 class="job-listing-title h5 mb-1">
+                                                {{ $p->name ?? 'N/A' }}
+                                                @if($pIsAgent)
+                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                @endif
+                                            </h3>
                                         @else
-                                            <h3 class="job-listing-title h5 mb-1">{{ $proforma->file_number ?? 'N/A' }}</h3>
+                                            <h3 class="job-listing-title h5 mb-1">{{ $p?->name ?? 'N/A' }}</h3>
                                         @endif
 
                                         <div class="job-listing-footer">
                                             <ul>
                                                 <li>
                                                     <i class="icon-material-outline-directions-car"></i>
-                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }} [{{ $proforma->license_plate_number }}]
+                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }}@if($isDealer) [{{ $proforma->license_plate_number }}]@endif
                                                 </li>
                                                 <li>
                                                     <i class="icon-material-outline-business"></i>
-                                                    {{ ucfirst($proforma->poster->role ?? 'N/A') }}
+                                                    {{ $pIsAgent ? 'Insurance (Claim Officer)' : ucfirst($p?->role ?? 'N/A') }}
                                                 </li>
                                                 <li>
                                                     <i class="icon-material-outline-edit"></i>
@@ -390,23 +400,32 @@
                                     </div>
 
                                     <div class="job-listing-description">
-                                        @if($proforma->poster->role == 'garage')
+                                        @php
+                                            $p = $proforma->poster;
+                                            $pIsAgent = $p?->role === 'insurance_agent';
+                                        @endphp
+                                        @if($p?->role === 'garage')
                                             <h3 class="job-listing-title h5 mb-2">Garage</h3>
-                                        @elseif($proforma->poster->role == 'insurance')
-                                            <h3 class="job-listing-title h5 mb-2">{{ $proforma->poster->name ?? 'N/A' }}</h3>
+                                        @elseif($p?->role === 'insurance' || $pIsAgent)
+                                            <h3 class="job-listing-title h5 mb-2">
+                                                {{ $p->name ?? 'N/A' }}
+                                                @if($pIsAgent)
+                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                @endif
+                                            </h3>
                                         @else
-                                            <h3 class="job-listing-title h5 mb-2">{{ $proforma->file_number ?? 'N/A' }}</h3>
+                                            <h3 class="job-listing-title h5 mb-2">{{ $p?->name ?? 'N/A' }}</h3>
                                         @endif
 
                                         <div class="job-listing-footer">
                                             <ul>
                                                 <li>
                                                     <i class="icon-material-outline-directions-car"></i>
-                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }} [{{ $proforma->license_plate_number }}]
+                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }}@if($isDealer) [{{ $proforma->license_plate_number }}]@endif
                                                 </li>
                                                 <li>
                                                     <i class="icon-material-outline-business"></i>
-                                                    {{ ucfirst($proforma->poster->role ?? 'N/A') }}
+                                                    {{ $pIsAgent ? 'Insurance (Claim Officer)' : ucfirst($p?->role ?? 'N/A') }}
                                                 </li>
                                                 <li>
                                                     <i class="icon-material-outline-access-time"></i>
@@ -434,23 +453,32 @@
                                     </div>
 
                                     <div class="job-listing-description">
-                                        @if($proforma->poster->role == 'garage')
+                                        @php
+                                            $p = $proforma->poster;
+                                            $pIsAgent = $p?->role === 'insurance_agent';
+                                        @endphp
+                                        @if($p?->role === 'garage')
                                             <h3 class="job-listing-title h5 mb-2">Garage</h3>
-                                        @elseif($proforma->poster->role == 'insurance')
-                                            <h3 class="job-listing-title h5 mb-2">{{ $proforma->poster->name ?? 'N/A' }}</h3>
+                                        @elseif($p?->role === 'insurance' || $pIsAgent)
+                                            <h3 class="job-listing-title h5 mb-2">
+                                                {{ $p->name ?? 'N/A' }}
+                                                @if($pIsAgent)
+                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                @endif
+                                            </h3>
                                         @else
-                                            <h3 class="job-listing-title h5 mb-2">{{ $proforma->file_number ?? 'N/A' }}</h3>
+                                            <h3 class="job-listing-title h5 mb-2">{{ $p?->name ?? 'N/A' }}</h3>
                                         @endif
 
                                         <div class="job-listing-footer">
                                             <ul>
                                                 <li>
                                                     <i class="icon-material-outline-directions-car"></i>
-                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }} [{{ $proforma->license_plate_number }}]
+                                                    {{ $proforma->year }}, {{ $proforma->brand?->name }}, {{ $proforma->model }}@if($isDealer) [{{ $proforma->license_plate_number }}]@endif
                                                 </li>
                                                 <li>
                                                     <i class="icon-material-outline-business"></i>
-                                                    {{ ucfirst($proforma->poster->role ?? 'N/A') }}
+                                                    {{ $pIsAgent ? 'Insurance (Claim Officer)' : ucfirst($p?->role ?? 'N/A') }}
                                                 </li>
                                                 @if(auth()->user()->role == 'shop')
                                                     <li>

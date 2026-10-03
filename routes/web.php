@@ -3928,7 +3928,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
     });
 
 Route::get('proforma-details', function (Request $request) {
-    $proforma = \App\Models\Proforma::find($request->query('proforma'));
+    $proforma = \App\Models\Proforma::with('poster.parentInsurance')->find($request->query('proforma'));
     if (!$proforma) {
         return redirect()->back();
     }
@@ -4037,7 +4037,7 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
 
         
         Route::get('proforma-details', function (Request $request) {
-            $proforma = \App\Models\Proforma::find($request->query('proforma'));
+            $proforma = \App\Models\Proforma::with('poster.parentInsurance')->find($request->query('proforma'));
             if (! $proforma) {
                 return redirect()->back();
             }
@@ -4574,7 +4574,7 @@ Route::prefix('spare-part-shops')
         });
 
         Route::get('proforma-details', function (Request $request) {
-            $proforma = \App\Models\Proforma::find($request->query('proforma'));
+            $proforma = \App\Models\Proforma::with('poster.parentInsurance')->find($request->query('proforma'));
             if (! $proforma) {
                 return redirect()->back();
             }

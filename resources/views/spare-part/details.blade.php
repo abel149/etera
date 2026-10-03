@@ -359,11 +359,27 @@
                             <div class="header-image"><a href="single-company-profile.html"><img
                                         src="{{ asset('asset/images/company-logo-03a.png') }}" alt=""></a></div>
                             <div class="header-details">
-                                {{-- <h3>{{$proforma->insurance->name}}</h3> --}}
-                                <h5>File #: {{ $proforma->file_number ?? 'N/A' }}</h5>
+                                @php
+                                    $poster   = $proforma->poster;
+                                    $isAgent  = $poster?->role === 'insurance_agent';
+                                    $isDealerDetail = auth()->user()->shop_garage == 1;
+                                @endphp
+                                <h3>
+                                    {{ $poster?->name ?? 'N/A' }}
+                                    @if($isAgent)
+                                        <small class="d-block text-muted" style="font-size:0.78rem;font-weight:400;">
+                                            {{ $poster->parentInsurance?->name ?? '' }}
+                                        </small>
+                                    @endif
+                                </h3>
+                                @if($isDealerDetail)
+                                    <h5>File #: {{ $proforma->file_number ?? 'N/A' }}</h5>
+                                @endif
                                 <ul>
+                                    @if($isDealerDetail)
                                     <li><i class="icon-feather-credit-card"></i> Plate Number:
                                         {{ $proforma->license_plate_number ?? 'N/A' }}</li>
+                                    @endif
                                     <li><i class="icon-feather-settings"></i> Chassis Number: {{ $proforma->chassis_number ?? 'N/A' }}</li>
                                     <li><i class="icon-material-outline-directions-car"></i> Year:
                                         {{ $proforma->year ?? 'N/A' }}</li>

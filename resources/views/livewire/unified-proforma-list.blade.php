@@ -83,23 +83,34 @@
 
     <!-- Proformas List -->
     <div class="row">
+        @php $isDealer = auth()->user()->shop_garage == 1; @endphp
         @forelse($proformas as $proforma)
             <div class="col-lg-6 col-xl-4 mb-4">
                 <div class="card h-100">
                     <div class="card-body">
-                        <div class="d-flex justify-content-between align-items-start mb-3">
+                        @php
+                                $p = $proforma->poster;
+                                $pIsAgent = $p?->role === 'insurance_agent';
+                            @endphp
+                            <div class="d-flex justify-content-between align-items-start mb-3">
                             <div>
-                                <h6 class="card-title mb-1">{{ $proforma->file_number }}</h6>
-                                <small class="text-muted">{{ $proforma->poster->name ?? 'Unknown' }}</small>
+                                @if($isDealer)
+                                    <h6 class="card-title mb-1">{{ $proforma->file_number }}</h6>
+                                @endif
+                                <small class="text-muted">
+                                    {{ $p?->name ?? 'Unknown' }}
+                                    @if($pIsAgent)
+                                        <span class="d-block" style="font-size:0.72rem;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                    @endif
+                                </small>
                             </div>
-                            <span class="badge 
-                                @if($proforma->poster && $proforma->poster->role === 'insurance') bg-primary
+                            <span class="badge
+                                @if($p?->role === 'insurance' || $pIsAgent) bg-primary
                                 @else bg-secondary
                                 @endif">
-                                @if($proforma->poster && $proforma->poster->role === 'insurance')
-                                    Insurance
-                                @else
-                                    Others
+                                @if($p?->role === 'insurance') Insurance
+                                @elseif($pIsAgent) Insurance (Agent)
+                                @else Others
                                 @endif
                             </span>
                         </div>
@@ -107,7 +118,7 @@
                         <div class="mb-3">
                             <p class="mb-1"><strong>Customer:</strong> {{ $proforma->customer_name }}</p>
                             <p class="mb-1"><strong>Phone:</strong> {{ $proforma->customer_phone_number }}</p>
-                            <p class="mb-1"><strong>License:</strong> {{ $proforma->license_plate_number ?? 'N/A' }}</p>
+                            @if($isDealer)<p class="mb-1"><strong>License:</strong> {{ $proforma->license_plate_number ?? 'N/A' }}</p>@endif
                             <p class="mb-1"><strong>Chassis:</strong> {{ $proforma->chassis_number }}</p>
                             <p class="mb-1"><strong>Brand:</strong> {{ $proforma->brand->name ?? 'N/A' }}</p>
                             <p class="mb-1"><strong>Model:</strong> {{ $proforma->model }}</p>

@@ -97,7 +97,10 @@ class UnifiedProformaList extends Component
         }
         
         // Pagination and Sorting
-        $proformas = $query->orderBy('created_at', $this->sortBy)->paginate(10);
+        $proformas = $query
+            ->with(['poster.parentInsurance'])
+            ->orderBy('created_at', $this->sortBy)
+            ->paginate(10);
         
         // Return the view with all necessary data
         return view('livewire.unified-proforma-list', [
