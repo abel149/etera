@@ -8,6 +8,7 @@ use App\Models\Brand;
 use App\Models\User;
 use App\Models\CarPart;
 
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 class ListOfProformasFromOthers extends Component
@@ -67,28 +68,49 @@ class ListOfProformasFromOthers extends Component
         }
 
         // Pagination and sorting
-        $proformas = $query->orderBy('created_at', $this->sortBy)->paginate(10);
+        $proformas = $query
+            ->withCount(['applicationsFromShops', 'applicationsFromGarages'])
+            ->orderBy('created_at', $this->sortBy)
+            ->paginate(10);
+
+        // Dropdown data is cached: these reference tables change rarely but were
+        // being queried fresh on every single Livewire render (filter, sort, paginate).
+        $insurances = Cache::remember('dropdown_insurance_users', 60, fn () =>
+            User::where('role', 'insurance')->get()
+        );
+
+        $brands = Cache::remember('dropdown_brands', 60, fn () =>
+            Brand::all()
+        );
+
+        $allParts = Cache::remember('dropdown_car_parts', 60, fn () =>
+            CarPart::select('name')->distinct()->orderBy('name')->get()
+        );
+
+        $grades = Cache::remember('dropdown_proforma_grades', 30, fn () =>
+            CarPart::join('proforma_part', 'car_parts.id', '=', 'proforma_part.car_part_id')
+                ->select('proforma_part.grade')
+                ->distinct()
+                ->get()
+        );
+
+        $components = Cache::remember('dropdown_proforma_components', 30, fn () =>
+            DB::table('proforma_part')
+                ->select('condition')
+                ->whereNotNull('condition')
+                ->where('condition', '!=', '')
+                ->distinct()
+                ->get()
+        );
 
         // Return the view with all necessary data
         return view('livewire.list-of-proformas-from-others', [
-          
-
-
-
-                'proformas' => $proformas,
-                'insurances' => User::where('role', 'insurance')->get(),
-                'brands' => Brand::all(),
-                'grades' => CarPart::join('proforma_part', 'car_parts.id', '=', 'proforma_part.car_part_id')
-                    ->select('proforma_part.grade')
-                    ->distinct()
-                    ->get(),
-                'components' => DB::table('proforma_part')
-                    ->select('condition')
-                    ->whereNotNull('condition')
-                    ->where('condition', '!=', '')
-                    ->distinct()
-                    ->get(),
-                'allParts' => CarPart::select('name')->distinct()->orderBy('name')->get(),
+                'proformas'  => $proformas,
+                'insurances' => $insurances,
+                'brands'     => $brands,
+                'grades'     => $grades,
+                'components' => $components,
+                'allParts'   => $allParts,
         ]);
     }
 }

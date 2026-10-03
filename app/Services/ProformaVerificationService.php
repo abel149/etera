@@ -15,6 +15,13 @@ use App\Models\{
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 
+/**
+ * @deprecated This service is NOT connected to any route or controller and must NOT be used.
+ *             All proforma verification runs through the inline /verify/{proforma} route in web.php.
+ *             This class has INCORRECT insurance billing logic (flat rate, no group multiplication,
+ *             no per-company InsuranceCost lookup) and would produce wrong invoices if activated.
+ *             Do NOT wire this class up. It should be deleted after review.
+ */
 class ProformaVerificationService
 {
     public function verify(Proforma $proforma)

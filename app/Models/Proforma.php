@@ -38,9 +38,6 @@ class Proforma extends Model implements HasMedia
 
         // Send email to 251etera@gmail.com for every new proforma
         static::created(function (Proforma $proforma) {
-            // Clear admin dashboard cache so polling picks up new proformas
-            \Illuminate\Support\Facades\Cache::forget('admin_proformas_data');
-
             try {
                 $posterName = $proforma->poster?->name ?? 'Unknown';
                 $posterRole = $proforma->poster?->role ?? 'Unknown';
@@ -147,7 +144,10 @@ class Proforma extends Model implements HasMedia
         if ($this->isEteraCheretaMode()) {
             return '∞';
         }
-        return max(0, $this->required_number_of_shops - $this->applicationsFromShops()->count());
+        // Prefer withCount('applicationsFromShops') aggregate when the query eager-loaded it;
+        // fall back to a count query so direct access stays correct.
+        $appliedCount = $this->applications_from_shops_count ?? $this->applicationsFromShops()->count();
+        return max(0, $this->required_number_of_shops - $appliedCount);
     }
 
     public function getRemainingGaragesAttribute()
@@ -155,7 +155,8 @@ class Proforma extends Model implements HasMedia
         if ($this->isShopOnlyInsurance()) {
             return 0;
         }
-        return max(0, $this->required_number_of_garages - $this->applicationsFromGarages()->count());
+        $appliedCount = $this->applications_from_garages_count ?? $this->applicationsFromGarages()->count();
+        return max(0, $this->required_number_of_garages - $appliedCount);
     }
 
     // ── Insurance partner quota ─────────────────────────────────────────────────

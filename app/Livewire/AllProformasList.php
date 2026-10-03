@@ -216,6 +216,7 @@ if (!empty($acceptedBrandIds)) {
          * Sort & Paginate
          */
         $proformas = $query
+            ->withCount(['applicationsFromShops', 'applicationsFromGarages'])
             ->orderBy('created_at', $this->sortBy)
             ->paginate(10);
 
