@@ -4,6 +4,9 @@ namespace App\Providers;
 
 use Illuminate\Support\ServiceProvider;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Database\Events\QueryExecuted;
 use Illuminate\Auth\AuthenticationException;
 use Illuminate\Session\TokenMismatchException;
 use Illuminate\Database\Eloquent\ModelNotFoundException;
@@ -24,6 +27,41 @@ class AppServiceProvider extends ServiceProvider
      */
     public function boot(): void
     {
+        // Temporary performance diagnostics: log any query slower than 500ms,
+        // plus a per-request summary of query count and total DB time.
+        // Remove this block once the performance investigation is done.
+        DB::listen(function (QueryExecuted $query) {
+            $stats = $this->app->bound('perf.queryStats')
+                ? $this->app->make('perf.queryStats')
+                : ['count' => 0, 'time' => 0.0];
+            $stats['count']++;
+            $stats['time'] += $query->time;
+            $this->app->instance('perf.queryStats', $stats);
+
+            if ($query->time >= 500) {
+                Log::warning('🐢 SLOW QUERY', [
+                    'time_ms'  => $query->time,
+                    'sql'      => $query->sql,
+                    'bindings' => $query->bindings,
+                    'url'      => request()?->fullUrl(),
+                ]);
+            }
+        });
+
+        $this->app->terminating(function () {
+            $stats = $this->app->bound('perf.queryStats')
+                ? $this->app->make('perf.queryStats')
+                : null;
+            if ($stats && $stats['count'] > 0) {
+                Log::info('📊 REQUEST QUERIES', [
+                    'url'          => request()?->fullUrl(),
+                    'method'       => request()?->method(),
+                    'query_count'  => $stats['count'],
+                    'total_db_ms'  => round($stats['time'], 1),
+                ]);
+            }
+        });
+
         $handler = $this->app->make(\Illuminate\Contracts\Debug\ExceptionHandler::class);
 
         // Handle unauthenticated exceptions - redirect to login

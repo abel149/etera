@@ -21,10 +21,17 @@ return Application::configure(basePath: dirname(__DIR__))
     // =========================
     ->withMiddleware(function (Middleware $middleware) {
 
-        // Auto-start Etera-Chereta service
-        $middleware->append(
-            \App\Http\Middleware\AutoStartEteraCheretaMiddleware::class
-        );
+        // Disabled: this middleware auto-spawns "etera-chereta:check-expiration --daemon"
+        // per-request whenever its cache flag lapses, with no real process check on Linux.
+        // Multiple daemons piling up (each holding a persistent PDO connection) caused
+        // MySQL "Too many connections" and took the site down. Etera-Chereta expiration
+        // is now handled safely by the scheduled command `proformas:close-expired` (see
+        // routes/console.php), which requires only the standard Laravel cron entry:
+        // `* * * * * php artisan schedule:run`. Only re-enable this middleware if that
+        // scheduled command is ever removed AND the underlying process-check bug is fixed.
+        // $middleware->append(
+        //     \App\Http\Middleware\AutoStartEteraCheretaMiddleware::class
+        // );
 
         // Refresh CSRF token
         $middleware->append(

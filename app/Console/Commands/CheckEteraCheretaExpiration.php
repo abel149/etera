@@ -101,9 +101,9 @@ class CheckEteraCheretaExpiration extends Command
         
         // Optimize database connections
         config(['database.connections.mysql.options' => [
-            PDO::ATTR_PERSISTENT => true,
-            PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false,
-            PDO::ATTR_EMULATE_PREPARES => false,
+            \PDO::ATTR_PERSISTENT => true,
+            \PDO::MYSQL_ATTR_USE_BUFFERED_QUERY => false,
+            \PDO::ATTR_EMULATE_PREPARES => false,
         ]]);
         
         // Enable query logging for performance monitoring

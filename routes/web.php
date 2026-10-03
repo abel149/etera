@@ -57,7 +57,6 @@ use App\Http\Controllers\GarageController;
 use App\Http\Controllers\BusinessOwnerController;
 use App\Http\Controllers\MarketerController;
 
-use App\Http\Controllers\MarketerBusinessController;
 use App\Http\Controllers\ProfileController;
 
 use App\Http\Controllers\NotificationController;
@@ -118,35 +117,11 @@ Route::post('/reviews/store', [UserReviewController::class, 'store'])
     ->name('reviews.store');
 
 
-// Helper function to process temporary files
-if (!function_exists('processTemporaryFile')) {
-function processTemporaryFile($tempFile, $destinationFolder) {
-    \Log::info('Upload: processing temp file', [
-        'temp_folder' => is_string($tempFile) ? $tempFile : 'NON_STRING',
-        'destination' => $destinationFolder,
-    ]);
-    if (is_string($tempFile)) {
-        // If it's a folder name from FilePond
-        $tempFileModel = \App\Models\TemporaryFile::where('folder', $tempFile)->first();
-        if ($tempFileModel) {
-            $tempPath = 'temporary/tmp/' . $tempFile . '/' . $tempFileModel->file;
-            $newPath = $destinationFolder . '/' . time() . '_' . $tempFileModel->file;
-            
-            if (Storage::disk('local')->exists($tempPath)) {
-                // Copy file to permanent location
-                Storage::disk('public')->put($newPath, Storage::disk('local')->get($tempPath));
-                
-                // Clean up temporary file
-                Storage::disk('local')->deleteDirectory('temporary/tmp/' . $tempFile);
-                $tempFileModel->delete();
-                
-                return $newPath;
-            }
-        }
-    }
-    return null;
-}
-}
+// NOTE: processTemporaryFile() moved to app/helpers.php (autoloaded via
+// composer.json "files") — it MUST NOT live here. Once route:cache is
+// active, this file is no longer included per-request, so any top-level
+// function defined here silently stops existing ("Call to undefined
+// function ..."). See app/helpers.php for details.
 
 Route::post('/upload-part-image', [TempController::class, 'uploadPartImage'])->name('upload.part.image');
 Route::delete('/delete-part-image', [TempController::class, 'revert'])->name('upload.part.image.revert');
@@ -372,7 +347,7 @@ Route::post('/login', function (Request $request) {
     }
 
     return back()->withErrors(['email_or_phone' => 'Invalid credentials.'])->withInput();
-})->name('login');
+});
 
 
 
@@ -768,7 +743,7 @@ Route::get('/application/{application}/file', function (\App\Models\ProformaAppl
     return response($bytes, 200)
         ->header('Content-Type', $mime)
         ->header('Content-Disposition', 'inline; filename="' . $pdf->original_filename . '"');
-})->middleware('auth.user')->name('application.pdf.serve');
+})->middleware('auth.user')->name('application.pdf.serve.orig');
 
 // Return encrypted payload as JSON — used by the viewer JS for encrypted submissions.
 // Reads encrypted bytes from disk, re-encodes to base64 for the browser to decrypt.
@@ -792,7 +767,7 @@ Route::get('/application/{application}/file/encrypted', function (\App\Models\Pr
         'encrypted_aes_key' => $pdf->encrypted_aes_key,
         'aes_iv'            => $pdf->aes_iv,
     ]);
-})->middleware('auth.user')->name('application.pdf.encrypted');
+})->middleware('auth.user')->name('application.pdf.encrypted.orig');
 
 // ─────────────────────────────────────────────────────────────────────────────
 
@@ -972,7 +947,7 @@ Route::put('/profile/update', function (Request $request) {
 
     // Redirect with success message
     return redirect()->back()->with('success', 'Profile updated successfully!');
-})->middleware('auth')->name('profile.update');
+})->middleware('auth')->name('profile.update.2');
 
 
 
@@ -1009,7 +984,7 @@ Route::put('/profile/update', function (Request $request) {
 Route::get('/profile', function () {
     return view('admin.profile.profile');
     // Ensure this Blade file exists in resources/views/admin/
-})->middleware('auth')->name('profile.show');
+})->middleware('auth')->name('profile.show.2');
 
 // Update Profile
 Route::put('/profile/update', function (Request $request) {
@@ -1039,7 +1014,7 @@ Route::put('/profile/update', function (Request $request) {
     $user->save();
 
     return redirect()->back()->with('success', 'Profile updated successfully!');
-})->middleware('auth')->name('profile.update');
+})->middleware('auth')->name('profile.update.3');
 
 
 
@@ -1048,17 +1023,17 @@ Route::put('/profile/update', function (Request $request) {
         // Register Users
 
 
-        Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup');
+        Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup.2');
         Route::post('/add-register', [\App\Http\Controllers\RegisterController::class, 'store'])->name('add-register');
 
         // Separate signup routes for different user types
-        Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual');
+        Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual.2');
         Route::post('/register/individual', [\App\Http\Controllers\RegisterController::class, 'storeIndividual'])->name('register.individual');
         
-        Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner');
+        Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner.2');
         Route::post('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'storeBusinessOwner'])->name('register.business-owner');
         
-        Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart');
+        Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart.2');
         Route::post('/register/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'storeGarageSparepart'])->name('register.garage-sparepart');
 
 
@@ -2184,65 +2159,11 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
  * 🔹 Helper function to create PaidUser commission records
  */
  
- if (!function_exists('addCommissionRecord')) {
- 
-function addCommissionRecord($user, $proformaId, $applicationId, $amount)
-{
-    $role = $user->role; // 'shop', 'garage', or 'insurance'
-
-    // 0. Idempotency guard: never create the same commission twice
-    // (re-verification would otherwise inflate balances and analytics).
-    $alreadyExists = PaidUser::where('user_id', $user->id)
-        ->where('proforma_id', $proformaId)
-        ->when(
-            $applicationId,
-            fn($q) => $q->where('application_id', $applicationId),
-            fn($q) => $q->whereNull('application_id')
-        )
-        ->exists();
-
-    if ($alreadyExists) {
-        Log::info('Skipped duplicate commission record', [
-            'user_id' => $user->id,
-            'proforma_id' => $proformaId,
-            'application_id' => $applicationId,
-        ]);
-        return null;
-    }
-
-    // 1. Create PaidUser record (Legacy/Work Log)
-    $record = PaidUser::create([
-        'user_id'       => $user->id,
-        'proforma_id'   => $proformaId,
-        'application_id'=> $applicationId,
-        'amount'        => $amount,
-        'is_paid'       => false,
-        'paid_at'       => null,
-    ]);
-
-    Log::info('PaidUser record created', [
-        'user_id' => $user->id,
-        'role' => $role,
-        'amount' => $amount,
-        'proforma_id' => $proformaId,
-        'application_id' => $applicationId,
-    ]);
-
-    // 2. Create Transaction (Ledger)
-    // Commission is "Money In" (Credit) for the user
-    $walletService = new \App\Services\WalletService();
-    $walletService->processTransaction(
-        $user,
-        -$amount,
-        'commission',
-        'Commission for Proforma #' . $proformaId,
-        $record
-    );
-
-    return $record;
-}
-
-}
+// NOTE: addCommissionRecord() moved to app/helpers.php (autoloaded via
+// composer.json "files") — it MUST NOT live here. Once route:cache is
+// active, this file is no longer included per-request, so any top-level
+// function defined here silently stops existing ("Call to undefined
+// function ..."). See app/helpers.php for details.
 
 
 
@@ -2817,18 +2738,9 @@ Route::get('/brands', function () {
 
 
 
-Route::prefix('marketer')->group(function () {
-    Route::get('/business-owners/{id}/edit', [MarketerBusinessController::class, 'edit'])
-        ->name('marketer.business-owners.edit');
-
-    Route::put('/business-owners/{id}', [MarketerBusinessController::class, 'update'])
-        ->name('marketer.business-owners.update');
-
-    Route::delete('/business-owners/{id}', [MarketerBusinessController::class, 'destroy'])
-        ->name('marketer.business-owners.destroy');
-    
-
-});
+// NOTE: MarketerBusinessController::edit/update/destroy are commented-out dead code.
+// The real, working business-owner edit/update flow (for both admin and marketer roles)
+// is BusinessOwnerController, registered further below with the same route names.
 
 
 
@@ -3215,7 +3127,7 @@ Route::prefix('insurance')
             return back()->with('success', 'Close request submitted.');
         })->name('insurance.proforma.request-close');
 
-Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance.balance');
         Route::get('/received-proformas', function (Request $request) {
     if (auth()->check()) {
         $user = auth()->user();
@@ -4340,7 +4252,7 @@ Route::get('/received-details', function (Request $request) {
 
     return view('spare-part.received-details', compact('proforma', 'applications'));
 });
-        Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/balance', [UserBalanceController::class, 'index'])->name('garage.balance');
         Route::get('/inbox', function () {
             return view('spare-part.inbox');
         });
@@ -4356,7 +4268,7 @@ Route::get('/received-details', function (Request $request) {
 
 Route::get('/create-file', function () {
     return view('spare-part.posts');
-})->name('garage.create-file');
+})->name('garage.create-file.orig');
 
 // use Illuminate\Http\Request;
 // use Illuminate\Support\Facades\DB;
@@ -4377,7 +4289,7 @@ Route::prefix('garage')
         Route::get('create-file', function () {
             Log::info('🔍 GET request to garage/create-file');
             return view('spare-part.posts');
-        })->name('garage.create-file');
+        })->name('garage.create-file.2');
 
         /**
          * Handle FilePond uploads
@@ -4624,7 +4536,7 @@ Route::prefix('spare-part-shops')
         Route::get('/proformas', function () {
             return view('spare-part.proformas');
         });
-        Route::get('/balance', [UserBalanceController::class, 'index'])->name('balance');
+        Route::get('/balance', [UserBalanceController::class, 'index'])->name('shop.balance');
         Route::get('/inbox', function () {
             return view('spare-part.inbox');
         });
@@ -4733,7 +4645,7 @@ Route::prefix('spare-part-shops')
             }
 
             return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId', 'applicationMode'));
-        })->name('proforma-details');
+        })->name('proforma-details.2');
 
 Route::post('apply/{proforma}', function (
     Request $request,
@@ -5097,7 +5009,7 @@ Route::get('/telegram-connect', function (Request $request) {
     $telegramLink = $telegramService->generateStartLink($user->id);
     $skipUrl = '/telegram-skip';
     return view('authentication.telegram-connect', compact('telegramLink', 'skipUrl'));
-})->name('telegram.connect');
+})->name('telegram.connect.2');
 
 // Skip Telegram connect for this session
 Route::get('/telegram-skip', function () {
@@ -5224,7 +5136,7 @@ $brands = \App\Models\Brand::where('is_test', $userIsTest)
             $garage_partners = auth()->user()->garagePartners();
 
             return view('business-owner.create-file', compact('brands','parts','spare_part_partners','garage_partners'));
-        })->name('business-owner.create-file');
+        })->name('business-owner.create-file.orig');
         
 Route::prefix('business-owner')
     ->middleware([\App\Http\Middleware\BusinessOwnerMiddleware::class])
@@ -5241,7 +5153,7 @@ Route::prefix('business-owner')
             $garage_partners = auth()->user()->garagePartners();
 
             return view('business-owner.create-file', compact('brands','parts','spare_part_partners','garage_partners'));
-        })->name('business-owner.create-file');
+        })->name('business-owner.create-file.2');
         Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
 
     Log::info("🔵 Route hit: Start request-close", [
@@ -5592,51 +5504,59 @@ Route::get('proforma-details', function (Request $request) {
 		Route::delete('delete', [TemporaryFileController::class, 'destroy']);
 	});
 
-// Etera-Chereta Service Status Route
-Route::get('/etera-chereta/status', function () {
-    try {
-        $cacheKey = 'etera_chereta_service_running';
-        $isRunning = Cache::has($cacheKey);
-        $lastCheck = Cache::get($cacheKey);
-        
-        // Check if the process is actually running
-        $processRunning = false;
-        if (PHP_OS_FAMILY === 'Windows') {
-            if (function_exists('shell_exec')) {
-                $output = shell_exec('tasklist /FI "IMAGENAME eq php.exe" /FO CSV 2>nul');
-                $processRunning = strpos($output, 'etera-chereta:check-expiration') !== false;
-            } else {
-                $processRunning = false;
-            }
-        } else {
-            if (function_exists('shell_exec')) {
-                $output = shell_exec('ps aux | grep "etera-chereta:check-expiration" | grep -v grep');
-                $processRunning = !empty($output);
-            } else {
-                $processRunning = false;
-            }
-        }
-        
-        $status = [
-            'status' => $isRunning && $processRunning ? 'running' : 'stopped',
-            'last_check' => $lastCheck ? $lastCheck->toISOString() : null,
-            'auto_start_enabled' => true,
-            'platform' => PHP_OS_FAMILY,
-            'process_running' => $processRunning,
-            'cache_status' => $isRunning ? 'active' : 'inactive',
-            'timestamp' => now()->toISOString(),
-        ];
-        
-        return response()->json($status);
-        
-    } catch (\Exception $e) {
-        return response()->json([
-            'status' => 'error',
-            'error' => $e->getMessage(),
-            'timestamp' => now()->toISOString(),
-        ], 500);
-    }
-})->name('etera-chereta.status');
+// Disabled: this route reported on the per-request "auto-start Etera-Chereta
+// daemon" (AutoStartEteraCheretaMiddleware / EteraCheretaAutoStartServiceProvider),
+// which had no real process check on Linux and could spawn duplicate daemons —
+// each holding a persistent PDO connection — exhausting MySQL's connection pool
+// and taking the site down. Etera-Chereta expiration is handled safely instead by
+// the existing scheduled command `proformas:close-expired` (see routes/console.php,
+// runs every minute via Laravel's scheduler), which only processes proformas that
+// actually have `timer_expires_at` set, with no persistent process or connection.
+//
+// Route::get('/etera-chereta/status', function () {
+//     try {
+//         $cacheKey = 'etera_chereta_service_running';
+//         $isRunning = Cache::has($cacheKey);
+//         $lastCheck = Cache::get($cacheKey);
+//
+//         // Check if the process is actually running
+//         $processRunning = false;
+//         if (PHP_OS_FAMILY === 'Windows') {
+//             if (function_exists('shell_exec')) {
+//                 $output = shell_exec('tasklist /FI "IMAGENAME eq php.exe" /FO CSV 2>nul');
+//                 $processRunning = strpos($output, 'etera-chereta:check-expiration') !== false;
+//             } else {
+//                 $processRunning = false;
+//             }
+//         } else {
+//             if (function_exists('shell_exec')) {
+//                 $output = shell_exec('ps aux | grep "etera-chereta:check-expiration" | grep -v grep');
+//                 $processRunning = !empty($output);
+//             } else {
+//                 $processRunning = false;
+//             }
+//         }
+//
+//         $status = [
+//             'status' => $isRunning && $processRunning ? 'running' : 'stopped',
+//             'last_check' => $lastCheck ? $lastCheck->toISOString() : null,
+//             'auto_start_enabled' => true,
+//             'platform' => PHP_OS_FAMILY,
+//             'process_running' => $processRunning,
+//             'cache_status' => $isRunning ? 'active' : 'inactive',
+//             'timestamp' => now()->toISOString(),
+//         ];
+//
+//         return response()->json($status);
+//
+//     } catch (\Exception $e) {
+//         return response()->json([
+//             'status' => 'error',
+//             'error' => $e->getMessage(),
+//             'timestamp' => now()->toISOString(),
+//         ], 500);
+//     }
+// })->name('etera-chereta.status');
 
 
 

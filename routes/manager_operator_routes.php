@@ -216,7 +216,7 @@ Route::middleware(['auth'])->group(function () {
                     ->get();
                 
                 return view('operator.dashboard', compact('stats', 'recentFiles'));
-            })->name('dashboard');
+            })->name('dashboard.2');
             
             // Proformas list for operator
             Route::get('/proformas', function () {
@@ -244,7 +244,7 @@ Route::middleware(['auth'])->group(function () {
                 ];
                 
                 return view('operator.proformas.index', compact('proformas', 'availableStatuses'));
-            })->name('proformas.index');
+            })->name('proformas.index.2');
 
             // Take Files (Fill Quota)
             Route::post('/proformas/take', function () {
