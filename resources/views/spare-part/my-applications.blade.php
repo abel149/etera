@@ -3,6 +3,7 @@
 class="current"
 @endsection
 @section('content')
+@php $isDealer = auth()->user()->shop_garage == 1; @endphp
 <div class="margin-top-45 margin-bottom-45"></div>
 
 <div class="container" style="max-width: 1100px;">
@@ -70,8 +71,8 @@ class="current"
                     <thead class="table-light">
                         <tr>
                             <th>#</th>
-                            <th>Proforma #</th>
-                            <th>License Plate</th>
+                            @if($isDealer)<th>Proforma #</th>@endif
+                            @if($isDealer)<th>License Plate</th>@endif
                             <th>Brand</th>
                             <th>Type</th>
                             <th>Amount</th>
@@ -116,9 +117,10 @@ class="current"
                             }
                         @endphp
                         <tr class="application-row"
-                            data-file-number="{{ strtolower($proforma->file_number ?? '') }}"
-                            data-license-plate="{{ strtolower($proforma->license_plate_number ?? '') }}">
+                            data-file-number="{{ $isDealer ? strtolower($proforma->file_number ?? '') : '' }}"
+                            data-license-plate="{{ $isDealer ? strtolower($proforma->license_plate_number ?? '') : '' }}">
                             <td>{{ $index + 1 }}</td>
+                            @if($isDealer)
                             <td>
                                 @if($proforma)
                                     <span class="badge bg-light text-dark border">#{{ $proforma->file_number }}</span>
@@ -127,6 +129,7 @@ class="current"
                                 @endif
                             </td>
                             <td>{{ $proforma->license_plate_number ?? '-' }}</td>
+                            @endif
                             <td>{{ $proforma->brand->name ?? '-' }}</td>
                             <td>
                                 <span class="badge {{ $application->from === 'shop' ? 'bg-info' : 'bg-secondary' }}">
@@ -221,7 +224,7 @@ class="current"
                 {{-- Header --}}
                 <div class="modal-header" style="background: rgba(13,148,136,0.2); color: white; border-bottom: 1px solid rgba(255,255,255,0.08);">
                     <h5 class="modal-title" id="applicationModalLabel{{ $application->id }}">
-                        <i class='bx bx-file me-2'></i>Application Details — Proforma #{{ $proforma->file_number }}
+                        <i class='bx bx-file me-2'></i>Application Details@if($isDealer) — Proforma #{{ $proforma->file_number }}@endif
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
@@ -232,7 +235,7 @@ class="current"
                     <div class="row mb-3">
                         <div class="col-sm-6">
                             <p class="mb-1"><strong>Brand:</strong> {{ $proforma->brand->name ?? '-' }}</p>
-                            <p class="mb-1"><strong>File #:</strong> {{ $proforma->file_number }}</p>
+                            @if($isDealer)<p class="mb-1"><strong>File #:</strong> {{ $proforma->file_number }}</p>@endif
                             <p class="mb-1"><strong>Status:</strong>
                                 @php
                                     $st = $application->status ?? 'pending';

@@ -22,6 +22,7 @@
 
 				@php
 					$proformas = auth()->user()->proformas()->orderBy('created_at', 'desc')->get();
+					$isDealer = auth()->user()->shop_garage == 1;
 				@endphp
 
 				<div class="card radius-10 mt-4">
@@ -39,8 +40,8 @@
 							<table class="table mb-0 align-middle" id="proformaTable">
 								<thead class="table-light">
 									<tr>
-										<th>File #</th>
-										<th>Car</th>
+									@if($isDealer)<th>File #</th>@endif
+									<th>Car</th>
 										<th>Status</th>
 										<th>Submitted PIs</th>
 										<th>Actions</th>
@@ -49,8 +50,8 @@
 								<tbody>
 									@foreach($proformas as $proforma)
 									<tr>
-										<td>{{ $proforma->file_number }}</td>
-										<td>{{ $proforma->year }} {{ $proforma->brand?->name }} {{ $proforma->model }}{{ $proforma->license_plate_number ? ' ('.$proforma->license_plate_number.')' : '' }}</td>
+										@if($isDealer)<td>{{ $proforma->file_number }}</td>@endif
+									<td>{{ $proforma->year }} {{ $proforma->brand?->name }} {{ $proforma->model }}{{ ($isDealer && $proforma->license_plate_number) ? ' ('.$proforma->license_plate_number.')' : '' }}</td>
 										
 										<td class="
 											@if($proforma->status == 'pending') text-warning 

@@ -57,10 +57,12 @@
                             <i class="icon-material-outline-directions-car"></i> 
                             {{ $proforma->brand->name ?? 'N/A' }}, {{ $proforma->model ?? 'N/A' }}
                         </li>
+                        @if($user->shop_garage == 1)
                         <li>
                             <i class="icon-material-outline-directions-car"></i> 
                             {{ $proforma->license_plate_number ?? 'N/A' }}
                         </li>
+                        @endif
                         <li>
                             <i class="icon-material-outline-access-time"></i> 
                             {{ $proforma->created_at->diffForHumans() }}
