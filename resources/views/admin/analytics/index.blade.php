@@ -27,7 +27,7 @@
                 </thead>
                 <tbody>
                 @forelse($garageShopUsers as $user)
-                    <tr>
+                    <tr class="garage-data-row">
                         <td class="user-name">{{ $user->user->name }}</td>
                         <td>{{ ucfirst($user->role) }}</td>
                         <td>{{ $user->filled_applications ?? 0 }}</td>
@@ -49,6 +49,7 @@
                 </tbody>
             </table>
         </div>
+        <div id="garagePaginator" class="d-flex justify-content-center py-2"></div>
     </div>
 
     {{-- INSURANCES --}}
@@ -170,6 +171,7 @@
                 </tbody>
             </table>
         </div>
+        <div id="insurancePaginator" class="d-flex justify-content-center py-2"></div>
     </div>
 
     {{-- TRANSACTION & INVOICE MODALS --}}
@@ -304,42 +306,19 @@ action="{{ route('finance.markPaid', $summary->user->id) }}"
 <script>
 document.addEventListener("DOMContentLoaded", function () {
 
-    // Transaction modal buttons
+    const PAGE_SIZE = 15;
+
+    // ---- Transaction modal buttons ----
     document.querySelectorAll(".transaction-btn").forEach(btn => {
         btn.addEventListener("click", function () {
             const userId = this.dataset.user;
             const modalEl = document.getElementById("transactionModal" + userId);
             if (!modalEl) return console.error("Modal not found for user:", userId);
-            const modal = new bootstrap.Modal(modalEl);
-            modal.show();
+            new bootstrap.Modal(modalEl).show();
         });
     });
 
-    // Search Garage & Shops
-    document.getElementById("garageSearch").addEventListener("keyup", function () {
-        const filter = this.value.toLowerCase();
-        document.querySelectorAll("#garageTable tbody tr").forEach(row => {
-            row.style.display = row.querySelector(".user-name").textContent.toLowerCase().includes(filter) ? "" : "none";
-        });
-    });
-
-    // Search Insurances (only insurance-row parent rows)
-    document.getElementById("insuranceSearch").addEventListener("keyup", function () {
-        const filter = this.value.toLowerCase();
-        document.querySelectorAll("#insuranceTable tbody tr.insurance-row").forEach(row => {
-            const nameCell = row.querySelector(".user-name");
-            const match = nameCell && nameCell.textContent.toLowerCase().includes(filter);
-            row.style.display = match ? "" : "none";
-            // Also hide the collapse agent row if parent is hidden
-            const target = row.getAttribute("data-bs-target");
-            if (target) {
-                const agentRow = document.querySelector(target)?.closest("tr");
-                if (agentRow) agentRow.style.display = match ? "" : "none";
-            }
-        });
-    });
-
-    // Rotate chevron icon when agent breakdown is expanded/collapsed
+    // ---- Chevron rotation ----
     document.querySelectorAll(".insurance-row[data-bs-target]").forEach(row => {
         const target = row.getAttribute("data-bs-target");
         const collapseEl = document.querySelector(target);
@@ -353,6 +332,87 @@ document.addEventListener("DOMContentLoaded", function () {
             icon.style.transform = "rotate(0deg)";
         });
     });
+
+    // ---- Generic paginator factory ----
+    function buildPager(groups, paginatorId, searchId, nameSelector) {
+        let filtered = groups.slice();
+        let page = 1;
+
+        function applyVisibility() {
+            // Hide all data groups first
+            groups.forEach(g => g.forEach(r => r.style.display = 'none'));
+            // Show only current-page filtered groups
+            const start = (page - 1) * PAGE_SIZE;
+            filtered.slice(start, start + PAGE_SIZE).forEach(g => {
+                g.forEach(r => r.style.display = '');
+            });
+            renderPaginator();
+        }
+
+        function renderPaginator() {
+            const el = document.getElementById(paginatorId);
+            if (!el) return;
+            el.innerHTML = '';
+            const total = Math.ceil(filtered.length / PAGE_SIZE);
+            if (total <= 1) return;
+            const ul = document.createElement('ul');
+            ul.className = 'pagination pagination-sm mb-0';
+            // Prev
+            const prev = document.createElement('li');
+            prev.className = 'page-item' + (page === 1 ? ' disabled' : '');
+            prev.innerHTML = '<a class="page-link" href="#">&laquo;</a>';
+            prev.querySelector('a').onclick = e => { e.preventDefault(); if (page > 1) { page--; applyVisibility(); } };
+            ul.appendChild(prev);
+            // Pages
+            for (let i = 1; i <= total; i++) {
+                const li = document.createElement('li');
+                li.className = 'page-item' + (i === page ? ' active' : '');
+                const a = document.createElement('a');
+                a.className = 'page-link'; a.href = '#'; a.textContent = i;
+                a.onclick = e => { e.preventDefault(); page = i; applyVisibility(); };
+                li.appendChild(a); ul.appendChild(li);
+            }
+            // Next
+            const next = document.createElement('li');
+            next.className = 'page-item' + (page === total ? ' disabled' : '');
+            next.innerHTML = '<a class="page-link" href="#">&raquo;</a>';
+            next.querySelector('a').onclick = e => { e.preventDefault(); if (page < total) { page++; applyVisibility(); } };
+            ul.appendChild(next);
+            el.appendChild(ul);
+        }
+
+        if (searchId) {
+            document.getElementById(searchId).addEventListener('keyup', function () {
+                const q = this.value.toLowerCase();
+                filtered = q
+                    ? groups.filter(g => (g[0].querySelector(nameSelector)?.textContent ?? '').toLowerCase().includes(q))
+                    : groups.slice();
+                page = 1;
+                applyVisibility();
+            });
+        }
+
+        applyVisibility();
+    }
+
+    // ---- Garage/Shop table ----
+    const garageGroups = Array.from(document.querySelectorAll('#garageTable tbody tr.garage-data-row'))
+        .map(r => [r]);
+    buildPager(garageGroups, 'garagePaginator', 'garageSearch', '.user-name');
+
+    // ---- Insurance table ----
+    // Each logical entry = [insurance-row, optional agent-collapse-row]
+    const insuranceGroups = [];
+    document.querySelectorAll('#insuranceTable tbody tr.insurance-row').forEach(row => {
+        const group = [row];
+        const target = row.getAttribute('data-bs-target');
+        if (target) {
+            const agentTr = document.querySelector(target);
+            if (agentTr) group.push(agentTr);
+        }
+        insuranceGroups.push(group);
+    });
+    buildPager(insuranceGroups, 'insurancePaginator', 'insuranceSearch', '.user-name');
 
 });
 

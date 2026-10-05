@@ -447,7 +447,8 @@ Route::get('/api/notifications', function () {
     }
 
     $user = auth()->user();
-    $unread = $user->unreadNotifications()->limit(20)->get()->map(function ($n) {
+    $unreadRecords = $user->unreadNotifications()->limit(20)->get();
+    $unread = $unreadRecords->map(function ($n) {
         return [
             'id' => $n->id,
             'message' => $n->data['message'] ?? 'New notification',
@@ -459,7 +460,7 @@ Route::get('/api/notifications', function () {
     });
 
     return response()->json([
-        'unread_count' => $user->unreadNotifications()->count(),
+        'unread_count' => $unreadRecords->count(),
         'notifications' => $unread,
     ]);
 })->middleware('auth.user');
@@ -4274,7 +4275,11 @@ Route::get('/received-details', function (Request $request) {
 });
         Route::get('/balance', [UserBalanceController::class, 'index'])->name('garage.balance');
         Route::get('/inbox', function () {
-            return view('spare-part.inbox');
+            $inbox = auth()->user()
+                ->myInbox()
+                ->with(['proforma.poster', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
+                ->get();
+            return view('spare-part.inbox', compact('inbox'));
         });
 
         Route::get('/other-proformas', function () {
@@ -4558,7 +4563,11 @@ Route::prefix('spare-part-shops')
         });
         Route::get('/balance', [UserBalanceController::class, 'index'])->name('shop.balance');
         Route::get('/inbox', function () {
-            return view('spare-part.inbox');
+            $inbox = auth()->user()
+                ->myInbox()
+                ->with(['proforma.poster', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
+                ->get();
+            return view('spare-part.inbox', compact('inbox'));
         });
         Route::get('/other-proformas', function () {
             $proformas = Proforma::fromOthers()

@@ -8,6 +8,7 @@ use Livewire\Component;
 use App\Models\Proforma;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class ListOfProformasFromInsurances extends Component
 {
@@ -62,7 +63,7 @@ class ListOfProformasFromInsurances extends Component
     public function render()
     {
         $query = Proforma::query()
-            ->with(['insurance', 'parts.brand']);
+            ->with(['insurance', 'poster', 'parts.brand']);
 
         // Apply filter by insurance user IDs
         if (!empty($this->selectedInsurances)) {
@@ -81,10 +82,10 @@ class ListOfProformasFromInsurances extends Component
             $query->where('chasis_number', 'like', "%{$this->chasisNumber}%");
         }
         if (!empty($this->fileNumber)) {
-            $query->where('file_number', 'like', "%{$this->fileNumber}%\");
+            $query->where('file_number', 'like', "%{$this->fileNumber}%");
         }
         if (!empty($this->licenseNumber)) {
-            $query->where('license_plate_number', 'like', "%{$this->licenseNumber}%\");
+            $query->where('license_plate_number', 'like', "%{$this->licenseNumber}%");
         }
 
         // Apply filter by selected grades
@@ -122,17 +123,16 @@ class ListOfProformasFromInsurances extends Component
         // Remove any existing orderBy before applying our sort
         $proformas = $query->reorder()->orderBy('created_at', $this->sortBy)->paginate(10);
 
-        // Fetch support data for filters (outside the query scope)
-        $insurances = User::where('role', 'insurance')->get();
-        $brands = Brand::all();
-        $grades = CarPart::join('proforma_part', 'car_parts.id', '=', 'proforma_part.car_part_id')
-            ->select('proforma_part.grade')
-            ->distinct()
-            ->get();
-        $components = DB::table('proforma_part')
-            ->select('condition')
-            ->distinct()
-            ->get();
+        // Fetch support data for filters — cached for 5 min to avoid re-querying on every re-render
+        $insurances = Cache::remember('filter_insurances', 300,
+            fn() => User::where('role', 'insurance')->select(['id', 'name'])->orderBy('name')->get());
+        $brands = Cache::remember('filter_brands', 300,
+            fn() => Brand::select(['id', 'name'])->orderBy('name')->get());
+        $grades = Cache::remember('filter_grades_proforma', 300,
+            fn() => CarPart::join('proforma_part', 'car_parts.id', '=', 'proforma_part.car_part_id')
+                ->select('proforma_part.grade')->distinct()->get());
+        $components = Cache::remember('filter_components_proforma', 300,
+            fn() => DB::table('proforma_part')->select('condition')->distinct()->get());
 
 
         // Return the view with all necessary data

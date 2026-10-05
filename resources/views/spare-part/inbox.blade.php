@@ -31,7 +31,7 @@
                     $userRole = $user->role;
                 @endphp
 
-                @foreach($user->myInbox as $proformaInbox)
+                @foreach($inbox as $proformaInbox)
     @php
         $proforma = $proformaInbox->proforma;
         if (!$proforma || !$proforma->poster) continue;

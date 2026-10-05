@@ -68,16 +68,20 @@ class AdminController extends Controller
 
         $users = $query->with('brands')->orderBy('created_at', 'desc')->paginate(20);
 
-        // Get statistics - pending includes both null and false
+        // Get statistics in a single query using conditional aggregation
+        $rawStats = User::whereIn('role', ['business_owner', 'garage', 'shop'])
+            ->selectRaw("
+                SUM(CASE WHEN (approved = 0 OR approved IS NULL OR approved = '') THEN 1 ELSE 0 END) AS pending,
+                SUM(CASE WHEN approved = 1 THEN 1 ELSE 0 END) AS approved,
+                SUM(CASE WHEN role = 'business_owner' THEN 1 ELSE 0 END) AS business_owners,
+                SUM(CASE WHEN role IN ('garage','shop') THEN 1 ELSE 0 END) AS garages_shops
+            ")
+            ->first();
         $stats = [
-            'pending' => User::whereIn('role', ['business_owner', 'garage', 'shop'])
-                ->where(function($q) {
-                    $q->where('approved', false)
-                      ->orWhereNull('approved');
-                })->count(),
-            'approved' => User::whereIn('role', ['business_owner', 'garage', 'shop'])->where('approved', true)->count(),
-            'business_owners' => User::where('role', 'business_owner')->count(),
-            'garages_shops' => User::whereIn('role', ['garage', 'shop'])->count(),
+            'pending'         => (int) ($rawStats->pending ?? 0),
+            'approved'        => (int) ($rawStats->approved ?? 0),
+            'business_owners' => (int) ($rawStats->business_owners ?? 0),
+            'garages_shops'   => (int) ($rawStats->garages_shops ?? 0),
         ];
 
         return view('admin.users.approvals', compact('users', 'stats'));
@@ -168,12 +172,13 @@ class AdminController extends Controller
 
         // Shops and garages for the send-to-inbox form
         // For insurance_shop_garage type, only show users with shop_garage = 1
+        $shopCols = ['id', 'name', 'store_id', 'location', 'shop_garage'];
         if ($proforma->proforma_type === 'insurance_shop_garage') {
-            $shops   = \App\Models\User::where('role', 'shop')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->get();
-            $garages = \App\Models\User::where('role', 'garage')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->get();
+            $shops   = \App\Models\User::where('role', 'shop')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->select($shopCols)->get();
+            $garages = \App\Models\User::where('role', 'garage')->where('shop_garage', 1)->where('approved', true)->orderBy('name')->select($shopCols)->get();
         } else {
-            $shops   = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->get();
-            $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->get();
+            $shops   = \App\Models\User::where('role', 'shop')->where('approved', true)->orderBy('name')->select($shopCols)->get();
+            $garages = \App\Models\User::where('role', 'garage')->where('approved', true)->orderBy('name')->select($shopCols)->get();
         }
 
         // IDs locked by active applications (cannot be replaced)

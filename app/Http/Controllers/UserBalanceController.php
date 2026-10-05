@@ -35,35 +35,20 @@ class UserBalanceController extends Controller
 
         // 2️⃣ Outgoing: Invoices (Outgoing -)
         if (in_array($user->role, ['garage', 'insurance', 'insurance_agent'])) {
-            if ($user->role === 'garage') {
-                $insuredProformas = Proforma::where('insured', 0)
-                    ->where('poster_id', $user->id)
-                    ->get();
+            $insuredFlag = $user->role === 'garage' ? 0 : 1;
 
-                $invoices = collect();
-                foreach ($insuredProformas as $proforma) {
-                    $latestInvoice = ProformaInvoice::where('proforma_id', $proforma->id)
-                        ->orderByDesc('created_at')
-                        ->first();
-                    if ($latestInvoice) {
-                        $invoices->push($latestInvoice);
-                    }
-                }
-            } else {
-                $insuredProformas = Proforma::where('insured', 1)
-                    ->where('poster_id', $user->id)
-                    ->get();
+            // Batch: get all proforma IDs, then latest invoice per proforma — 2 queries total
+            $proformaIds = Proforma::where('insured', $insuredFlag)
+                ->where('poster_id', $user->id)
+                ->pluck('id');
 
-                $invoices = collect();
-                foreach ($insuredProformas as $proforma) {
-                    $latestInvoice = ProformaInvoice::where('proforma_id', $proforma->id)
-                        ->orderByDesc('created_at')
-                        ->first();
-                    if ($latestInvoice) {
-                        $invoices->push($latestInvoice);
-                    }
-                }
-            }
+            $invoices = ProformaInvoice::whereIn('proforma_id', $proformaIds)
+                ->select(['proforma_id', 'total_amount', 'is_paid', 'created_at'])
+                ->orderByDesc('created_at')
+                ->get()
+                ->groupBy('proforma_id')
+                ->map(fn($g) => $g->first())
+                ->values();
 
             foreach ($invoices as $inv) {
                 $transactions->push([
@@ -121,20 +106,51 @@ class UserBalanceController extends Controller
         if ($user->role === 'insurance') {
             $agentUsers = \App\Models\User::where('parent_insurance_id', $user->id)
                 ->where('role', 'insurance_agent')
+                ->select(['id', 'name', 'phone_number'])
                 ->orderBy('name')
                 ->get();
 
-            $agents = $agentUsers->map(function ($agent) {
-                $agentSummary = $this->computeInsuranceToEteraTotals($agent);
+            if ($agentUsers->isNotEmpty()) {
+                $agentIds = $agentUsers->pluck('id');
 
-                return [
-                    'id'               => $agent->id,
-                    'name'             => $agent->name,
-                    'phone_number'     => $agent->phone_number,
-                    'pending_to_etera' => $agentSummary['pending_to_etera'],
-                    'paid_to_etera'    => $agentSummary['paid_to_etera'],
-                ];
-            });
+                // Batch: all insured proformas for all agents — 1 query
+                $allAgentProformaRows = Proforma::where('insured', 1)
+                    ->whereIn('poster_id', $agentIds)
+                    ->select(['id', 'poster_id'])
+                    ->get();
+
+                $proformasByAgent    = $allAgentProformaRows->groupBy('poster_id');
+                $allAgentProformaIds = $allAgentProformaRows->pluck('id');
+
+                // Batch: latest invoice per proforma for all agents — 1 query
+                $allAgentInvoices = ProformaInvoice::whereIn('proforma_id', $allAgentProformaIds)
+                    ->select(['proforma_id', 'total_amount', 'is_paid', 'created_at'])
+                    ->orderByDesc('created_at')
+                    ->get()
+                    ->groupBy('proforma_id')
+                    ->map(fn($g) => $g->first());
+
+                $agents = $agentUsers->map(function ($agent) use ($proformasByAgent, $allAgentInvoices) {
+                    $pending = 0.0;
+                    $paid    = 0.0;
+
+                    foreach ($proformasByAgent->get($agent->id, collect()) as $row) {
+                        $inv = $allAgentInvoices->get($row->id);
+                        if (!$inv) continue;
+                        $amount = abs((float) $inv->total_amount);
+                        if ($inv->is_paid) $paid += $amount;
+                        else $pending += $amount;
+                    }
+
+                    return [
+                        'id'               => $agent->id,
+                        'name'             => $agent->name,
+                        'phone_number'     => $agent->phone_number,
+                        'pending_to_etera' => $pending,
+                        'paid_to_etera'    => $paid,
+                    ];
+                });
+            }
 
             $companyTotals['pending_to_etera'] += (float) $agents->sum('pending_to_etera');
             $companyTotals['paid_to_etera']    += (float) $agents->sum('paid_to_etera');
@@ -150,40 +166,4 @@ class UserBalanceController extends Controller
         }
     }
 
-    /**
-     * Compute the pending and paid "to Etera" invoice totals for a single
-     * insurance/insurance_agent user, based on their insured proformas.
-     */
-    private function computeInsuranceToEteraTotals(User $user): array
-    {
-        $pending = 0.0;
-        $paid = 0.0;
-
-        $insuredProformas = Proforma::where('insured', 1)
-            ->where('poster_id', $user->id)
-            ->get();
-
-        foreach ($insuredProformas as $proforma) {
-            $latestInvoice = ProformaInvoice::where('proforma_id', $proforma->id)
-                ->orderByDesc('created_at')
-                ->first();
-
-            if (!$latestInvoice) {
-                continue;
-            }
-
-            $amount = abs((float) $latestInvoice->total_amount);
-
-            if ($latestInvoice->is_paid) {
-                $paid += $amount;
-            } else {
-                $pending += $amount;
-            }
-        }
-
-        return [
-            'pending_to_etera' => $pending,
-            'paid_to_etera'    => $paid,
-        ];
-    }
 }

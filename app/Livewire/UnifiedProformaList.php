@@ -9,6 +9,7 @@ use App\Models\Proforma;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Cache;
 
 class UnifiedProformaList extends Component
 {
@@ -102,22 +103,27 @@ class UnifiedProformaList extends Component
             ->orderBy('created_at', $this->sortBy)
             ->paginate(10);
         
-        // Return the view with all necessary data
+        // Static filter data cached for 5 min — never changes per request
+        $insurances = Cache::remember('filter_insurances', 300,
+            fn() => User::where('role', 'insurance')->select(['id', 'name'])->orderBy('name')->get());
+        $brands = Cache::remember('filter_brands', 300,
+            fn() => Brand::select(['id', 'name'])->orderBy('name')->get());
+        $grades = Cache::remember('filter_grades_proforma', 300,
+            fn() => CarPart::join('proforma_part', 'car_parts.id', '=', 'proforma_part.car_part_id')
+                ->select('proforma_part.grade')->distinct()->get());
+        $components = Cache::remember('filter_components_proforma', 300,
+            fn() => DB::table('proforma_part')
+                ->select('condition')->whereNotNull('condition')->where('condition', '!=', '')->distinct()->get());
+        $allParts = Cache::remember('filter_all_parts', 300,
+            fn() => CarPart::select('name')->distinct()->orderBy('name')->get());
+
         return view('livewire.unified-proforma-list', [
-            'proformas' => $proformas,
-            'insurances' => User::where('role', 'insurance')->get(),
-            'brands' => Brand::all(),
-            'grades' => CarPart::join('proforma_part', 'car_parts.id', '=', 'proforma_part.car_part_id')
-                ->select('proforma_part.grade')
-                ->distinct()
-                ->get(),
-            'components' => DB::table('proforma_part')
-                ->select('condition')
-                ->whereNotNull('condition')
-                ->where('condition', '!=', '')
-                ->distinct()
-                ->get(),
-            'allParts' => CarPart::select('name')->distinct()->orderBy('name')->get(),
+            'proformas'  => $proformas,
+            'insurances' => $insurances,
+            'brands'     => $brands,
+            'grades'     => $grades,
+            'components' => $components,
+            'allParts'   => $allParts,
         ]);
     }
 }

@@ -130,18 +130,19 @@ public function receivePayment($userId)
             ->groupBy('user_id');
 
         // 2. All invoices for proformas posted by insurance accounts OR any of their agents
-        $allInvoices = ProformaInvoice::whereHas('proforma', function ($q) use ($allPosterIds) {
-            $q->whereIn('poster_id', $allPosterIds)->where('insured', true);
-        })
-        ->with('proforma:id,poster_id')
-        ->get();
+        //    Single JOIN query — no subquery, no extra eager-load round-trip
+        $allInvoices = ProformaInvoice::join('proformas', 'proforma_invoices.proforma_id', '=', 'proformas.id')
+            ->whereIn('proformas.poster_id', $allPosterIds)
+            ->where('proformas.insured', 1)
+            ->select('proforma_invoices.*', 'proformas.poster_id AS _poster_id')
+            ->get();
 
         // Group invoices by agent's poster_id for the per-agent breakdown
-        $invoicesByPosterId = $allInvoices->groupBy(fn ($inv) => $inv->proforma->poster_id);
+        $invoicesByPosterId = $allInvoices->groupBy(fn ($inv) => (int) $inv->_poster_id);
 
         // Group ALL invoices by the root insurance id (agents mapped to their parent)
-        $invoicesByInsuranceId = $allInvoices->groupBy(function ($inv) use ($agentParentMap, $insuranceIds) {
-            $posterId = $inv->proforma->poster_id;
+        $invoicesByInsuranceId = $allInvoices->groupBy(function ($inv) use ($agentParentMap) {
+            $posterId = (int) $inv->_poster_id;
             return $agentParentMap->get($posterId, $posterId);
         });
 
@@ -217,12 +218,12 @@ public function receivePayment($userId)
         $insuranceUserIds = $users->where('role', 'insurance')->pluck('id')->toArray();
         $allInvoices = collect();
         if (!empty($insuranceUserIds)) {
-            $allInvoices = ProformaInvoice::whereHas('proforma', function ($q) use ($insuranceUserIds) {
-                $q->whereIn('poster_id', $insuranceUserIds)->where('insured', true);
-            })
-            ->with('proforma:id,poster_id')
-            ->get()
-            ->groupBy(fn ($inv) => $inv->proforma->poster_id);
+            $allInvoices = ProformaInvoice::join('proformas', 'proforma_invoices.proforma_id', '=', 'proformas.id')
+                ->whereIn('proformas.poster_id', $insuranceUserIds)
+                ->where('proformas.insured', 1)
+                ->select('proforma_invoices.*', 'proformas.poster_id AS _poster_id')
+                ->get()
+                ->groupBy(fn ($inv) => (int) $inv->_poster_id);
         }
 
         return $users->map(function ($user) use ($allPaidUsers, $allInvoices) {
