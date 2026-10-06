@@ -87,6 +87,67 @@
                             <div id="test-vl-1" role="tabpane3" class="bs-stepper-pane content fade" aria-labelledby="stepper3trigger1">
                                 <h5 class="mb-1">Basic Information</h5>
                                 <p class="mb-4">Enter the basic proforma request</p>
+                                 {{-- ── Proforma Type Selector ─────────────────────────────── --}}
+                                    <div class="mb-3">
+                                        <label class="form-label fw-semibold">Proforma Type</label>
+                                        <div class="d-flex flex-wrap gap-3" id="proformaTypeOptions">
+                                            {{-- Standard type hidden for now — existing insurance_standard proformas still work via the route fallback --}}
+                                            <div class="proforma-type-card d-none" data-type="insurance_standard">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeStandard" value="insurance_standard" {{ old('proforma_type') == 'insurance_standard' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="typeStandard">
+                                                    <i class="bx bx-buildings me-1"></i> Standard
+                                                    <small class="text-muted d-block">Shops + Garages</small>
+                                                </label>
+                                            </div>
+                                            <div class="proforma-type-card active" data-type="insurance_shop_only">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopOnly" value="insurance_shop_only" {{ old('proforma_type', 'insurance_shop_only') == 'insurance_shop_only' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="typeShopOnly">
+                                                    <i class="bx bx-store me-1"></i> Shop Only
+                                                    <small class="text-muted d-block">Spare Part Shops</small>
+                                                </label>
+                                            </div>
+                                            <div class="proforma-type-card" data-type="insurance_garage_only">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeGarageOnly" value="insurance_garage_only" {{ old('proforma_type') == 'insurance_garage_only' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="typeGarageOnly">
+                                                    <i class="bx bx-wrench me-1"></i> Garage Only
+                                                    <small class="text-muted d-block">Repair Garages</small>
+                                                </label>
+                                            </div>
+                                            <div class="proforma-type-card" data-type="insurance_shop_garage">
+                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopGarage" value="insurance_shop_garage" {{ old('proforma_type') == 'insurance_shop_garage' ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="typeShopGarage">
+                                                    <i class="bx bx-building-house me-1"></i> Shop + Garage
+                                                    <small class="text-muted d-block">Dual Service Providers</small>
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="row g-2 mb-3">
+                                    {{-- Number of Shops (Standard / Shop Only) --}}
+                                    <div class="col-12 col-lg-6" id="numberOfShopsWrapper">
+                                        <label for="number_of_proformas" class="form-label">Number of Required Shops</label>
+                                        <select name="number_of_proformas" id="number_of_proformas" class="form-select">
+                                            <option value="1" {{ old('number_of_proformas') == '1' ? 'selected' : '' }}>1 Shop</option>
+                                            <option value="2" {{ old('number_of_proformas') == '2' ? 'selected' : '' }}>2 Shops</option>
+                                            <option value="3" {{ old('number_of_proformas', '3') == '3' ? 'selected' : '' }}>3 Shops</option>
+                                            <option value="4" {{ old('number_of_proformas') == '4' ? 'selected' : '' }}>4 Shops</option>
+                                            <option value="5" {{ old('number_of_proformas') == '5' ? 'selected' : '' }}>5 Shops</option>
+                                        </select>
+                                    </div>
+
+                                    {{-- Number of Garages (Garage Only) --}}
+                                    <div class="col-12 col-lg-6" id="numberOfGaragesWrapper" style="display:none;">
+                                        <label for="number_of_garages" class="form-label">Number of Required Garages</label>
+                                        <select name="number_of_garages" id="number_of_garages" class="form-select">
+                                            <option value="1" {{ old('number_of_garages') == '1' ? 'selected' : '' }}>1 Garage</option>
+                                            <option value="2" {{ old('number_of_garages') == '2' ? 'selected' : '' }}>2 Garages</option>
+                                            <option value="3" {{ old('number_of_garages', '3') == '3' ? 'selected' : '' }}>3 Garages</option>
+                                            <option value="4" {{ old('number_of_garages') == '4' ? 'selected' : '' }}>4 Garages</option>
+                                            <option value="5" {{ old('number_of_garages') == '5' ? 'selected' : '' }}>5 Garages</option>
+                                        </select>
+                                    </div>
+                                    </div>{{-- end count selectors row --}}
 
                                 <div class="row g-3">
                                     <div class="col-12 col-lg-6">
@@ -131,7 +192,7 @@
                                         @enderror
                                     </div>
 
-                                    <div class="col-12 col-lg-6">
+                                    <div class="col-12 col-lg-6" id="damageSeverityWrapper">
                                         <label class="form-label">Damage Severity (Optional)</label>
                                         <div class="d-flex gap-3 mt-2">
                                             <div class="form-check">
@@ -157,17 +218,6 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
-
-                                @php
-                                    use App\Models\Brand;
-                                    use App\Models\CarPart;
-                                    $userIsTest = auth()->user()?->is_test ?? false;
-                                    $brands = Brand::where('is_test', $userIsTest)
-                                    ->orderBy('name', 'asc')
-                                    ->get();
-                                    $parts = CarPart::orderBy('name', 'asc')->get();
-                                @endphp
-                             
 
                                     
                                     <div class="col-12 col-lg-6">
@@ -204,71 +254,11 @@
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
                                     </div>
-                                    {{-- ── Proforma Type Selector ─────────────────────────────── --}}
                                     <div class="col-12">
-                                        <label class="form-label fw-semibold">Proforma Type</label>
-                                        <div class="d-flex flex-wrap gap-3" id="proformaTypeOptions">
-                                            {{-- Standard type hidden for now — existing insurance_standard proformas still work via the route fallback --}}
-                                            <div class="proforma-type-card d-none" data-type="insurance_standard">
-                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeStandard" value="insurance_standard" {{ old('proforma_type') == 'insurance_standard' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="typeStandard">
-                                                    <i class="bx bx-buildings me-1"></i> Standard
-                                                    <small class="text-muted d-block">Shops + Garages</small>
-                                                </label>
-                                            </div>
-                                            <div class="proforma-type-card active" data-type="insurance_shop_only">
-                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopOnly" value="insurance_shop_only" {{ old('proforma_type', 'insurance_shop_only') == 'insurance_shop_only' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="typeShopOnly">
-                                                    <i class="bx bx-store me-1"></i> Shop Only
-                                                    <small class="text-muted d-block">Spare Part Shops</small>
-                                                </label>
-                                            </div>
-                                            <div class="proforma-type-card" data-type="insurance_garage_only">
-                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeGarageOnly" value="insurance_garage_only" {{ old('proforma_type') == 'insurance_garage_only' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="typeGarageOnly">
-                                                    <i class="bx bx-wrench me-1"></i> Garage Only
-                                                    <small class="text-muted d-block">Repair Garages</small>
-                                                </label>
-                                            </div>
-                                            <div class="proforma-type-card" data-type="insurance_shop_garage">
-                                                <input class="form-check-input" type="radio" name="proforma_type" id="typeShopGarage" value="insurance_shop_garage" {{ old('proforma_type') == 'insurance_shop_garage' ? 'checked' : '' }}>
-                                                <label class="form-check-label" for="typeShopGarage">
-                                                    <i class="bx bx-building-house me-1"></i> Shop + Garage
-                                                    <small class="text-muted d-block">Dual Service Providers</small>
-                                                </label>
-                                            </div>
-                                        </div>
-                                    </div>
-
-                                    {{-- Number of Shops (Standard / Shop Only) --}}
-                                    <div class="col-12 col-lg-6" id="numberOfShopsWrapper">
-                                        <label for="number_of_proformas" class="form-label">Number of Required Shops</label>
-                                        <select name="number_of_proformas" id="number_of_proformas" class="form-select">
-                                            <option value="1" {{ old('number_of_proformas') == '1' ? 'selected' : '' }}>1 Shop</option>
-                                            <option value="2" {{ old('number_of_proformas') == '2' ? 'selected' : '' }}>2 Shops</option>
-                                            <option value="3" {{ old('number_of_proformas', '3') == '3' ? 'selected' : '' }}>3 Shops</option>
-                                            <option value="4" {{ old('number_of_proformas') == '4' ? 'selected' : '' }}>4 Shops</option>
-                                            <option value="5" {{ old('number_of_proformas') == '5' ? 'selected' : '' }}>5 Shops</option>
-                                        </select>
-                                    </div>
-
-                                    {{-- Number of Garages (Garage Only) --}}
-                                    <div class="col-12 col-lg-6" id="numberOfGaragesWrapper" style="display:none;">
-                                        <label for="number_of_garages" class="form-label">Number of Required Garages</label>
-                                        <select name="number_of_garages" id="number_of_garages" class="form-select">
-                                            <option value="1" {{ old('number_of_garages') == '1' ? 'selected' : '' }}>1 Garage</option>
-                                            <option value="2" {{ old('number_of_garages') == '2' ? 'selected' : '' }}>2 Garages</option>
-                                            <option value="3" {{ old('number_of_garages', '3') == '3' ? 'selected' : '' }}>3 Garages</option>
-                                            <option value="4" {{ old('number_of_garages') == '4' ? 'selected' : '' }}>4 Garages</option>
-                                            <option value="5" {{ old('number_of_garages') == '5' ? 'selected' : '' }}>5 Garages</option>
-                                        </select>
-                                    </div>
-
-                                    <div class="col-12 col-lg-6">
                                         <button type="button" class="btn btn-primary btn-next px-4 rounded-pill">Next<i class='bx bx-right-arrow-alt ms-2'></i></button>
                                     </div>
-                                </div>
-                            </div>
+                                </div>{{-- end row g-3 step 1 --}}
+                            </div>{{-- end step 1 pane --}}
 
                             <!-- Step 2: Car Information -->
                             <div id="test-vl-2" role="tabpane3" class="bs-stepper-pane content fade" aria-labelledby="stepper3trigger2">
@@ -913,6 +903,7 @@ document.addEventListener('DOMContentLoaded', () => {
     const numberOfGaragesWrapper = document.getElementById('numberOfGaragesWrapper');
     const shopGroupsWrapper      = document.getElementById('shopGroupsWrapper');
     const garageGroupsWrapper    = document.getElementById('garageGroupsWrapper');
+    const damageSeverityWrapper  = document.getElementById('damageSeverityWrapper');
 
     // ── Store all shop-select options for detach/reattach filtering ──────────
     const shopSelects = document.querySelectorAll('.shop-select');
@@ -1018,6 +1009,9 @@ document.addEventListener('DOMContentLoaded', () => {
             if (garageGroupsWrapper)    garageGroupsWrapper.style.display    = '';
         }
 
+        if (damageSeverityWrapper) {
+            damageSeverityWrapper.style.display = type === 'insurance_shop_only' ? 'none' : '';
+        }
         filterShopOptions(type);
         updateGroupVisibility();
     }

@@ -117,8 +117,8 @@ class="current"
                             }
                         @endphp
                         <tr class="application-row"
-                            data-file-number="{{ $isDealer ? strtolower($proforma->file_number ?? '') : '' }}"
-                            data-license-plate="{{ $isDealer ? strtolower($proforma->license_plate_number ?? '') : '' }}">
+                            data-file-number="{{ $isDealer ? strtolower($proforma?->file_number ?? '') : '' }}"
+                            data-license-plate="{{ $isDealer ? strtolower($proforma?->license_plate_number ?? '') : '' }}">
                             <td>{{ $index + 1 }}</td>
                             @if($isDealer)
                             <td>
@@ -128,9 +128,9 @@ class="current"
                                     <span class="text-muted">-</span>
                                 @endif
                             </td>
-                            <td>{{ $proforma->license_plate_number ?? '-' }}</td>
+                            <td>{{ $proforma?->license_plate_number ?? '-' }}</td>
                             @endif
-                            <td>{{ $proforma->brand->name ?? '-' }}</td>
+                            <td>{{ $proforma?->brand?->name ?? '-' }}</td>
                             <td>
                                 <span class="badge {{ $application->from === 'shop' ? 'bg-info' : 'bg-secondary' }}">
                                     {{ ucfirst($application->from ?? '-') }}

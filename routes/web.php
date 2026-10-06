@@ -3496,17 +3496,25 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
 
         // validation is not included for the file creation
         Route::get('create-file', function () {
-            $availableBrands = BrandUser::distinct('brand_id')->pluck('brand_id');
-            // $brands = \App\Models\Brand::whereIn('id', $availableBrands?->toArray())->orderBy('name', 'asc')->get();
-            $brands = \App\Models\Brand::orderBy('name', 'asc')->get();
-            $parts = \App\Models\CarPart::orderBy('name', 'asc')->get();
+            $userIsTest = auth()->user()->is_test ?? false;
+            $brands = \App\Models\Brand::where('is_test', $userIsTest)
+                ->select(['id', 'name'])
+                ->orderBy('name')
+                ->get();
+            $parts = \App\Models\CarPart::select(['id', 'name'])->orderBy('name')->get();
             $spare_part_partners = auth()->user()->sparePartPartners();
             $garage_partners = auth()->user()->garagePartners();
 
-            // For insurance_shop_garage type, only show shops with shop_garage = 1
-            // Note: This is for the create page, filtering happens on selection in JS
-            $all_shops   = \App\Models\User::where('role', 'shop')->with('brands')->orderBy('name')->get();
-            $all_garages = \App\Models\User::where('role', 'garage')->orderBy('name')->get();
+            $listCols = ['id', 'name', 'store_id', 'shop_garage'];
+            $all_shops   = \App\Models\User::where('role', 'shop')->where('approved', true)
+                ->select($listCols)
+                ->with(['brands:id,name'])
+                ->orderBy('name')
+                ->get();
+            $all_garages = \App\Models\User::where('role', 'garage')->where('approved', true)
+                ->select($listCols)
+                ->orderBy('name')
+                ->get();
 
             return response()
                 ->view(
@@ -3761,16 +3769,25 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
             $garageGroup4 = array_values(array_diff($garageGroup4, $garageGroup3, $garageGroup2));
             $garageGroup5 = array_values(array_diff($garageGroup5, $garageGroup4, $garageGroup3, $garageGroup2));
 
+            // Batch-load dealer IDs for insurance_shop_garage (avoids N+1 per group)
+            $dealerShopIds = [];
+            if ($proformaType === 'insurance_shop_garage') {
+                $allSelectedShopIds = array_unique(array_merge(
+                    $shopGroup1, $shopGroup2, $shopGroup3, $shopGroup4, $shopGroup5
+                ));
+                if (!empty($allSelectedShopIds)) {
+                    $dealerShopIds = \App\Models\User::whereIn('id', $allSelectedShopIds)
+                        ->where('shop_garage', 1)
+                        ->pluck('id')->flip()->toArray();
+                }
+            }
+
             $shopGroupsUsed = 0;
             if ($proformaType !== 'insurance_garage_only') {
                 foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3, 4 => $shopGroup4, 5 => $shopGroup5] as $grp => $ids) {
                     if (!empty($ids)) {
-                        // Filter users: for insurance_shop_garage type, only include users with shop_garage = 1
                         if ($proformaType === 'insurance_shop_garage') {
-                            $ids = array_filter($ids, function($userId) {
-                                $user = \App\Models\User::find($userId);
-                                return $user && $user->shop_garage == 1;
-                            });
+                            $ids = array_values(array_filter($ids, fn($uid) => isset($dealerShopIds[$uid])));
                         }
                         if (!empty($ids)) {
                             $shopGroupsUsed++;
@@ -3804,12 +3821,10 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 }
             }
 
-            if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_shop_quota')) {
-                $proforma->update(['insurance_shop_quota' => $shopGroupsUsed]);
-            }
-            if (\Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_garage_quota')) {
-                $proforma->update(['insurance_garage_quota' => $garageGroupsUsed]);
-            }
+            $hasShopQuota   = \Illuminate\Support\Facades\Cache::remember('schema_proformas_shop_quota',   86400, fn() => \Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_shop_quota'));
+            $hasGarageQuota = \Illuminate\Support\Facades\Cache::remember('schema_proformas_garage_quota', 86400, fn() => \Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_garage_quota'));
+            if ($hasShopQuota)   $proforma->update(['insurance_shop_quota'   => $shopGroupsUsed]);
+            if ($hasGarageQuota) $proforma->update(['insurance_garage_quota' => $garageGroupsUsed]);
 
             // Handle voice note if present
             if ($request->voice_note) {
