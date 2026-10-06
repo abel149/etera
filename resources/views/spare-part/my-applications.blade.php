@@ -101,7 +101,7 @@ class="current"
                                 || $application->prices->contains(fn($p) => $p->price_is_encrypted);
 
                             if (!$pricesAreEncrypted && $application->from === 'shop' && $application->prices->count() > 0) {
-                                $proformaParts = ($application->proforma->parts ?? collect())->sortBy('id')->values();
+                                $proformaParts = ($application->proforma?->parts ?? collect())->sortBy('id')->values();
                                 $subtotal = 0;
                                 foreach ($proformaParts as $idx => $part) {
                                     $price = $application->prices->values()->get($idx);
