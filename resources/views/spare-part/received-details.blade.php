@@ -172,6 +172,61 @@
                 <h3>Spare Part Shops Proformas List</h3>
             </div>
 
+            @php
+                // ── Rank computation (runs once before rendering any cards) ────────────────
+                // Build a flat price index [appId][partIdx] => price object — O(1) lookups later.
+                $shopAppsWithPrices = collect($applications)->filter(
+                    fn($a) => $a->applicationBy->role === 'shop' && $a->prices->isNotEmpty()
+                );
+
+                $priceIndex       = []; // [appId][partIdx] => price record
+                $partRankMap      = []; // [partIdx][appId] => rank (1 = cheapest for that part)
+                $appOverallRankMap = []; // [appId] => overall rank by grand total
+
+                // Index prices once — avoids calling ->values() inside nested loops
+                foreach ($shopAppsWithPrices as $_app) {
+                    foreach ($_app->prices->values() as $_pIdx => $_price) {
+                        $priceIndex[$_app->id][$_pIdx] = $_price;
+                    }
+                }
+
+                if ($shopAppsWithPrices->count() >= 2) {
+                    // Per-part ranking and grand-total accumulation in a single pass
+                    $grandTotals   = [];
+                    $partPriceLists = []; // [partIdx] => [[appId, unitPrice], ...]
+
+                    foreach ($shopAppsWithPrices as $_app) {
+                        $subtotal = 0;
+                        foreach ($proforma->parts as $_pIdx => $_part) {
+                            $_price = $priceIndex[$_app->id][$_pIdx] ?? null;
+                            if ($_price && $_price->unit_price > 0) {
+                                $partPriceLists[$_pIdx][] = ['appId' => $_app->id, 'price' => (float)$_price->unit_price];
+                                $subtotal += $_price->unit_price * $_part->quantity;
+                            }
+                        }
+                        if ($subtotal > 0) {
+                            $grandTotals[] = ['appId' => $_app->id, 'total' => $subtotal];
+                        }
+                    }
+
+                    // Per-part ranks
+                    foreach ($partPriceLists as $_pIdx => $_list) {
+                        if (count($_list) >= 2) {
+                            usort($_list, fn($a, $b) => $a['price'] <=> $b['price']);
+                            foreach ($_list as $_rk => $_entry) {
+                                $partRankMap[$_pIdx][$_entry['appId']] = $_rk + 1;
+                            }
+                        }
+                    }
+
+                    // Overall ranks
+                    usort($grandTotals, fn($a, $b) => $a['total'] <=> $b['total']);
+                    foreach ($grandTotals as $_rk => $_entry) {
+                        $appOverallRankMap[$_entry['appId']] = $_rk + 1;
+                    }
+                }
+            @endphp
+
             <div class="row">
                 @foreach($applications as $index => $application)
                     @if($application->applicationBy->role === 'shop')
@@ -179,7 +234,8 @@
                         @if($appPdfOnly)
                         {{-- PDF-only card --}}
                         <div class="col-12 mb-4 application-card" data-index="{{ $index }}" @if(($proforma->required_number_of_shops ?? 0) == 0 && ($proforma->required_number_of_garages ?? 0) == 0 && $index >= 5) style="display:none;" @endif>
-                            <div class="card" style="position:relative;overflow:hidden;">
+                            <div class="card" style="position:relative;overflow:hidden;"
+                                 data-application-date="{{ $application->created_at->format('F j, Y') }}">
                                 <div class="card-stamp">
                                     @if($application->applicationBy->stamp_image)
                                         <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
@@ -239,6 +295,7 @@
                                  data-application-prices='@json($application->prices)'
                                  data-notes="{{ $application->notes ?? '' }}"
                                  data-expiry-date="{{ $application->expiry_date ? \Carbon\Carbon::parse($application->expiry_date)->format('F j, Y') : '' }}"
+                                 data-application-date="{{ $application->created_at->format('F j, Y') }}"
                                  data-stamp-image-url="{{ $application->applicationBy->stamp_image ? asset('storage/' . ($application->applicationBy->stamp_image)) : asset('assets/images/stamp.png') }}"
                             >
                                 {{-- Stamp overlay --}}
@@ -259,8 +316,21 @@
                                     <div class="d-flex align-items-center gap-3 mb-3">
                                         <img src="{{ asset('assets/images/avatars/avatar-9.jpg') }}"
                                              alt="Shop" style="width: 50px; height: 50px; border-radius: 50%; border: 2px solid rgba(13,148,136,0.3);">
-                                        <div>
-                                            <h5 class="mb-0">{{ $application->applicationBy->name }}</h5>
+                                        <div style="flex:1;">
+                                            <div class="d-flex align-items-center gap-2 flex-wrap">
+                                                <h5 class="mb-0">{{ $application->applicationBy->name }}</h5>
+                                                @if(isset($appOverallRankMap[$application->id]))
+                                                    @php
+                                                        $oRank = $appOverallRankMap[$application->id];
+                                                        $rankLabel = ['1' => '🥇 #1 Best Price', '2' => '🥈 #2', '3' => '🥉 #3'][(string)$oRank] ?? "#$oRank";
+                                                        $rankBg    = ['1' => 'rgba(245,158,11,0.15)', '2' => 'rgba(148,163,184,0.15)', '3' => 'rgba(180,83,9,0.1)'][(string)$oRank] ?? 'rgba(107,114,128,0.1)';
+                                                        $rankColor = ['1' => '#b45309', '2' => '#64748b', '3' => '#92400e'][(string)$oRank] ?? '#6b7280';
+                                                    @endphp
+                                                    <span style="background:{{ $rankBg }}; color:{{ $rankColor }}; border:1px solid {{ $rankColor }}; border-radius:20px; padding:2px 10px; font-size:0.78rem; font-weight:700;">
+                                                        {{ $rankLabel }}
+                                                    </span>
+                                                @endif
+                                            </div>
                                             <small class="text-muted">{{ ucfirst($application->applicationBy->role) }}</small>
                                         </div>
                                     </div>
@@ -282,7 +352,7 @@
 
                                 {{-- Parts table at the BOTTOM --}}
                                 <div style="overflow-x: auto; -webkit-overflow-scrolling: touch; padding: 0 20px 20px;">
-                                    <table style="min-width: 650px;">
+                                    <table style="min-width: 700px;">
                                         <thead>
                                             <tr>
                                                 <th>No</th>
@@ -293,12 +363,18 @@
                                                 <th>Qty</th>
                                                 <th>Unit Price</th>
                                                 <th>Total</th>
+                                                @if(!empty($partRankMap))
+                                                    <th style="text-align:center;">Rank</th>
+                                                @endif
                                             </tr>
                                         </thead>
                                         <tbody>
                                             @foreach($proforma->parts as $index => $part)
                                                 @php
-                                                    $partPrice = $application->prices->values()->get($loop->index);
+                                                    $partPrice   = $priceIndex[$application->id][$index] ?? null;
+                                                    $partRankVal = $partRankMap[$index][$application->id] ?? null;
+                                                    $rankColors  = [1 => '#b45309', 2 => '#64748b', 3 => '#92400e'];
+                                                    $rankLabels  = [1 => '🥇 #1', 2 => '🥈 #2', 3 => '🥉 #3'];
                                                 @endphp
                                                 <tr>
                                                     <td>{{ $index + 1 }}</td>
@@ -314,6 +390,17 @@
                                                         <td class="text-muted fst-italic">— Not available</td>
                                                         <td class="text-muted">—</td>
                                                     @endif
+                                                    @if(!empty($partRankMap))
+                                                        <td style="text-align:center;">
+                                                            @if($partRankVal !== null)
+                                                                <span style="font-weight:700; color:{{ $rankColors[$partRankVal] ?? '#6b7280' }}; font-size:0.85rem;">
+                                                                    {{ $rankLabels[$partRankVal] ?? "#$partRankVal" }}
+                                                                </span>
+                                                            @else
+                                                                <span class="text-muted">—</span>
+                                                            @endif
+                                                        </td>
+                                                    @endif
                                                 </tr>
                                             @endforeach
                                         </tbody>
@@ -321,7 +408,7 @@
                                             @php
                                                 $subtotalParts = 0;
                                                 foreach ($proforma->parts as $index => $part) {
-                                                    $price = $application->prices->values()->get($index);
+                                                    $price = $priceIndex[$application->id][$index] ?? null;
                                                     if ($price) {
                                                         $subtotalParts += $price->unit_price * $part->quantity;
                                                     }
@@ -331,21 +418,25 @@
                                                 $vatRate = 15;
                                                 $vatAmount = $netTotal * ($vatRate / 100);
                                                 $grandTotal = $netTotal + $vatAmount;
+                                                $hasRankCol = !empty($partRankMap);
                                             @endphp
                                             <tr>
                                                 <td colspan="6"></td>
                                                 <td class="text-end"><strong>SUBTOTAL (Net)</strong></td>
                                                 <td class="text-end"><strong>{{ number_format($netTotal, 2) }} ETB</strong></td>
+                                                @if($hasRankCol)<td></td>@endif
                                             </tr>
                                             <tr>
                                                 <td colspan="6"></td>
                                                 <td class="text-end"><strong>VAT (15%)</strong></td>
                                                 <td class="text-end"><strong>{{ number_format($vatAmount, 2) }} ETB</strong></td>
+                                                @if($hasRankCol)<td></td>@endif
                                             </tr>
                                             <tr style="background-color: rgba(13,148,136,0.12); font-weight: bold; border-top: 2px solid var(--etera-teal);">
                                                 <td colspan="6"></td>
                                                 <td class="text-end"><strong>GRAND TOTAL (VAT Included)</strong></td>
                                                 <td class="text-end" style="color: var(--etera-teal); font-size: 1.1em;"><strong>{{ number_format($grandTotal, 2) }} ETB</strong></td>
+                                                @if($hasRankCol)<td></td>@endif
                                             </tr>
                                         </tfoot>
                                     </table>
@@ -460,7 +551,7 @@ function showMoreApplications() {
             let vatRate = parseFloat(card.dataset.vatRate) || 15;
             let applicantNotes = card.dataset.notes || "";
             let expiryDate = card.dataset.expiryDate || "";
-
+            let applicationDate = card.dataset.applicationDate || new Date().toLocaleDateString();
 
 			let table = card.querySelector("table");
 			let rows = table?.querySelectorAll("tbody tr") || [];
@@ -532,7 +623,7 @@ function showMoreApplications() {
 
 						<main>
 							<div class="row">
-								<div class="col-sm-6"><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+								<div class="col-sm-6"><strong>Date:</strong> ${applicationDate}</div>
 								<div class="col-sm-6 text-sm-end"><strong>Invoice No:</strong> ${Math.floor(Math.random() * 100000)}</div>
 							</div>
 							<hr>

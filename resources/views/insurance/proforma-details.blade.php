@@ -539,6 +539,19 @@
             
             @endif
             @if(!$proforma->isShopOnlyInsurance())
+            @php
+                // Garage rank: smallest non-encrypted amount = rank 1
+                $_garageRankMap = [];
+                $_gTotals = collect($applications)
+                    ->filter(fn($a) => $a->from === 'garage' && !($a->amount_is_encrypted ?? false) && (float)($a->amount ?? 0) > 0)
+                    ->sortBy(fn($a) => (float)$a->amount)
+                    ->values();
+                if ($_gTotals->count() >= 2) {
+                    foreach ($_gTotals as $_rk => $_ga) {
+                        $_garageRankMap[$_ga->id] = $_rk + 1;
+                    }
+                }
+            @endphp
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
                 @foreach($applications as $application)
@@ -566,13 +579,24 @@
                             @endif
                         </div>
                         <div class="card-header">
-                            <div class="d-flex align-items-center">
+                            <div class="d-flex align-items-center gap-2 flex-wrap">
                                 <div class="">
                                     <img src="{{asset('assets/images/avatars/avatar-9.jpg')}}" class="rounded-circle" width="40" height="40" alt="">
                                 </div>
-                                <div class="ms-2">
+                                <div class="ms-2 flex-grow-1">
                                     <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#details"><h6 class="mb-0 font-17">{{$application->applicationBy->name}}</h6></a>
                                 </div>
+                                @if(isset($_garageRankMap[$application->id]))
+                                    @php
+                                        $_gRank  = $_garageRankMap[$application->id];
+                                        $_gLabel = [1 => '🥇 #1 Best Price', 2 => '🥈 #2', 3 => '🥉 #3'][$_gRank] ?? "#$_gRank";
+                                        $_gColor = [1 => '#b45309', 2 => '#64748b', 3 => '#92400e'][$_gRank] ?? '#6b7280';
+                                        $_gBg    = [1 => 'rgba(245,158,11,0.15)', 2 => 'rgba(148,163,184,0.15)', 3 => 'rgba(180,83,9,0.1)'][$_gRank] ?? 'rgba(107,114,128,0.1)';
+                                    @endphp
+                                    <span style="background:{{ $_gBg }};color:{{ $_gColor }};border:1px solid {{ $_gColor }};border-radius:20px;padding:2px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
+                                        {{ $_gLabel }}
+                                    </span>
+                                @endif
                             </div>
                         </div>
                         <div class="card-body pt-3 px-4 pb-0">
