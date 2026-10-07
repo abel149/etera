@@ -4709,7 +4709,7 @@ Route::post('apply/{proforma}', function (
         ->where('active', true)
         ->exists();
     if ($alreadyApplied && !$hasActivePartial) {
-        return redirect('/role/proformas')
+        return redirect('/spare-part-shops/proformas')
             ->with('error', 'You have already applied to this proforma.');
     }
 
@@ -4736,17 +4736,12 @@ Route::post('apply/{proforma}', function (
         if ($proforma->selected()) {
             $proforma->update(['status' => 'closed']);
         } 
-        // The following line is what you need to remove or change:
-        // else {
-        //    $proforma->update(['status' => 'completed']);
-        // }
-        // The block is no longer needed since you don't want to set the status to 'completed'.
         $proforma->save();
     }
 
-    return redirect('/role/proformas')
+    return redirect('/spare-part-shops/proformas')
         ->with('success', 'Application submitted successfully');
-});
+})->name('proforma.apply');
 
         Route::get('/profile', function () {
             return view('spare-part.profile');

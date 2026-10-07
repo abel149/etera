@@ -49,7 +49,7 @@ class="current"
         </div>
     @endif
 
-<form id="garageProformaForm" action="{{route('garage.create-file')}}" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
+<form id="garageProformaForm" action="/garage/create-file" method="post" enctype="multipart/form-data" onsubmit="return validateForm()">
 @csrf
 @method('POST')
     <div id="stepper1" class="bs-stepper">
