@@ -1185,8 +1185,8 @@
                     @endif
 
                     @if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id))
-                    @if (auth()->user()->dealers || auth()->user()->shop_garage == 1)
-                    {{-- Submission Mode Toggle (only for dealers and dual service providers who can choose between prices and PDF) --}}
+                    
+                    {{-- Submission Mode Toggle: all authenticated users can choose between entering prices or uploading a PDF/image --}}
                     <div class="margin-top-15" id="submissionModeToggle" style="display:flex; gap:8px; flex-wrap:wrap;">
                         <button type="button" id="modePriceBtn" onclick="setSubmissionMode('price')"
                             style="flex:1; min-width:140px; padding:9px 14px; border-radius:8px; font-size:0.85rem; font-weight:600; cursor:pointer; border:2px solid rgba(13,148,136,0.5); background:rgba(13,148,136,0.18); color:var(--etera-teal-light,#4dd0c4); transition:all .2s;">
@@ -1197,7 +1197,7 @@
                             <i class="bx bxs-file-pdf"></i> Upload PDF / Image
                         </button>
                     </div>
-                    @endif
+                   
                     <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
 
                     {{-- PDF Upload Section (hidden until mode=pdf) --}}
@@ -1226,10 +1226,7 @@
                     <input type="hidden" name="encrypted_pdf" id="hiddenEncryptedPdf">
                     <input type="hidden" name="encrypted_aes_key" id="hiddenEncryptedAesKey">
 @endif
-@if (auth()->check() && !$proforma->userAlreadyApplied(auth()->user()->id) && auth()->user()->role == 'garage' && !$actsAsShop)
-    {{-- Only show price entry for plain garages (not acting as shop) --}}
-    <input type="hidden" name="submission_mode" id="hiddenSubmissionMode" value="price">
-@endif
+
                     <input type="hidden" name="aes_iv" id="hiddenAesIv">
                     <input type="hidden" name="pdf_data" id="hiddenPdfData">
                     <input type="hidden" name="pdf_filename" id="hiddenPdfFilename">

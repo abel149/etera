@@ -467,7 +467,7 @@
                                                 </div>
 
                                                 <!-- Repair / Renew -->
-                                                <div class="col-12 col-lg-2">
+                                                <div class="col-12 col-lg-2 service-col">
                                                     <label class="form-label">Service</label>
                                                     <select name="parts[0][repair_renew]" class="form-select">
                                                         <option value="">— Select —</option>
@@ -1202,6 +1202,29 @@ console.log(1);
         }
     }
 
+    // ── Proforma-type → Service column visibility ─────────────────────
+    function applyServiceColVisibility() {
+        const selected = document.querySelector('input[name="proforma_type"]:checked');
+        const type = selected ? selected.value : 'insurance_shop_only';
+        const showService = (type === 'insurance_garage_only' || type === 'insurance_shop_garage');
+        document.querySelectorAll('.service-col').forEach(el => {
+            el.style.display = showService ? '' : 'none';
+            // When hidden, clear the select so it doesn't get submitted with stale value
+            if (!showService) {
+                const sel = el.querySelector('select');
+                if (sel) sel.value = '';
+            }
+        });
+    }
+
+    // Run on page load (default is shop_only → hide)
+    applyServiceColVisibility();
+
+    // Re-run whenever the type changes
+    document.querySelectorAll('input[name="proforma_type"]').forEach(radio => {
+        radio.addEventListener('change', applyServiceColVisibility);
+    });
+
     // Voice Recording Script
     console.log('Voice recording script loaded');
     
@@ -1425,7 +1448,12 @@ $(document).ready(function () {
         'quantity':             'quantity',
         'condition':            'condition',
         'component':            'component',
+        'service':              'repair_renew',
+        'repair renew':         'repair_renew',
+        'repair/renew':         'repair_renew',
+        'repair_renew':         'repair_renew',
     };
+    const REPAIR_RENEW_OPTIONS = ['', 'renew', 'repair'];
 
     const GRADE_OPTIONS   = ['1st Grade(Original OEM)', '2nd Grade(After market)', '3rd Grade', '4th grade (Local)'];
     const COMPONENT_OPTIONS = ['Body Parts', 'Mechanical Parts'];
@@ -1454,12 +1482,23 @@ $(document).ready(function () {
         const dlBtn = document.getElementById('downloadExcelTemplate');
         if (dlBtn) {
             dlBtn.addEventListener('click', function () {
+                const selectedType = document.querySelector('input[name="proforma_type"]:checked');
+                const type = selectedType ? selectedType.value : 'insurance_shop_only';
+                const includeService = (type === 'insurance_garage_only' || type === 'insurance_shop_garage');
+
                 const wb = XLSX.utils.book_new();
-                const ws = XLSX.utils.aoa_to_sheet([
-                    ['Part Name and Number', 'Grade', 'Country', 'Qty', 'Condition', 'Component'],
-                    ['Example: Brake Pad F001', '1st Grade(Original OEM)', 'Japan', '2', 'New', 'Mechanical Parts'],
-                ]);
-                ws['!cols'] = [{ wch: 30 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, { wch: 12 }, { wch: 18 }];
+                let headers, example, colWidths;
+                if (includeService) {
+                    headers   = ['Part Name and Number', 'Grade', 'Country', 'Qty', 'Condition', 'Component', 'Service'];
+                    example   = ['Example: Brake Pad F001', '1st Grade(Original OEM)', 'Japan', '2', 'New', 'Mechanical Parts', 'renew'];
+                    colWidths = [{ wch: 30 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, { wch: 12 }, { wch: 18 }, { wch: 10 }];
+                } else {
+                    headers   = ['Part Name and Number', 'Grade', 'Country', 'Qty', 'Condition', 'Component'];
+                    example   = ['Example: Brake Pad F001', '1st Grade(Original OEM)', 'Japan', '2', 'New', 'Mechanical Parts'];
+                    colWidths = [{ wch: 30 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, { wch: 12 }, { wch: 18 }];
+                }
+                const ws = XLSX.utils.aoa_to_sheet([headers, example]);
+                ws['!cols'] = colWidths;
                 XLSX.utils.book_append_sheet(wb, ws, 'Parts');
                 XLSX.writeFile(wb, 'spare-parts-template.xlsx');
             });
@@ -1550,6 +1589,7 @@ $(document).ready(function () {
                 const gradeSel  = item.querySelector('select[name*="[grade]"]');
                 const condSel   = item.querySelector('select[name*="[condition]"]');
                 const compSel   = item.querySelector('select[name*="[component]"]');
+                const rrSel     = item.querySelector('select[name*="[repair_renew]"]');
 
                 if (numInput)  numInput.value  = g('number');
                 if (qtyInput)  qtyInput.value  = g('quantity') || '1';
@@ -1557,6 +1597,10 @@ $(document).ready(function () {
                 if (gradeSel)  gradeSel.value  = matchOption(GRADE_OPTIONS, g('grade'));
                 if (condSel)   condSel.value   = 'New';
                 if (compSel)   compSel.value   = matchOption(COMPONENT_OPTIONS, g('component'));
+                if (rrSel) {
+                    const raw = g('repair_renew').toLowerCase().trim();
+                    rrSel.value = REPAIR_RENEW_OPTIONS.find(o => o === raw) || '';
+                }
             });
 
             // Re-index part labels
