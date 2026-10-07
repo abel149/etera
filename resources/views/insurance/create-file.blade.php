@@ -1014,6 +1014,16 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         filterShopOptions(type);
         updateGroupVisibility();
+
+        // Show/hide Service (repair_renew) column — only relevant for garage/dual-service types
+        const showService = (type === 'insurance_garage_only' || type === 'insurance_shop_garage');
+        document.querySelectorAll('.service-col').forEach(function (el) {
+            el.style.display = showService ? '' : 'none';
+            if (!showService) {
+                const sel = el.querySelector('select');
+                if (sel) sel.value = '';
+            }
+        });
     }
 
     typeCards.forEach(card => {
@@ -1201,29 +1211,6 @@ console.log(1);
             });
         }
     }
-
-    // ── Proforma-type → Service column visibility ─────────────────────
-    function applyServiceColVisibility() {
-        const selected = document.querySelector('input[name="proforma_type"]:checked');
-        const type = selected ? selected.value : 'insurance_shop_only';
-        const showService = (type === 'insurance_garage_only' || type === 'insurance_shop_garage');
-        document.querySelectorAll('.service-col').forEach(el => {
-            el.style.display = showService ? '' : 'none';
-            // When hidden, clear the select so it doesn't get submitted with stale value
-            if (!showService) {
-                const sel = el.querySelector('select');
-                if (sel) sel.value = '';
-            }
-        });
-    }
-
-    // Run on page load (default is shop_only → hide)
-    applyServiceColVisibility();
-
-    // Re-run whenever the type changes
-    document.querySelectorAll('input[name="proforma_type"]').forEach(radio => {
-        radio.addEventListener('change', applyServiceColVisibility);
-    });
 
     // Voice Recording Script
     console.log('Voice recording script loaded');
