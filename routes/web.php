@@ -4741,7 +4741,7 @@ Route::post('apply/{proforma}', function (
 
     return redirect('/spare-part-shops/proformas')
         ->with('success', 'Application submitted successfully');
-})->name('proforma.apply');
+});
 
         Route::get('/profile', function () {
             return view('spare-part.profile');
