@@ -282,6 +282,7 @@ class CheckEteraCheretaExpiration extends Command
                 ->where('status', '!=', 'closed')
                 ->where('status', '!=', 'completed')
                 ->whereNotNull('timer_expires_at')
+                ->with('parts')
                 ->chunk($this->batchSize, function ($proformas) {
                     foreach ($proformas as $proforma) {
                         $this->checkAndProcessProforma($proforma);

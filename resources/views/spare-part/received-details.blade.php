@@ -179,9 +179,11 @@
                     fn($a) => $a->applicationBy->role === 'shop' && $a->prices->isNotEmpty()
                 );
 
-                $priceIndex       = []; // [appId][partIdx] => price record
-                $partRankMap      = []; // [partIdx][appId] => rank (1 = cheapest for that part)
+                $priceIndex        = []; // [appId][partIdx] => price record
+                $partRankMap       = []; // [partIdx][appId] => rank (1 = cheapest for that part)
+                $partTotalMap      = []; // [partIdx] => total shops that priced this part (denominator for X/N)
                 $appOverallRankMap = []; // [appId] => overall rank by grand total
+                $overallTotal      = 0;  // total shops with a comparable grand total
 
                 // Index prices once — avoids calling ->values() inside nested loops
                 foreach ($shopAppsWithPrices as $_app) {
@@ -209,8 +211,9 @@
                         }
                     }
 
-                    // Per-part ranks
+                    // Per-part ranks — track denominator for X/N display
                     foreach ($partPriceLists as $_pIdx => $_list) {
+                        $partTotalMap[$_pIdx] = count($_list); // store count regardless of >= 2
                         if (count($_list) >= 2) {
                             usort($_list, fn($a, $b) => $a['price'] <=> $b['price']);
                             foreach ($_list as $_rk => $_entry) {
@@ -220,6 +223,7 @@
                     }
 
                     // Overall ranks
+                    $overallTotal = count($grandTotals);
                     usort($grandTotals, fn($a, $b) => $a['total'] <=> $b['total']);
                     foreach ($grandTotals as $_rk => $_entry) {
                         $appOverallRankMap[$_entry['appId']] = $_rk + 1;
@@ -256,6 +260,7 @@
                                         <div class="col-sm-6 col-12"><span><b>Tin #:</b> <span class="text-muted">{{ $application->applicationBy->tin_number }}</span></span></div>
                                         <div class="col-sm-6 col-12"><span><b>Phone:</b> <span class="text-muted">{{ $application->applicationBy->phone_number }}</span></span></div>
                                         <div class="col-sm-6 col-12"><span><b>Location:</b> <span class="text-muted">{{ $application->applicationBy->location }}</span></span></div>
+                                        <div class="col-sm-6 col-12"><span><b>Application Date:</b> <span class="text-muted">{{ $application->created_at->format('F j, Y') }}</span></span></div>
                                     </div>
                                     <div style="padding:12px 16px;background:rgba(13,148,136,0.06);border:1px solid rgba(13,148,136,0.18);border-radius:10px;display:flex;align-items:center;gap:12px;">
                                         <i class="bx bxs-file-pdf" style="font-size:1.8rem;color:#ef4444;flex-shrink:0;"></i>
@@ -321,8 +326,9 @@
                                                 <h5 class="mb-0">{{ $application->applicationBy->name }}</h5>
                                                 @if(isset($appOverallRankMap[$application->id]))
                                                     @php
-                                                        $oRank = $appOverallRankMap[$application->id];
-                                                        $rankLabel = ['1' => '🥇 #1 Best Price', '2' => '🥈 #2', '3' => '🥉 #3'][(string)$oRank] ?? "#$oRank";
+                                                        $oRank     = $appOverallRankMap[$application->id];
+                                                        $oEmoji    = [1 => '🥇', 2 => '🥈', 3 => '🥉'][$oRank] ?? '';
+                                                        $rankLabel = trim("{$oEmoji} #{$oRank}/{$overallTotal}" . ($oRank === 1 ? ' Best Price' : ''));
                                                         $rankBg    = ['1' => 'rgba(245,158,11,0.15)', '2' => 'rgba(148,163,184,0.15)', '3' => 'rgba(180,83,9,0.1)'][(string)$oRank] ?? 'rgba(107,114,128,0.1)';
                                                         $rankColor = ['1' => '#b45309', '2' => '#64748b', '3' => '#92400e'][(string)$oRank] ?? '#6b7280';
                                                     @endphp
@@ -346,6 +352,9 @@
                                         </div>
                                         <div class="col-sm-6 col-12">
                                             <span><b>Location:</b> <span class="text-muted">{{ $application->applicationBy->location }}</span></span>
+                                        </div>
+                                        <div class="col-sm-6 col-12">
+                                            <span><b>Application Date:</b> <span class="text-muted">{{ $application->created_at->format('F j, Y') }}</span></span>
                                         </div>
                                     </div>
                                 </div>
@@ -371,10 +380,14 @@
                                         <tbody>
                                             @foreach($proforma->parts as $index => $part)
                                                 @php
-                                                    $partPrice   = $priceIndex[$application->id][$index] ?? null;
-                                                    $partRankVal = $partRankMap[$index][$application->id] ?? null;
-                                                    $rankColors  = [1 => '#b45309', 2 => '#64748b', 3 => '#92400e'];
-                                                    $rankLabels  = [1 => '🥇 #1', 2 => '🥈 #2', 3 => '🥉 #3'];
+                                                    $partPrice     = $priceIndex[$application->id][$index] ?? null;
+                                                    $partRankVal   = $partRankMap[$index][$application->id] ?? null;
+                                                    $partTotal     = $partTotalMap[$index] ?? 0;
+                                                    $rankColors    = [1 => '#b45309', 2 => '#64748b', 3 => '#92400e'];
+                                                    $_pEmoji       = [1 => '🥇', 2 => '🥈', 3 => '🥉'][$partRankVal] ?? '';
+                                                    $partRankLabel = $partRankVal !== null
+                                                        ? trim("{$_pEmoji} {$partRankVal}/{$partTotal}")
+                                                        : null;
                                                 @endphp
                                                 <tr>
                                                     <td>{{ $index + 1 }}</td>
@@ -392,9 +405,9 @@
                                                     @endif
                                                     @if(!empty($partRankMap))
                                                         <td style="text-align:center;">
-                                                            @if($partRankVal !== null)
+                                                            @if($partRankLabel !== null)
                                                                 <span style="font-weight:700; color:{{ $rankColors[$partRankVal] ?? '#6b7280' }}; font-size:0.85rem;">
-                                                                    {{ $rankLabels[$partRankVal] ?? "#$partRankVal" }}
+                                                                    {{ $partRankLabel }}
                                                                 </span>
                                                             @else
                                                                 <span class="text-muted">—</span>
@@ -568,10 +581,13 @@ function showMoreApplications() {
 						country: cells[4].textContent.trim(),
 						quantity: cells[5].textContent.trim(),
 						unitPrice: cells[6].textContent.trim(),
-						total: cells[7].textContent.trim()
+						total: cells[7].textContent.trim(),
+						rank: cells.length >= 9 ? cells[8].textContent.trim() : null
 					});
 				}
 			});
+
+			let hasRanks = partsData.some(p => p.rank && /\d/.test(p.rank));
 
 			function parseETB(value) {
 				return parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
@@ -663,6 +679,7 @@ function showMoreApplications() {
 											<th>Qty</th>
 											<th>Unit Price</th>
 											<th>Total</th>
+											${hasRanks ? '<th>Rank</th>' : ''}
 										</tr>
 									</thead>
 									<tbody>
@@ -676,6 +693,7 @@ function showMoreApplications() {
 												<td>${part.quantity}</td>
 												<td>${part.unitPrice}</td>
 												<td>${part.total}</td>
+												${hasRanks ? '<td style="font-weight:700;">' + (part.rank || '—') + '</td>' : ''}
 											</tr>
 										`).join('')}
 									</tbody>
@@ -683,14 +701,17 @@ function showMoreApplications() {
 										<tr>
 											<td colspan="7" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
 											<td class="text-end">${formatETB(netTotal)}</td>
+											${hasRanks ? '<td></td>' : ''}
 										</tr>
 										<tr>
 											<td colspan="7" class="text-end"><strong>VAT (15%):</strong></td>
 											<td class="text-end">${formatETB(vatAmount)}</td>
+											${hasRanks ? '<td></td>' : ''}
 										</tr>
 										<tr style="background-color: rgba(13,148,136,0.12); font-weight: bold; border-top: 2px solid var(--etera-teal);">
 											<td colspan="7" class="text-end"><strong>GRAND TOTAL (VAT Included):</strong></td>
 											<td class="text-end" style="color: var(--etera-teal); font-size: 1.1em;">${formatETB(grandTotal)}</td>
+											${hasRanks ? '<td></td>' : ''}
 										</tr>
 									</tfoot>
 								</table>

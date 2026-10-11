@@ -645,8 +645,6 @@ Route::middleware(['auth.user'])->group(function () {
     Route::post('/user/bank', [ProfileController::class, 'storeBank'])->name('user.bank.store');
     Route::put('/user/bank/{bank}', [ProfileController::class, 'updateBank'])->name('user.bank.update');
 
-
-
     // Admin and Superadmin routes
     Route::middleware(['auth.user'])->group(function () {
         Route::prefix('admin')->name('admin.')->group(function () {
@@ -661,8 +659,6 @@ Route::middleware(['auth.user'])->group(function () {
         });
     });
 });
-
-
 
 /********************FILE RELATED ROUTES*****************************/
 Route::post('upload/{type}', [TemporaryFileController::class, 'store']);
@@ -690,12 +686,6 @@ Route::post('check-password', function (Request $request) {
 
     return back();
 });
-
-
-
-
-
-
 
 Route::patch('/proforma/close/{id}', [ProformaController::class, 'closeProforma'])->name('proforma.close');
 
@@ -802,20 +792,10 @@ Route::get('/', function () {
     return redirect()->to('/login');
 });
 
-// Route::get('/received-details', function (Request $request) {
-//     $proforma = \App\Models\Proforma::findOrFail($request->query('proforma'));
-    
-//     $applications = $proforma?->applications;
-
-
-//     // dd($applications);
-
-//     return view('spare-part.received-details', compact('proforma', 'applications'));
-// });
-
 Route::get('/received-details', function (Request $request) {
     $proforma = Proforma::with([
         'applications.prices.part',
+        'applications.applicationBy',
         'applications.pdf',
         'brand'
     ])->findOrFail($request->query('proforma'));
@@ -949,36 +929,6 @@ Route::put('/profile/update', function (Request $request) {
     // Redirect with success message
     return redirect()->back()->with('success', 'Profile updated successfully!');
 })->middleware('auth')->name('profile.update.2');
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 // Show Profile Page
@@ -1761,8 +1711,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
         */
         if ($type === 'regular') {
 
-            $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
-            $count = $applications->count();
+            $count = ProformaApplication::where('proforma_id', $proforma->id)->count();
 
             // Dynamic pricing from Cost table (EX: 1_proforma_cost, 2_proforma_cost ...)
             $field = "{$count}_proforma_cost";
@@ -2011,7 +1960,12 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         // 🔹 Applicant commissions (INSURANCE ONLY)
         if ($type === 'insurance') {
-        $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+        $applications = ProformaApplication::where('proforma_id', $proforma->id)
+            ->with(['applicationBy', 'prices'])
+            ->get();
+
+        // Hoisted once — identical for every application of this proforma
+        $proformaPartsCount = $proforma->parts()->count();
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
@@ -2027,14 +1981,11 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
                 // Fall back to actual data if the tracked counters are missing (0)
                 if ($totalParts <= 0) {
-                    $totalParts = $proforma->parts()->count();
+                    $totalParts = $proformaPartsCount;
                 }
                 if ($filledParts <= 0 && $totalParts > 0) {
-                    $filledParts = $application->prices()
-                        ->where(function ($q) {
-                            $q->where('unit_price', '>', 0)
-                              ->orWhere('price_is_encrypted', true);
-                        })
+                    $filledParts = $application->prices
+                        ->filter(fn ($p) => ($p->unit_price ?? 0) > 0 || $p->price_is_encrypted)
                         ->count();
                 }
 
@@ -2061,12 +2012,15 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 // amount column is string type in DB — must CAST for correct numeric ordering
                 // Pool is frozen: auto-selector closes the proforma before commission runs
                 $applications = ProformaApplication::where('proforma_id', $proforma->id)
+                    ->with('applicationBy')
                     ->orderByRaw('CAST(amount AS DECIMAL(15,2)) ASC')
                     ->orderBy('created_at', 'asc')
                     ->limit(5)
                     ->get();
             } else {
-                $applications = ProformaApplication::where('proforma_id', $proforma->id)->get();
+                $applications = ProformaApplication::where('proforma_id', $proforma->id)
+                    ->with('applicationBy')
+                    ->get();
             }
 
         foreach ($applications as $application) {
@@ -4053,7 +4007,7 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
 
         
         Route::get('proforma-details', function (Request $request) {
-            $proforma = \App\Models\Proforma::with('poster.parentInsurance')->find($request->query('proforma'));
+            $proforma = \App\Models\Proforma::with(['poster.parentInsurance', 'parts.images'])->find($request->query('proforma'));
             if (! $proforma) {
                 return redirect()->back();
             }
@@ -4246,6 +4200,7 @@ Route::get('/received-proformas', function () {
 
     // Fetch only completed proformas for the current user, newest first, paginated
     $proformas = Proforma::where('poster_id', $user->id)
+        ->with(['brand', 'applications'])
         ->where('status', 'completed')       // ✅ only completed
         ->orderBy('created_at', 'desc')      // ✅ newest first
         ->paginate(10);
@@ -4269,7 +4224,7 @@ Route::get('/received-details', function (Request $request) {
         ->with(['prices', 'applicationBy', 'pdf']) // ✅ Added 'applicationBy'
         ->orderBy('created_at', 'desc')
         ->get()
-        ->sortByDesc(function($application) use ($proforma) {
+        ->sortBy(function($application) use ($proforma) {
             // This sorting logic remains the same
             if ($application->applicationBy->role === 'shop' && $application->prices->count() > 0) {
                 $subtotal = 0;
@@ -4598,7 +4553,7 @@ Route::prefix('spare-part-shops')
         });
 
         Route::get('proforma-details', function (Request $request) {
-            $proforma = \App\Models\Proforma::with('poster.parentInsurance')->find($request->query('proforma'));
+            $proforma = \App\Models\Proforma::with(['poster.parentInsurance', 'parts.images'])->find($request->query('proforma'));
             if (! $proforma) {
                 return redirect()->back();
             }
