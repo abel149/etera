@@ -223,6 +223,7 @@
         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
       </div>
       <div class="modal-body">
+        @php $partStats = $proforma->partPricingStats(); @endphp
         <table class="table table-bordered mb-0">
           <thead>
             <tr>
@@ -233,6 +234,7 @@
               <th>Quantity</th>
               <th>Condition</th>
               <th>Photo</th>
+              <th>Priced</th>
             </tr>
           </thead>
           <tbody>
@@ -250,6 +252,16 @@
                   <a href="{{ asset('storage/' . $part->photo) }}" target="_blank" class="part-image-link">View Image</a>
                 @else
                   #N/A
+                @endif
+              </td>
+              <td>
+                @php $stat = $partStats[$part->id] ?? null; @endphp
+                @if($stat && $stat['required'] > 0)
+                  <span class="{{ $stat['priced'] >= $stat['required'] ? 'text-success fw-bold' : 'text-muted' }}">
+                    {{ $stat['priced'] }}/{{ $stat['required'] }}
+                  </span>
+                @else
+                  <span class="text-muted">—</span>
                 @endif
               </td>
             </tr>

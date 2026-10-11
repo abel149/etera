@@ -288,6 +288,69 @@ class Proforma extends Model implements HasMedia
         return ['filled' => $filledParts, 'total' => (int) $totalSlots];
     }
 
+    /**
+     * Per-part pricing progress for the admin parts modal.
+     * Returns array keyed by proforma_part id:
+     *   [part_id => ['priced' => int, 'required' => int]]
+     *
+     * "required" is the requested number of shop proformas (each group = 1 slot).
+     * For Etera-Chereta (unbounded) it falls back to the number of shop applications.
+     * A part counts as priced once per distinct application that submitted a real
+     * price row for it (unit_price > 0 or encrypted) — PDF-only applications cover
+     * every part, matching the filled_parts_count logic in the controller.
+     */
+    public function partPricingStats(): array
+    {
+        if ($this->isGarageOnlyInsurance() || $this->parts->isEmpty()) {
+            return [];
+        }
+
+        $requiredShops = (int) ($this->required_number_of_shops ?? 0);
+        $required = $this->isEteraCheretaMode()
+            ? $this->applications->where('from', 'shop')->count()
+            : $requiredShops;
+
+        // Applications that submitted a full PDF cover every part.
+        $pdfApplicationIds = $this->applications()
+            ->where('from', 'shop')
+            ->whereHas('pdf')
+            ->pluck('id');
+
+        $applicationIdsByCarPartId = \App\Models\ProformaPartPrice::where('proforma_id', $this->id)
+            ->where(function ($query) {
+                $query->where('unit_price', '>', 0)
+                      ->orWhere('price_is_encrypted', true);
+            })
+            ->get(['car_part_id', 'application_id'])
+            ->groupBy('car_part_id');
+
+        // Prices link to parts through CarPart rows named 'ppart_{proforma_part_id}'
+        // (see ProformaApplicationController::store). Skip the lookup entirely when
+        // there are no price rows to attribute.
+        $carPartIdByName = $applicationIdsByCarPartId->isEmpty()
+            ? collect()
+            : \App\Models\CarPart::whereIn(
+                'name',
+                $this->parts->map(fn ($part) => 'ppart_' . $part->id)
+            )->pluck('id', 'name');
+
+        $stats = [];
+        foreach ($this->parts as $part) {
+            $carPartId = $carPartIdByName['ppart_' . $part->id] ?? null;
+
+            $pricedApplicationIds = $carPartId !== null && isset($applicationIdsByCarPartId[$carPartId])
+                ? $applicationIdsByCarPartId[$carPartId]->pluck('application_id')
+                : collect();
+
+            $stats[$part->id] = [
+                'priced'   => $pricedApplicationIds->merge($pdfApplicationIds)->unique()->count(),
+                'required' => $required,
+            ];
+        }
+
+        return $stats;
+    }
+
     // Removed broken insurance() relationship - insurance_id column doesn't exist
     // Use poster() relationship instead, and check poster->role == 'insurance'
 
