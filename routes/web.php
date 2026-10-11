@@ -3328,9 +3328,9 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
 
             // Build proforma-part → car_part_id map so the view can match prices by car_part_id
             // instead of by collection index (index-based mapping breaks for partial applications).
-            $partCarPartIds = $proforma->parts->sortBy('id')->values()->map(
-                fn($p) => \App\Models\CarPart::where('name', 'ppart_' . $p->id)->value('id')
-            );
+            $partCarPartNames = $proforma->parts->sortBy('id')->values()->map(fn($p) => 'ppart_' . $p->id);
+            $carPartIdsByName = \App\Models\CarPart::whereIn('name', $partCarPartNames)->pluck('id', 'name');
+            $partCarPartIds = $partCarPartNames->map(fn($name) => $carPartIdsByName[$name] ?? null);
 
             return view('insurance.proforma-details', compact('proforma', 'applications', 'partCarPartIds'));
 });

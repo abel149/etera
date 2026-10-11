@@ -236,6 +236,7 @@
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-notes='@json($application->notes ?? '')'
+                         data-application-date="{{ $application->created_at?->format('F j, Y') }}"
                          data-customer-name="{{ $proforma->customer_name ?? 'N/A' }}"
                          data-customer-phone="{{ $proforma->customer_phone_number ?? 'N/A' }}"
                          data-brand="{{ $proforma->brand->name ?? 'N/A' }}"
@@ -268,6 +269,7 @@
                                 <div class="col-6"><span><b class="font-17">Store ID: </b><span class="text-secondary font-16">{{ $application->applicationBy->store_id }}</span></span></div>
                                 <div class="col-6"><span><b class="font-17">Tin #: </b><span class="text-secondary font-16">{{ $application->applicationBy->tin_number }}</span></span></div>
                                 <div class="col-12"><span><b class="font-17">Location: </b><span class="text-secondary font-16">{{ $application->applicationBy->location }}</span></span></div>
+                                <div class="col-12"><span><b class="font-17">Application Date: </b><span class="text-secondary font-16">{{ $application->created_at?->format('F j, Y') }}</span></span></div>
                             </div>
 
                             {{-- Cover page: proforma invoice details + parts requested. Prices live inside the attached (encrypted) PDF. --}}
@@ -359,7 +361,8 @@
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
-                         data-notes="{{ $application->notes ?? '' }}">
+                         data-notes="{{ $application->notes ?? '' }}"
+                         data-application-date="{{ $application->created_at?->format('F j, Y') }}">
 
                          
                         <div class="card-stamp">
@@ -380,6 +383,7 @@
                                     </div>
                                 </div>
                                 <div class="d-flex align-items-center gap-2">
+                                    <span class="shop-overall-rank" data-app-id="{{ $application->id }}" style="display:none; border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:700; white-space:nowrap;"></span>
                                     @if($application->inbox_group !== null)
                                     <span style="font-size:10px; padding:2px 8px; border-radius:50px; background:rgba(13,148,136,0.15); color:var(--etera-teal-light,#4dd0c4); border:1px solid rgba(13,148,136,0.3);">
                                         Grp {{ $application->inbox_group }}
@@ -410,6 +414,11 @@
                                         <span class="text-secondary font-16">{{ $application->applicationBy->location }}</span>
                                     </span>
                                 </div>
+                                <div class="col-12">
+                                    <span><b class="font-17">Application Date: </b>
+                                        <span class="text-secondary font-16">{{ $application->created_at?->format('F j, Y') }}</span>
+                                    </span>
+                                </div>
                             </div>
                             <div class="invoice mb-1" style="overflow-y: hidden; overflow-x: auto; white-space: nowrap;">
                                 <table style="font-size: 10px; border-collapse: collapse; width: 100%;">
@@ -423,6 +432,7 @@
                                             <th style="text-align: left; padding: 4px;">Qty</th>
                                             <th style="text-align: left; padding: 4px;">Unit Price</th>
                                             <th style="text-align: left; padding: 4px;">Total Price</th>
+                                            <th style="text-align: center; padding: 4px;">Rank</th>
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -440,7 +450,7 @@
                                             $totalPrice    = $hasPrice ? $unitPrice * $part->quantity : 0;
                                             $shopSubtotal += $totalPrice;
                                         @endphp
-                                        <tr>
+                                        <tr data-part-idx="{{ $loop->index }}" data-qty="{{ $part->quantity }}" data-unit-price="{{ $hasPrice ? $unitPrice : '' }}">
                                             <td>{{ $loop->index + 1 }}</td>
                                             <td>{{ $part->number }}</td>
                                             <td>{{ $part->condition ?? 'N/A' }}</td>
@@ -465,6 +475,7 @@
                                             <td class="text-muted fst-italic">— Not available</td>
                                             <td class="text-muted">—</td>
                                             @endif
+                                            <td class="part-rank-cell" style="text-align:center; font-weight:700;"><span class="text-muted">—</span></td>
                                         </tr>
                                         @endforeach
                                     </tbody>
@@ -569,7 +580,8 @@
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
                          data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
-                         data-notes="{{ $application->notes ?? '' }}">
+                         data-notes="{{ $application->notes ?? '' }}"
+                         data-application-date="{{ $application->created_at?->format('F j, Y') }}">
 
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
@@ -589,7 +601,7 @@
                                 @if(isset($_garageRankMap[$application->id]))
                                     @php
                                         $_gRank  = $_garageRankMap[$application->id];
-                                        $_gLabel = [1 => '🥇 #1 Best Price', 2 => '🥈 #2', 3 => '🥉 #3'][$_gRank] ?? "#$_gRank";
+                                        $_gLabel = trim(([1 => '🥇', 2 => '🥈', 3 => '🥉'][$_gRank] ?? '') . " #{$_gRank}/" . count($_garageRankMap) . ($_gRank === 1 ? ' Best Price' : ''));
                                         $_gColor = [1 => '#b45309', 2 => '#64748b', 3 => '#92400e'][$_gRank] ?? '#6b7280';
                                         $_gBg    = [1 => 'rgba(245,158,11,0.15)', 2 => 'rgba(148,163,184,0.15)', 3 => 'rgba(180,83,9,0.1)'][$_gRank] ?? 'rgba(107,114,128,0.1)';
                                     @endphp
@@ -614,6 +626,11 @@
                                 <div class="col-10">
                                     <span><b class="font-17">Location: </b>
                                         <span class="text-secondary font-16">{{ $application->applicationBy->location }}</span>
+                                    </span>
+                                </div>
+                                <div class="col-12">
+                                    <span><b class="font-17">Application Date: </b>
+                                        <span class="text-secondary font-16">{{ $application->created_at?->format('F j, Y') }}</span>
                                     </span>
                                 </div>
                             </div>
@@ -785,7 +802,78 @@
 <script src="https://unpkg.com/pdf-lib@1.17.1/dist/pdf-lib.min.js"></script>
 <script>{!! file_get_contents(base_path('resources/js/e2e-encryption.js')) !!}</script>
 <script>
+// ── Shop ranking: per part (cheapest = 1/N, N = shops that priced that part) ──
+// Runs on page load for plain prices and again after decryption for encrypted ones.
+function computeShopRanks() {
+    const cards = document.querySelectorAll('.application-card:not(.pdf-application-card)');
+    const pendingEncrypted = document.querySelector('.application-card .enc-unit-price') !== null;
+    const medal = {1: '🥇', 2: '🥈', 3: '🥉'};
+    const color = {1: '#b45309', 2: '#64748b', 3: '#92400e'};
+    const bg    = {1: 'rgba(245,158,11,0.15)', 2: 'rgba(148,163,184,0.15)', 3: 'rgba(180,83,9,0.1)'};
+    const byPart = {};
+    const totals = [];
+
+    cards.forEach(card => {
+        const rows = card.querySelectorAll('tbody tr[data-part-idx]');
+        let sum = 0, priced = 0;
+        rows.forEach(tr => {
+            const cell = tr.querySelector('.part-rank-cell');
+            const p = parseFloat(tr.dataset.unitPrice);
+            if (p > 0) {
+                (byPart[tr.dataset.partIdx] = byPart[tr.dataset.partIdx] || []).push({ tr, p });
+                sum += p * (parseFloat(tr.dataset.qty) || 1);
+                priced++;
+            } else if (cell) {
+                cell.innerHTML = tr.querySelector('.enc-unit-price')
+                    ? '<i class="bx bx-lock text-warning"></i>'
+                    : '<span class="text-muted">—</span>';
+            }
+        });
+        // Overall rank only for applications that priced every part (partials are not comparable)
+        if (rows.length > 0 && priced === rows.length) {
+            totals.push({ appId: card.dataset.applicationId, sum });
+        }
+    });
+
+    const rankOf = (sorted, i, key) => {
+        let r = i;
+        while (r > 0 && sorted[r - 1][key] === sorted[i][key]) r--;
+        return r + 1; // ties share the same rank
+    };
+
+    Object.values(byPart).forEach(list => {
+        list.sort((a, b) => a.p - b.p);
+        list.forEach((entry, i) => {
+            const rank = rankOf(list, i, 'p');
+            const label = ((medal[rank] || '') + ' ' + rank + '/' + list.length).trim();
+            entry.tr.dataset.rankLabel = label;
+            const cell = entry.tr.querySelector('.part-rank-cell');
+            if (cell) {
+                cell.textContent = label;
+                cell.style.color = color[rank] || '#6b7280';
+            }
+        });
+    });
+
+    document.querySelectorAll('.shop-overall-rank').forEach(b => { b.style.display = 'none'; b.textContent = ''; });
+    if (!pendingEncrypted && totals.length >= 2) {
+        totals.sort((a, b) => a.sum - b.sum);
+        totals.forEach((t, i) => {
+            const rank = rankOf(totals, i, 'sum');
+            const badge = document.querySelector(`.shop-overall-rank[data-app-id="${t.appId}"]`);
+            if (!badge) return;
+            badge.textContent = ((medal[rank] || '') + ' #' + rank + '/' + totals.length + (rank === 1 ? ' Best Price' : '')).trim();
+            badge.style.color = color[rank] || '#6b7280';
+            badge.style.background = bg[rank] || 'rgba(107,114,128,0.1)';
+            badge.style.border = '1px solid ' + (color[rank] || '#6b7280');
+            badge.style.display = 'inline-block';
+        });
+    }
+}
+
 document.addEventListener('DOMContentLoaded', function() {
+    computeShopRanks();
+
     // Handle Spare Part Shop select buttons
     document.querySelectorAll('.select-shop-btn').forEach(button => {
         button.addEventListener('click', function(e) {
@@ -828,6 +916,9 @@ function openPrintPage(card) {
     const garageAmount = parseFloat(card.dataset.amount) || 0;
     const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
     const applicantNotes = card.dataset.notes || "";
+    const applicationDate = card.dataset.applicationDate || new Date().toLocaleDateString();
+    const overallRankEl = card.querySelector('.shop-overall-rank');
+    const overallRank = overallRankEl && overallRankEl.style.display !== 'none' ? overallRankEl.textContent.trim() : '';
     
     // Get proforma data
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
@@ -853,10 +944,13 @@ function openPrintPage(card) {
                 country: cells[4].textContent.trim(),
                 quantity: cells[5].textContent.trim(),
                 unitPrice: cells[6].textContent.trim(),
-                total: cells[7].textContent.trim()
+                total: cells[7].textContent.trim(),
+                rank: row.dataset.rankLabel || '—'
             });
         }
     });
+    const hasRanks = partsData.some(p => p.rank !== '—');
+    const footSpan = hasRanks ? 8 : 7;
     
     // Calculate totals (part prices are NET)
     const parseETB = (value) => parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
@@ -875,14 +969,15 @@ function openPrintPage(card) {
     const _csvEsc = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
     const _csvShopRows = [
         ['Proforma Invoice'],
-        ['Date', new Date().toLocaleDateString(), 'Shop', shopName],
+        ['Date', applicationDate, 'Shop', shopName],
+        ...(overallRank ? [['Overall Rank', overallRank]] : []),
         ['Store ID', storeId, 'TIN #', tinNumber],
         ['Location', location, 'Phone', phoneNumber],
         ['Customer', customerName, 'Customer Phone', customerPhone],
         ['Car', year + ' ' + brand + ' [' + plate + ']'],
         [],
-        ['No', 'Part Name & Number', 'Condition', 'Grade', 'Country', 'Qty', 'Unit Price', 'Total Price'],
-        ...partsData.map(p => [p.no, p.partNumber, p.condition, p.grade, p.country, p.quantity, p.unitPrice, p.total]),
+        ['No', 'Part Name & Number', 'Condition', 'Grade', 'Country', 'Qty', 'Unit Price', 'Total Price', ...(hasRanks ? ['Rank'] : [])],
+        ...partsData.map(p => [p.no, p.partNumber, p.condition, p.grade, p.country, p.quantity, p.unitPrice, p.total, ...(hasRanks ? [p.rank.replace(/[^\d\/]/g, '')] : [])]),
         [],
         ['', '', '', '', '', '', 'SUBTOTAL (Net)', netTotal.toFixed(2) + ' ETB'],
         ['', '', '', '', '', '', 'VAT (15%)', vatAmount.toFixed(2) + ' ETB'],
@@ -956,13 +1051,14 @@ function openPrintPage(card) {
 
                 <main>
                     <div class="row">
-                        <div class="col-sm-6"><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+                        <div class="col-sm-6"><strong>Date:</strong> ${applicationDate}</div>
                         <div class="col-sm-6 text-sm-end"><strong>Invoice No:</strong> ${Math.floor(Math.random() * 100000)}</div>
                     </div>
                     <hr>
 
                     <div class="row gy-3 align-items-start">
                         <div class="col-sm-6">
+                            ${overallRank ? `<p class="mb-1"><strong>Overall Rank:</strong> ${overallRank}</p>` : ''}
                             <p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
                             <p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
                             <p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
@@ -996,6 +1092,7 @@ function openPrintPage(card) {
                                     <th>Qty</th>
                                     <th>Unit Price</th>
                                     <th>Total</th>
+                                    ${hasRanks ? '<th style="text-align:center;">Rank</th>' : ''}
                                 </tr>
                             </thead>
                             <tbody>
@@ -1009,30 +1106,31 @@ function openPrintPage(card) {
                                         <td>${part.quantity}</td>
                                         <td>${part.unitPrice}</td>
                                         <td>${part.total}</td>
+                                        ${hasRanks ? `<td style="text-align:center;font-weight:700;">${part.rank}</td>` : ''}
                                     </tr>
                                 `).join('')}
                             </tbody>
                             <tfoot>
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
+                                    <td colspan="${footSpan}" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
                                     <td class="text-end">${formatETB(netTotal)}</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>VAT (15%):</strong></td>
+                                    <td colspan="${footSpan}" class="text-end"><strong>VAT (15%):</strong></td>
                                     <td class="text-end">${formatETB(vatAmount)}</td>
                                 </tr>
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>PARTS GRAND TOTAL (VAT Included):</strong></td>
+                                    <td colspan="${footSpan}" class="text-end"><strong>PARTS GRAND TOTAL (VAT Included):</strong></td>
                                     <td class="text-end">${formatETB(grandTotal)}</td>
                                 </tr>
                                 ${isDualService ? `
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>GARAGE REPAIR SERVICE (VAT Included):</strong></td>
+                                    <td colspan="${footSpan}" class="text-end"><strong>GARAGE REPAIR SERVICE (VAT Included):</strong></td>
                                     <td class="text-end">${formatETB(garageGrand)}</td>
                                 </tr>
                                 ` : ''}
                                 <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
-                                    <td colspan="7" class="text-end"><strong>${isDualService ? 'COMBINED GRAND TOTAL (VAT Included)' : 'GRAND TOTAL (VAT Included)'}:</strong></td>
+                                    <td colspan="${footSpan}" class="text-end"><strong>${isDualService ? 'COMBINED GRAND TOTAL (VAT Included)' : 'GRAND TOTAL (VAT Included)'}:</strong></td>
                                     <td class="text-end text-primary" style="font-size: 1.1em;">${formatETB(combinedTotal)}</td>
                                 </tr>
                             </tfoot>
@@ -1076,6 +1174,7 @@ function openPrintPages(card) {
     const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const amount = parseFloat(card.dataset.amount) || 0;
     const applicantNotes = card.dataset.notes || "";
+    const applicationDate = card.dataset.applicationDate || new Date().toLocaleDateString();
     
     // Get proforma data
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
@@ -1097,7 +1196,7 @@ function openPrintPages(card) {
     const _csvEscG = (v) => '"' + String(v ?? '').replace(/"/g, '""') + '"';
     const _csvGarageRows = [
         ['Garage Service Invoice'],
-        ['Date', new Date().toLocaleDateString(), 'Garage', garageName],
+        ['Date', applicationDate, 'Garage', garageName],
         ['Store ID', storeId, 'TIN #', tinNumber],
         ['Location', location, 'Phone', phoneNumber],
         ['Customer', customerName, 'Customer Phone', customerPhone],
@@ -1174,7 +1273,7 @@ function openPrintPages(card) {
 
                 <main>
                     <div class="row">
-                        <div class="col-sm-6"><strong>Date:</strong> ${new Date().toLocaleDateString()}</div>
+                        <div class="col-sm-6"><strong>Date:</strong> ${applicationDate}</div>
                         <div class="col-sm-6 text-sm-end"><strong>Invoice No:</strong> ${Math.floor(Math.random() * 100000)}</div>
                     </div>
                     <hr>
@@ -1440,6 +1539,10 @@ async function applyDecryption(privateKey) {
         document.querySelectorAll(`.enc-part-total[data-price-id="${priceId}"]`).forEach(el => {
             el.outerHTML = `<span>${fmt(partTotal)}</span>`;
         });
+        document.querySelectorAll(`.enc-unit-cell[data-price-id="${priceId}"]`).forEach(td => {
+            const tr = td.closest('tr');
+            if (tr && unitPrice > 0) tr.dataset.unitPrice = unitPrice;
+        });
 
         const appId = data.app_id;
         if (appId) appSubtotals[appId] = (appSubtotals[appId] || 0) + partTotal;
@@ -1458,6 +1561,8 @@ async function applyDecryption(privateKey) {
         if (vatCell) vatCell.textContent = fmt(vatAmount);
         if (grandTotalCell) grandTotalCell.textContent = fmt(grandTotal);
     }
+
+    computeShopRanks();
 
     const panel = document.getElementById('decryptPanel');
     if (panel) panel.innerHTML =
@@ -1610,7 +1715,7 @@ let coverHtml = '<div class=\'pdf-only-cover\' style=\'width:794px;min-height:11
   '<main>' +
   '<div style=\'display:flex;justify-content:space-between;margin-bottom:24px;font-size:14px;line-height:1.6;\'>' +
   '<div>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Date:</strong> ' + new Date().toLocaleDateString() + '</p>' +
+  '<p style=\'margin:0 0 4px 0;\'><strong>Date:</strong> ' + escapeHtml(card.dataset.applicationDate || new Date().toLocaleDateString()) + '</p>' +
   '<p style=\'margin:0 0 4px 0;\'><strong>Store ID:</strong> ' + escapeHtml(storeId) + '</p>' +
   '<p style=\'margin:0 0 4px 0;\'><strong>Shop Name:</strong> ' + escapeHtml(shopName) + '</p>' +
   '<p style=\'margin:0 0 4px 0;\'><strong>Tin #:</strong> ' + escapeHtml(tin) + '</p>' +
