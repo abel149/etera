@@ -980,7 +980,7 @@ function openPrintPage(card) {
         }
     });
     const hasRanks = partsData.some(p => p.rank !== '—');
-    const footSpan = hasRanks ? 8 : 7;
+    const footSpan = hasRanks ? 7 : 6;
     
     // Calculate totals (part prices are NET)
     const parseETB = (value) => parseFloat(value.replace(/[^0-9.-]+/g, "")) || 0;
@@ -1116,7 +1116,6 @@ function openPrintPage(card) {
                                 <tr>
                                     <th>No</th>
                                     <th>Part Name & Number</th>
-                                    <th>Condition</th>
                                     <th>Grade</th>
                                     <th>Country</th>
                                     <th>Qty</th>
@@ -1130,7 +1129,6 @@ function openPrintPage(card) {
                                     <tr>
                                         <td>${part.no}</td>
                                         <td>${part.partNumber}</td>
-                                        <td>${part.condition}</td>
                                         <td>${part.grade}</td>
                                         <td>${part.country}</td>
                                         <td>${part.quantity}</td>
