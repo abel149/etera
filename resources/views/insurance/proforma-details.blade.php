@@ -237,6 +237,8 @@
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-notes='@json($application->notes ?? '')'
                          data-application-date="{{ $application->created_at?->format('F j, Y') }}"
+                         data-amount="{{ $application->amount ?? 0 }}"
+                         data-amount-is-encrypted="{{ $application->amount_is_encrypted && $application->encrypted_amount ? '1' : '0' }}"
                          data-customer-name="{{ $proforma->customer_name ?? 'N/A' }}"
                          data-customer-phone="{{ $proforma->customer_phone_number ?? 'N/A' }}"
                          data-brand="{{ $proforma->brand->name ?? 'N/A' }}"
@@ -305,7 +307,7 @@
                                 @if($proforma->isShopGarageInsurance())
                                 <div style="margin-top:10px; padding:10px 12px; border:1px solid rgba(59,130,246,0.25); border-radius:8px; background:rgba(59,130,246,0.06);">
                                     <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
-                                        <strong style="color:#2563eb;">Garage Repair Service Estimate</strong>
+                                        <strong style="color:#2563eb;">Garage Repair Service Estimate <span class="dual-garage-rank" data-app-id="{{ $application->id }}" style="display:none; margin-left:6px; border-radius:20px; padding:1px 8px; font-size:0.72rem; font-weight:700; white-space:nowrap;"></span></strong>
                                         <span class="{{ $application->amount_is_encrypted && $application->encrypted_amount ? 'encrypted-price' : '' }}" data-app-id="{{ $application->id }}">
                                             @if($application->amount_is_encrypted && $application->encrypted_amount)
                                                 <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
@@ -360,7 +362,7 @@
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
-                         data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
+                         data-amount-is-encrypted="{{ $application->amount_is_encrypted && $application->encrypted_amount ? '1' : '0' }}"
                          data-notes="{{ $application->notes ?? '' }}"
                          data-application-date="{{ $application->created_at?->format('F j, Y') }}">
 
@@ -507,7 +509,7 @@
                                 @if($proforma->isShopGarageInsurance())
                                 <div style="margin-top:10px; padding:10px 12px; border:1px solid rgba(59,130,246,0.25); border-radius:8px; background:rgba(59,130,246,0.06);">
                                     <div style="display:flex; justify-content:space-between; gap:12px; align-items:center;">
-                                        <strong style="color:#2563eb;">Garage Repair Service Estimate</strong>
+                                        <strong style="color:#2563eb;">Garage Repair Service Estimate <span class="dual-garage-rank" data-app-id="{{ $application->id }}" style="display:none; margin-left:6px; border-radius:20px; padding:1px 8px; font-size:0.72rem; font-weight:700; white-space:nowrap;"></span></strong>
                                         <span class="{{ $application->amount_is_encrypted && $application->encrypted_amount ? 'encrypted-price' : '' }}" data-app-id="{{ $application->id }}">
                                             @if($application->amount_is_encrypted && $application->encrypted_amount)
                                                 <i class="bx bx-lock text-warning"></i> <em class="text-warning">Encrypted</em>
@@ -550,19 +552,6 @@
             
             @endif
             @if(!$proforma->isShopOnlyInsurance())
-            @php
-                // Garage rank: smallest non-encrypted amount = rank 1
-                $_garageRankMap = [];
-                $_gTotals = collect($applications)
-                    ->filter(fn($a) => $a->from === 'garage' && !($a->amount_is_encrypted ?? false) && (float)($a->amount ?? 0) > 0)
-                    ->sortBy(fn($a) => (float)$a->amount)
-                    ->values();
-                if ($_gTotals->count() >= 2) {
-                    foreach ($_gTotals as $_rk => $_ga) {
-                        $_garageRankMap[$_ga->id] = $_rk + 1;
-                    }
-                }
-            @endphp
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
                 @foreach($applications as $application)
@@ -579,7 +568,7 @@
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
-                         data-amount-is-encrypted="{{ $application->amount_is_encrypted ? '1' : '0' }}"
+                         data-amount-is-encrypted="{{ $application->amount_is_encrypted && $application->encrypted_amount ? '1' : '0' }}"
                          data-notes="{{ $application->notes ?? '' }}"
                          data-application-date="{{ $application->created_at?->format('F j, Y') }}">
 
@@ -598,17 +587,7 @@
                                 <div class="ms-2 flex-grow-1">
                                     <a href="javascript:;" data-bs-toggle="modal" data-bs-target="#details"><h6 class="mb-0 font-17">{{$application->applicationBy->name}}</h6></a>
                                 </div>
-                                @if(isset($_garageRankMap[$application->id]))
-                                    @php
-                                        $_gRank  = $_garageRankMap[$application->id];
-                                        $_gLabel = trim(([1 => '🥇', 2 => '🥈', 3 => '🥉'][$_gRank] ?? '') . " #{$_gRank}/" . count($_garageRankMap) . ($_gRank === 1 ? ' Best Price' : ''));
-                                        $_gColor = [1 => '#b45309', 2 => '#64748b', 3 => '#92400e'][$_gRank] ?? '#6b7280';
-                                        $_gBg    = [1 => 'rgba(245,158,11,0.15)', 2 => 'rgba(148,163,184,0.15)', 3 => 'rgba(180,83,9,0.1)'][$_gRank] ?? 'rgba(107,114,128,0.1)';
-                                    @endphp
-                                    <span style="background:{{ $_gBg }};color:{{ $_gColor }};border:1px solid {{ $_gColor }};border-radius:20px;padding:2px 10px;font-size:0.75rem;font-weight:700;white-space:nowrap;">
-                                        {{ $_gLabel }}
-                                    </span>
-                                @endif
+                                <span class="garage-rank-badge" data-app-id="{{ $application->id }}" style="display:none; border-radius:20px; padding:2px 10px; font-size:0.75rem; font-weight:700; white-space:nowrap;"></span>
                             </div>
                         </div>
                         <div class="card-body pt-3 px-4 pb-0">
@@ -871,8 +850,57 @@ function computeShopRanks() {
     }
 }
 
+// ── Garage ranking by total (cheapest = #1/N). Garage-only: garage cards, reordered
+// cheapest first. Dual-service: garage estimate on each shop card. Waits for decryption.
+function computeGarageRanks() {
+    const medal = {1: '🥇', 2: '🥈', 3: '🥉'};
+    const color = {1: '#b45309', 2: '#64748b', 3: '#92400e'};
+    const bg    = {1: 'rgba(245,158,11,0.15)', 2: 'rgba(148,163,184,0.15)', 3: 'rgba(180,83,9,0.1)'};
+
+    const rankCards = (cards, badgeSel, reorder) => {
+        const ranked = [], unranked = [];
+        let pending = false;
+        cards.forEach(card => {
+            const badge = card.querySelector(badgeSel);
+            if (badge) { badge.style.display = 'none'; badge.textContent = ''; }
+            const amt = parseFloat(card.dataset.amount);
+            if (card.dataset.amountIsEncrypted === '1') { pending = true; unranked.push(card); }
+            else if (amt > 0) ranked.push({ card, amt });
+            else unranked.push(card);
+        });
+        if (pending || ranked.length === 0) return;
+
+        ranked.sort((a, b) => a.amt - b.amt);
+        ranked.forEach((e, i) => {
+            let r = i;
+            while (r > 0 && ranked[r - 1].amt === e.amt) r--;
+            const rank = r + 1;
+            const badge = e.card.querySelector(badgeSel);
+            if (!badge) return;
+            badge.textContent = ((medal[rank] || '') + ' #' + rank + '/' + ranked.length + (rank === 1 ? ' Best Price' : '')).trim();
+            badge.style.color = color[rank] || '#6b7280';
+            badge.style.background = bg[rank] || 'rgba(107,114,128,0.1)';
+            badge.style.border = '1px solid ' + (color[rank] || '#6b7280');
+            badge.style.display = 'inline-block';
+        });
+
+        if (reorder) {
+            [...ranked.map(e => e.card), ...unranked].forEach(card => {
+                const wrap = card.closest('.col-lg-12');
+                if (wrap && wrap.parentNode) wrap.parentNode.appendChild(wrap);
+            });
+        }
+    };
+
+    rankCards(document.querySelectorAll('.garage-card'), '.garage-rank-badge', true);
+    @if($proforma->isShopGarageInsurance())
+    rankCards(document.querySelectorAll('.application-card'), '.dual-garage-rank', false);
+    @endif
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     computeShopRanks();
+    computeGarageRanks();
 
     // Handle Spare Part Shop select buttons
     document.querySelectorAll('.select-shop-btn').forEach(button => {
@@ -919,6 +947,8 @@ function openPrintPage(card) {
     const applicationDate = card.dataset.applicationDate || new Date().toLocaleDateString();
     const overallRankEl = card.querySelector('.shop-overall-rank');
     const overallRank = overallRankEl && overallRankEl.style.display !== 'none' ? overallRankEl.textContent.trim() : '';
+    const dualRankEl = card.querySelector('.dual-garage-rank');
+    const dualGarageRank = dualRankEl && dualRankEl.style.display !== 'none' ? dualRankEl.textContent.trim() : '';
     
     // Get proforma data
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
@@ -984,7 +1014,7 @@ function openPrintPage(card) {
         ['', '', '', '', '', '', 'PARTS GRAND TOTAL (VAT Incl.)', grandTotal.toFixed(2) + ' ETB'],
     ];
     if (isDualService) {
-        _csvShopRows.push(['', '', '', '', '', '', 'GARAGE REPAIR (VAT Incl.)', garageGrand.toFixed(2) + ' ETB']);
+        _csvShopRows.push(['', '', '', '', '', '', 'GARAGE REPAIR (VAT Incl.)', garageGrand.toFixed(2) + ' ETB', ...(dualGarageRank ? ['Rank ' + dualGarageRank.replace(/[^\d\/]/g, '')] : [])]);
         _csvShopRows.push(['', '', '', '', '', '', 'COMBINED GRAND TOTAL', combinedTotal.toFixed(2) + ' ETB']);
     }
     const _csvShopUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(_csvShopRows.map(r => r.map(_csvEsc).join(',')).join('\r\n'));
@@ -1125,7 +1155,7 @@ function openPrintPage(card) {
                                 </tr>
                                 ${isDualService ? `
                                 <tr>
-                                    <td colspan="${footSpan}" class="text-end"><strong>GARAGE REPAIR SERVICE (VAT Included):</strong></td>
+                                    <td colspan="${footSpan}" class="text-end"><strong>GARAGE REPAIR SERVICE (VAT Included)${dualGarageRank ? ' — Rank ' + dualGarageRank : ''}:</strong></td>
                                     <td class="text-end">${formatETB(garageGrand)}</td>
                                 </tr>
                                 ` : ''}
@@ -1175,6 +1205,8 @@ function openPrintPages(card) {
     const amount = parseFloat(card.dataset.amount) || 0;
     const applicantNotes = card.dataset.notes || "";
     const applicationDate = card.dataset.applicationDate || new Date().toLocaleDateString();
+    const garageRankEl = card.querySelector('.garage-rank-badge');
+    const garageRank = garageRankEl && garageRankEl.style.display !== 'none' ? garageRankEl.textContent.trim() : '';
     
     // Get proforma data
     const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
@@ -1197,6 +1229,7 @@ function openPrintPages(card) {
     const _csvGarageRows = [
         ['Garage Service Invoice'],
         ['Date', applicationDate, 'Garage', garageName],
+        ...(garageRank ? [['Rank', garageRank.replace(/[^\d\/]/g, '')]] : []),
         ['Store ID', storeId, 'TIN #', tinNumber],
         ['Location', location, 'Phone', phoneNumber],
         ['Customer', customerName, 'Customer Phone', customerPhone],
@@ -1280,6 +1313,7 @@ function openPrintPages(card) {
 
                     <div class="row gy-3 align-items-start">
                         <div class="col-sm-6">
+                            ${garageRank ? `<p class="mb-1"><strong>Rank:</strong> ${garageRank}</p>` : ''}
                             <p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
                             <p class="mb-1"><strong>Garage Name:</strong> ${garageName}</p>
                             <p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
@@ -1563,6 +1597,7 @@ async function applyDecryption(privateKey) {
     }
 
     computeShopRanks();
+    computeGarageRanks();
 
     const panel = document.getElementById('decryptPanel');
     if (panel) panel.innerHTML =
