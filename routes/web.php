@@ -3113,7 +3113,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
         $query = \App\Models\Proforma::where('poster_id', $user->id)
             ->where('status', 'completed')
             ->where('verified', true)
-            ->orderBy('created_at', 'desc');
+            ->orderBy('updated_at', 'desc')
+            ->orderBy('id', 'desc');
 
         if ($request->filled('search')) {
             $search = $request->search;
