@@ -224,7 +224,7 @@ class="current"
                 {{-- Header --}}
                 <div class="modal-header" style="background: rgba(13,148,136,0.2); color: white; border-bottom: 1px solid rgba(255,255,255,0.08);">
                     <h5 class="modal-title" id="applicationModalLabel{{ $application->id }}">
-                        <i class='bx bx-file me-2'></i>Application Details@if($isDealer) — Proforma #{{ $proforma->file_number }}@endif
+                        <i class='bx bx-file me-2'></i>Application Details @if($isDealer) — Proforma #{{ $proforma->file_number }}@endif
                     </h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
