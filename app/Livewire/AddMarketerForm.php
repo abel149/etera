@@ -36,7 +36,7 @@ class AddMarketerForm extends Component
         $marketer = Marketer::create([
             'name' => $this->name,
             'phone_number' => $this->phone_number,
-            'email' => $this->email,
+            'email' => $this->email ?: null,
             'password' => Hash::make($password),
             'role' => 'marketer',
         ]);
