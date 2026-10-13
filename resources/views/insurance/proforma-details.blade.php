@@ -554,6 +554,9 @@
             @if(!$proforma->isShopOnlyInsurance())
             <div class="col-12 col-md-6 mx-auto">
                 <h4 class="mb-3 steper-title text-center">Garages</h4>
+                @php
+                    $garageReqParts = $proforma->isGarageOnlyInsurance() ? $proforma->parts->sortBy('id')->values() : collect();
+                @endphp
                 @foreach($applications as $application)
                 @if($application->from == 'garage')
                 <div class="col-lg-12 mb-3">
@@ -613,6 +616,33 @@
                                     </span>
                                 </div>
                             </div>
+                            @if($garageReqParts->isNotEmpty())
+                            <div class="mb-3" style="overflow-x: auto; white-space: nowrap;">
+                                <h6 class="mb-2" style="font-size: 12px; font-weight: 700;"><i class="bx bx-list-ul me-1"></i>Parts Requested</h6>
+                                <table style="font-size: 10px; border-collapse: collapse; width: 100%;">
+                                    <thead>
+                                        <tr>
+                                            <th style="text-align: left; padding: 4px;">No</th>
+                                            <th style="text-align: left; padding: 4px;">Part Name &amp; Number</th>
+                                            <th style="text-align: left; padding: 4px;">Component</th>
+                                            <th style="text-align: left; padding: 4px;">Service</th>
+                                            <th style="text-align: left; padding: 4px;">Qty</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        @foreach($garageReqParts as $pIdx => $reqPart)
+                                        <tr>
+                                            <td style="padding: 4px;">{{ $pIdx + 1 }}</td>
+                                            <td style="padding: 4px;">{{ $reqPart->number }}</td>
+                                            <td style="padding: 4px;">{{ $reqPart->component ?? '—' }}</td>
+                                            <td style="padding: 4px;">{{ $reqPart->repair_renew ? ucfirst($reqPart->repair_renew) : '—' }}</td>
+                                            <td style="padding: 4px;">{{ $reqPart->quantity ?? 1 }}</td>
+                                        </tr>
+                                        @endforeach
+                                    </tbody>
+                                </table>
+                            </div>
+                            @endif
                             <div class="invoice mb-1" style="overflow-y: hidden; overflow-x: auto; white-space: nowrap;">
                                 <table style="font-size: 10px; border-collapse: collapse; width: 100%;">
                                     <thead>
@@ -1213,6 +1243,16 @@ function openPrintPages(card) {
     const year = "{{ $proforma->year ?? 'N/A' }}";
     const plate = "{{ $proforma->license_plate_number ?? 'N/A' }}";
     const createdAt = "{{ $proforma->proformaInvoice?->created_at->format('M d, Y') }}";
+    const reqParts = {!! json_encode(($garageReqParts ?? collect())->map(fn($p) => ['number' => $p->number, 'component' => $p->component, 'service' => $p->repair_renew ? ucfirst($p->repair_renew) : null, 'qty' => $p->quantity ?? 1])->values(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+    const escHtml = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+    const reqPartsHtml = reqParts.length ? `
+                    <h6 class="mt-4 mb-2"><strong>Parts Requested</strong></h6>
+                    <div class="table-responsive">
+                        <table class="table border">
+                            <thead><tr><th>No</th><th>Part Name &amp; Number</th><th>Component</th><th>Service</th><th>Qty</th></tr></thead>
+                            <tbody>${reqParts.map((p, i) => `<tr><td>${i + 1}</td><td>${escHtml(p.number)}</td><td>${escHtml(p.component || '—')}</td><td>${escHtml(p.service || '—')}</td><td>${escHtml(p.qty)}</td></tr>`).join('')}</tbody>
+                        </table>
+                    </div>` : '';
     
     // Calculate garage totals (amount is NET, add VAT)
     const netTotal = amount;
@@ -1233,6 +1273,12 @@ function openPrintPages(card) {
         ['Customer', customerName, 'Customer Phone', customerPhone],
         ['Car', year + ' ' + brand + ' [' + plate + ']'],
         [],
+        ...(reqParts.length ? [
+            ['Parts Requested'],
+            ['No', 'Part Name & Number', 'Component', 'Service', 'Qty'],
+            ...reqParts.map((p, i) => [i + 1, p.number, p.component || '', p.service || '', p.qty]),
+            [],
+        ] : []),
         ['No', 'Service Name', 'Description', 'Service Type', 'Estimate Price'],
         [1, 'Garage Repair Service', 'Complete repair service', 'Full Service', amount.toFixed(2) + ' ETB'],
         [],
@@ -1331,6 +1377,7 @@ function openPrintPages(card) {
                             </address>
                         </div>
                     </div>
+                    ${reqPartsHtml}
 
                     <div class="table-responsive mt-4">
                         <table class="table border">

@@ -327,6 +327,33 @@ class="current"
                     </div>
                     @else
                     {{-- Garage / lump-sum application --}}
+                    @if($application->from === 'garage' && $parts->count() > 0)
+                    <h6 class="mb-3"><i class='bx bx-list-ul me-1'></i>Parts Applied For</h6>
+                    <div class="table-responsive mb-2">
+                        <table class="table table-bordered table-sm align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>No</th>
+                                    <th>Part Name / Number</th>
+                                    <th>Component</th>
+                                    <th>Service</th>
+                                    <th>Qty</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach($partsSorted as $part)
+                                    <tr>
+                                        <td>{{ $loop->iteration }}</td>
+                                        <td>{{ $part->number }}</td>
+                                        <td>{{ $part->component ?? '-' }}</td>
+                                        <td>{{ $part->repair_renew ? ucfirst($part->repair_renew) : '-' }}</td>
+                                        <td>{{ $part->quantity ?? 1 }}</td>
+                                    </tr>
+                                @endforeach
+                            </tbody>
+                        </table>
+                    </div>
+                    @endif
                     <div class="text-center py-3">
                         @if($application->amount_is_encrypted)
                             <i class="bx bx-lock fs-1 text-warning"></i>
