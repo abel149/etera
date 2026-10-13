@@ -86,8 +86,14 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // Validation errors must be handled by Laravel's default redirect-back-with-errors.
             // Returning null here lets the default renderer take over.
-            if ($e instanceof \Illuminate\Validation\ValidationException) {
+            if ($e instanceof \Illuminate\Validation\ValidationException
+                || $e instanceof \Illuminate\Auth\AuthenticationException) {
                 return null;
+            }
+
+            // 419 - Page Expired
+            if ($e instanceof TokenMismatchException) {
+                return response()->view('errors.419', [], 419);
             }
 
             $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
@@ -151,11 +157,6 @@ return Application::configure(basePath: dirname(__DIR__))
             // =========================
             // RENDER ERROR PAGES
             // =========================
-
-            // 419 - Page Expired
-            if ($e instanceof TokenMismatchException) {
-                return response()->view('errors.419', [], 419);
-            }
 
             // HTTP exceptions (4xx / 5xx)
             if ($e instanceof HttpExceptionInterface) {
