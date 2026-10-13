@@ -102,6 +102,7 @@ return redirect()->to('/admin/insurances');
                 ->withErrors(['error' => implode(' ', $errorMessages)]);
         } catch (\Exception $e) {
             // Catch any other unexpected errors (e.g., database issues)
+            \Illuminate\Support\Facades\Log::error('Insurance create failed', ['error' => $e->getMessage()]);
             return redirect()->back()
                 ->withInput()
                 ->withErrors(['error' => 'An unexpected error occurred. Please try again.']);

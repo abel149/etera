@@ -36,7 +36,7 @@
 
                     <!-- Email Field -->
                     <div class="col-md-6">
-                        <label for="input7" class="form-label">Email</label>
+                        <label for="input7" class="form-label">Email <small class="text-muted">(optional)</small></label>
                         <input type="email" name="email" class="form-control" id="input7" placeholder="Email...">
                         @error('email')
                             <span class="text-danger">{{ $message }}</span>
