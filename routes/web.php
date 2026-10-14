@@ -4498,8 +4498,15 @@ Route::get('insurance/application/{application}/pdf', function (\App\Models\Prof
     if (!$pdf || !$pdf->isEncrypted()) {
         abort(404);
     }
+    if ($pdf->file_path && Storage::disk('local')->exists($pdf->file_path)) {
+        $encBase64 = base64_encode(Storage::disk('local')->get($pdf->file_path));
+    } elseif ($pdf->encrypted_pdf) {
+        $encBase64 = $pdf->encrypted_pdf;
+    } else {
+        abort(404);
+    }
     return response()->json([
-        'encrypted_pdf'     => $pdf->encrypted_pdf,
+        'encrypted_pdf'     => $encBase64,
         'encrypted_aes_key' => $pdf->encrypted_aes_key,
         'aes_iv'            => $pdf->aes_iv,
         'original_filename' => $pdf->original_filename,
@@ -4519,9 +4526,23 @@ Route::get('application/{application}/pdf/serve', function (\App\Models\Proforma
     if (!$pdf || $pdf->isEncrypted()) {
         abort(404);
     }
-    $pdfBytes = base64_decode($pdf->encrypted_pdf);
+    if ($pdf->file_path && Storage::disk('local')->exists($pdf->file_path)) {
+        $pdfBytes = Storage::disk('local')->get($pdf->file_path);
+    } elseif ($pdf->encrypted_pdf) {
+        $pdfBytes = base64_decode($pdf->encrypted_pdf);
+    } else {
+        abort(404);
+    }
+    $mime = match (strtolower(pathinfo($pdf->original_filename ?? '', PATHINFO_EXTENSION))) {
+        'jpg', 'jpeg' => 'image/jpeg',
+        'png'         => 'image/png',
+        'gif'         => 'image/gif',
+        'webp'        => 'image/webp',
+        'bmp'         => 'image/bmp',
+        default       => 'application/pdf',
+    };
     return response($pdfBytes, 200, [
-        'Content-Type'        => 'application/pdf',
+        'Content-Type'        => $mime,
         'Content-Disposition' => 'inline; filename="' . $pdf->original_filename . '"',
     ]);
 })->middleware(['auth'])->name('application.pdf.serve');
