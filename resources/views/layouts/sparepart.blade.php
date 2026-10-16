@@ -1075,26 +1075,7 @@
 		}
 	});
 
-	// Google Autocomplete
-	function initAutocomplete() {
-		try {
-			var options = { types: ['(cities)'] };
-			var input = document.getElementById('autocomplete-input');
-			if (!input) return;
-			var autocomplete = new google.maps.places.Autocomplete(input, options);
-		} catch (e) { /* ignore */ }
-	}
-
-	document.addEventListener('DOMContentLoaded', function() {
-		const introBanner = document.querySelector('.intro-banner-search-form');
-		if (introBanner) {
-			setTimeout(function(){ $(".pac-container").prependTo(".intro-search-field.with-autocomplete"); }, 300);
-		}
-	});
 </script>
-
-<!-- Google API -->
-<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAaoOT9ioUE4SA8h-anaFyU4K63a7H-7bc&libraries=places&callback=initAutocomplete&loading=async"></script>
 
 <!-- Auto-Logout after 30 minutes inactivity -->
 <script>
