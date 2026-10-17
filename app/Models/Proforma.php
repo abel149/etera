@@ -23,6 +23,7 @@ class Proforma extends Model implements HasMedia
 
     protected $casts = [
         'timer_expires_at' => 'datetime',
+        
         'auto_selection_enabled' => 'boolean',
         'auto_selection_count' => 'integer',
         'close_request' => 'boolean',
@@ -43,18 +44,22 @@ class Proforma extends Model implements HasMedia
                 $posterRole = $proforma->poster?->role ?? 'Unknown';
                 $brandName = $proforma->brand?->name ?? 'N/A';
 
-                // Telegram notification to admins (if configured)
-                try {
-                    $telegram = new \App\Services\TelegramService();
-                    $telegram->sendProformaRequestedNotificationToAdmins($proforma);
-                } catch (\Throwable $e) {
-                    \Illuminate\Support\Facades\Log::warning('Failed to send proforma requested Telegram notification to admins', [
-                        'proforma_id' => $proforma->id,
-                        'error' => $e->getMessage(),
-                    ]);
-                }
+                // Telegram notification to admins (if configured).
+                // Deferred until after the HTTP response so the synchronous
+                // api.telegram.org calls don't block proforma creation.
+                dispatch(function () use ($proforma) {
+                    try {
+                        $telegram = new \App\Services\TelegramService();
+                        $telegram->sendProformaRequestedNotificationToAdmins($proforma);
+                    } catch (\Throwable $e) {
+                        \Illuminate\Support\Facades\Log::warning('Failed to send proforma requested Telegram notification to admins', [
+                            'proforma_id' => $proforma->id,
+                            'error' => $e->getMessage(),
+                        ]);
+                    }
+                })->afterResponse();
 
-                // Send email notification for new proforma (if enabled)
+               /* // Send email notification for new proforma (if enabled)
                 if (\App\Models\EmailSetting::isEnabled('proforma_created')) {
                     \Illuminate\Support\Facades\Mail::raw(
                         "New Proforma Created\n\n" .
@@ -81,14 +86,14 @@ class Proforma extends Model implements HasMedia
                     $proforma->id,
                     "New Proforma #{$proforma->file_number} Created",
                     'sent'
-                );
+                );*/
             } catch (\Throwable $e) {
                 \Illuminate\Support\Facades\Log::warning('Failed to send new proforma email to 251etera@gmail.com', [
                     'proforma_id' => $proforma->id,
                     'error' => $e->getMessage(),
                 ]);
 
-                try {
+              /*  try {
                     \App\Models\SentEmail::log(
                         'proforma_created',
                         '251etera@gmail.com',
@@ -101,7 +106,7 @@ class Proforma extends Model implements HasMedia
                     );
                 } catch (\Throwable $logEx) {
                     // Silently fail - don't break proforma creation
-                }
+                }*/
             }
         });
     }
