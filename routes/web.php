@@ -3821,6 +3821,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 }
             }
 
+            $inboxRows = [];
+            $inboxNow  = now();
             $shopGroupsUsed = 0;
             if ($proformaType !== 'insurance_garage_only') {
                 foreach ([1 => $shopGroup1, 2 => $shopGroup2, 3 => $shopGroup3, 4 => $shopGroup4, 5 => $shopGroup5] as $grp => $ids) {
@@ -3831,12 +3833,14 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                         if (!empty($ids)) {
                             $shopGroupsUsed++;
                             foreach ($ids as $userId) {
-                                Inbox::create([
+                                $inboxRows[] = [
                                     'proforma_id' => $proforma->id,
                                     'user_id'     => $userId,
                                     'source'      => 'insurance',
                                     'inbox_group' => $grp,
-                                ]);
+                                    'created_at'  => $inboxNow,
+                                    'updated_at'  => $inboxNow,
+                                ];
                             }
                         }
                     }
@@ -3849,15 +3853,20 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                     if (!empty($ids)) {
                         $garageGroupsUsed++;
                         foreach ($ids as $userId) {
-                            Inbox::create([
+                            $inboxRows[] = [
                                 'proforma_id' => $proforma->id,
                                 'user_id'     => $userId,
                                 'source'      => 'insurance',
                                 'inbox_group' => $grp,
-                            ]);
+                                'created_at'  => $inboxNow,
+                                'updated_at'  => $inboxNow,
+                            ];
                         }
                     }
                 }
+            }
+            if (!empty($inboxRows)) {
+                Inbox::insert($inboxRows);
             }
 
             $hasShopQuota   = \Illuminate\Support\Facades\Cache::remember('schema_proformas_shop_quota',   86400, fn() => \Illuminate\Support\Facades\Schema::hasColumn('proformas', 'insurance_shop_quota'));
