@@ -3335,6 +3335,90 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
 
             return view('insurance.proforma-details', compact('proforma', 'applications', 'partCarPartIds'));
 });
+
+        // ── Save computed ranks & mark proforma as viewed/decrypted ──────────
+        Route::post('proforma/{proforma}/save-ranks', function (Request $request, \App\Models\Proforma $proforma) {
+            abort_if($proforma->poster_id !== auth()->id(), 403);
+
+            $ranks = $request->input('ranks', []);
+
+            // Mark first view/decryption only when the poster actually saw the
+            // (decrypted) content — not when an encrypted page was just opened.
+            // mark_viewed is sent on page load when nothing is encrypted, or after
+            // a successful client-side decryption.
+            if ($proforma->status === 'completed' && !$proforma->decrypted_at
+                && $request->boolean('mark_viewed')) {
+                $proforma->update(['decrypted_at' => now()]);
+            }
+
+            if (!is_array($ranks) || empty($ranks)) {
+                return response()->json(['ok' => true]);
+            }
+
+            // Collect labels, then batch-update with one query each
+            $appIds = array_keys($ranks);
+            $validApps = $proforma->applications()->whereIn('id', $appIds)->pluck('id')->all();
+
+            $appLabels  = []; // id => label
+            $allPartIds = []; // all part-price IDs across every application
+            $priceLabels = []; // priceId => label
+
+            foreach ($validApps as $appId) {
+                $label = substr((string) ($ranks[$appId]['overall'] ?? ''), 0, 50);
+                if ($label !== '') {
+                    $appLabels[$appId] = $label;
+                }
+                $partRanks = $ranks[$appId]['parts'] ?? [];
+                if (is_array($partRanks)) {
+                    foreach ($partRanks as $pid => $pl) {
+                        $pl = substr((string) $pl, 0, 50);
+                        if ($pl !== '') {
+                            $allPartIds[] = (int) $pid;
+                            $priceLabels[(int) $pid] = ['label' => $pl, 'app' => $appId];
+                        }
+                    }
+                }
+            }
+
+            // Single UPDATE … CASE for application rank labels
+            if (!empty($appLabels)) {
+                $cases = ''; $ids = [];
+                foreach ($appLabels as $id => $lbl) {
+                    $cases .= "WHEN id = ? THEN ? ";
+                    $ids[] = $id; $ids[] = $lbl;
+                }
+                $inPlaceholders = implode(',', array_fill(0, count($appLabels), '?'));
+                $appIdList = array_keys($appLabels);
+                DB::update(
+                    "UPDATE proforma_applications SET rank_label = CASE {$cases} END WHERE id IN ({$inPlaceholders})",
+                    array_merge($ids, $appIdList)
+                );
+            }
+
+            // Single UPDATE … CASE for part-price rank labels (scoped to valid IDs)
+            if (!empty($allPartIds)) {
+                $validPriceIds = \App\Models\ProformaPartPrice::whereIn('application_id', $validApps)
+                    ->whereIn('id', $allPartIds)
+                    ->pluck('id')->all();
+                $filteredLabels = array_filter($priceLabels, fn($v, $k) => in_array($k, $validPriceIds), ARRAY_FILTER_USE_BOTH);
+                if (!empty($filteredLabels)) {
+                    $cases = ''; $ids = [];
+                    foreach ($filteredLabels as $id => $data) {
+                        $cases .= "WHEN id = ? THEN ? ";
+                        $ids[] = $id; $ids[] = $data['label'];
+                    }
+                    $inPlaceholders = implode(',', array_fill(0, count($filteredLabels), '?'));
+                    $priceIdList = array_keys($filteredLabels);
+                    DB::update(
+                        "UPDATE proforma_part_prices SET rank_label = CASE {$cases} END WHERE id IN ({$inPlaceholders})",
+                        array_merge($ids, $priceIdList)
+                    );
+                }
+            }
+
+            return response()->json(['ok' => true]);
+        })->name('insurance.proforma.save-ranks');
+
         Route::get('/add-parts', function () {
             return view('insurance.parts.add');
         });

@@ -12,8 +12,6 @@ class Inbox extends Model
       'active' => 'boolean',
     ];
 
-    protected $with = ['proforma', 'user'];
-
     protected $hidden = ['id', 'user_id', 'proforma_id', 'created_at', 'updated_at'];
 
     public function proforma()

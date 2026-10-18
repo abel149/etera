@@ -23,7 +23,7 @@ class Proforma extends Model implements HasMedia
 
     protected $casts = [
         'timer_expires_at' => 'datetime',
-        
+        'decrypted_at' => 'datetime',
         'auto_selection_enabled' => 'boolean',
         'auto_selection_count' => 'integer',
         'close_request' => 'boolean',

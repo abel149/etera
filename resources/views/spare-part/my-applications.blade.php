@@ -153,6 +153,9 @@ class="current"
                             </td>
                             <td>
                                 <span class="badge {{ $statusClass }}">{{ ucfirst($status) }}</span>
+                                @if(!empty($proforma->decrypted_at))
+                                <span class="badge bg-info ms-1" title="Viewed by Insurance on {{ \Carbon\Carbon::parse($proforma->decrypted_at)->format('M d, Y') }}"><i class="bx bx-check-circle"></i> Viewed</span>
+                                @endif
                             </td>
                             <td>
                                 <small>{{ $application->created_at->format('M d, Y') }}</small>
@@ -216,6 +219,10 @@ class="current"
         $subtotal    = $subtotalParts;
         $discountAmt = $usingParts && !$pricesAreEncrypted ? ($subtotal * $discountPct / 100) : 0.0;
         $netTotal    = $usingParts && !$pricesAreEncrypted ? ($subtotal - $discountAmt) : (float) $application->amount;
+        $isCompleted = optional($proforma)->status === 'completed';
+        $isViewed    = $isCompleted && !empty($proforma->decrypted_at);
+        $hasRank     = $isViewed && !empty($application->rank_label);
+        $showPartRanks = $isViewed && $application->from === 'shop' && $prices->contains(fn($p) => !empty($p->rank_label));
     @endphp
     <div class="modal fade" id="applicationModal{{ $application->id }}" tabindex="-1"
          aria-labelledby="applicationModalLabel{{ $application->id }}" aria-hidden="true">
@@ -254,6 +261,16 @@ class="current"
                         </div>
                     </div>
 
+                    @if($isViewed)
+                    <div class="alert alert-info py-2 px-3 d-flex align-items-center gap-2 mb-2" style="font-size:0.85rem;">
+                        <i class='bx bx-check-circle fs-5'></i>
+                        <span><strong>Viewed by Insurance</strong> — {{ \Carbon\Carbon::parse($proforma->decrypted_at)->format('M d, Y h:i A') }}</span>
+                        @if($hasRank)
+                        <span class="ms-auto badge bg-warning text-dark" style="font-size:0.82rem;">Your Rank: {{ $application->rank_label }}</span>
+                        @endif
+                    </div>
+                    @endif
+
                     <hr>
 
                     {{-- Parts & Prices Table --}}
@@ -271,6 +288,7 @@ class="current"
                                     <th>Qty</th>
                                     <th class="text-end">Unit Price</th>
                                     <th class="text-end">Total</th>
+                                    @if($showPartRanks)<th class="text-center">Rank</th>@endif
                                 </tr>
                             </thead>
                             <tbody>
@@ -295,28 +313,46 @@ class="current"
                                             <td class="text-end text-muted fst-italic">— Not available</td>
                                             <td class="text-end text-muted">—</td>
                                         @endif
+                                        @if($showPartRanks)
+                                        <td class="text-center">
+                                            @if($partPrice && !empty($partPrice->rank_label))
+                                            @php
+                                                $rl = $partPrice->rank_label;
+                                                $rlParts = explode('/', $rl);
+                                                $rlNum = (int)($rlParts[0] ?? 0);
+                                                $rlColor = match($rlNum) { 1 => '#b45309', 2 => '#64748b', 3 => '#92400e', default => '#6b7280' };
+                                                $rlMedal = match($rlNum) { 1 => '🥇', 2 => '🥈', 3 => '🥉', default => '' };
+                                            @endphp
+                                            <span style="font-weight:700; color:{{ $rlColor }};">{{ $rlMedal }} {{ $rl }}</span>
+                                            @else
+                                            <span class="text-muted">—</span>
+                                            @endif
+                                        </td>
+                                        @endif
                                     </tr>
                                 @endforeach
                             </tbody>
                             <tfoot>
                                 @if($pricesAreEncrypted)
+                                @php $footColspan = $showPartRanks ? 8 : 7; $encColspan = $showPartRanks ? 9 : 8; @endphp
                                 <tr>
-                                    <td colspan="8" class="text-center py-2">
+                                    <td colspan="{{ $encColspan }}" class="text-center py-2">
                                         <i class="bx bx-lock text-warning me-1"></i>
                                         <em class="text-warning">Prices submitted securely — only the insurance can view the total.</em>
                                     </td>
                                 </tr>
                                 @else
+                                @php $footColspan = $showPartRanks ? 8 : 7; @endphp
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>SUBTOTAL</strong></td>
+                                    <td colspan="{{ $footColspan }}" class="text-end"><strong>SUBTOTAL</strong></td>
                                     <td class="text-end"><strong>{{ number_format($subtotal, 2) }} ETB</strong></td>
                                 </tr>
                                 <tr>
-                                    <td colspan="7" class="text-end"><strong>DISCOUNT</strong></td>
+                                    <td colspan="{{ $footColspan }}" class="text-end"><strong>DISCOUNT</strong></td>
                                     <td class="text-end"><strong>{{ number_format($discountAmt, 2) }} ETB ({{ $discountPct }}%)</strong></td>
                                 </tr>
                                 <tr style="background: rgba(13,148,136,0.12); font-weight: bold; border-top: 2px solid var(--etera-teal);">
-                                    <td colspan="7" class="text-end"><strong>NET TOTAL</strong></td>
+                                    <td colspan="{{ $footColspan }}" class="text-end"><strong>NET TOTAL</strong></td>
                                     <td class="text-end" style="color: var(--etera-teal-light); font-size: 1.1em;">
                                         <strong>{{ number_format($netTotal, 2) }} ETB</strong>
                                     </td>
@@ -364,6 +400,21 @@ class="current"
                         @else
                             <h6 class="text-muted mb-2">Total Amount</h6>
                             <h3 style="color: var(--etera-teal-light);">{{ number_format($netTotal, 2) }} ETB</h3>
+                        @endif
+                        @if($hasRank && $application->from === 'garage')
+                        @php
+                            $grl = $application->rank_label;
+                            $grlParts = explode('/', $grl);
+                            $grlNum = (int)($grlParts[0] ?? 0);
+                            $grlColor = match($grlNum) { 1 => '#b45309', 2 => '#64748b', 3 => '#92400e', default => '#6b7280' };
+                            $grlBg = match($grlNum) { 1 => 'rgba(245,158,11,0.15)', 2 => 'rgba(148,163,184,0.15)', 3 => 'rgba(180,83,9,0.1)', default => 'rgba(107,114,128,0.1)' };
+                            $grlMedal = match($grlNum) { 1 => '🥇', 2 => '🥈', 3 => '🥉', default => '' };
+                        @endphp
+                        <div class="mt-2">
+                            <span style="display:inline-block; border-radius:20px; padding:4px 14px; font-size:0.9rem; font-weight:700; color:{{ $grlColor }}; background:{{ $grlBg }}; border:1px solid {{ $grlColor }};">
+                                {{ $grlMedal }} #{{ $grl }}{{ $grlNum === 1 ? ' Best Price' : '' }}
+                            </span>
+                        </div>
                         @endif
                     </div>
                     @endif

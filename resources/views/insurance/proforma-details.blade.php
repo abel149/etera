@@ -198,6 +198,11 @@
             <span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }} px-3 py-2" style="font-size: 0.95rem;">
                 Parts Priced: {{ $progress['filled'] }} / {{ $progress['total'] }}
             </span>
+            @if($proforma->decrypted_at)
+            <span class="badge bg-info px-3 py-2 ms-2" style="font-size: 0.85rem;">
+                <i class="bx bx-check-circle me-1"></i>Viewed &amp; Decrypted: {{ \Carbon\Carbon::parse($proforma->decrypted_at)->format('M d, Y h:i A') }}
+            </span>
+            @endif
         </div>
         @endif
     
@@ -452,7 +457,7 @@
                                             $totalPrice    = $hasPrice ? $unitPrice * $part->quantity : 0;
                                             $shopSubtotal += $totalPrice;
                                         @endphp
-                                        <tr data-part-idx="{{ $loop->index }}" data-qty="{{ $part->quantity }}" data-unit-price="{{ $hasPrice ? $unitPrice : '' }}">
+                                        <tr data-part-idx="{{ $loop->index }}" data-qty="{{ $part->quantity }}" data-unit-price="{{ $hasPrice ? $unitPrice : '' }}" data-price-id="{{ $partPrice?->id ?? '' }}">
                                             <td>{{ $loop->index + 1 }}</td>
                                             <td>{{ $part->number }}</td>
                                             <td>{{ $part->condition ?? 'N/A' }}</td>
@@ -928,9 +933,70 @@ function computeGarageRanks() {
     @endif
 }
 
+// ── Persist computed ranks to server (fires once per page load / decryption) ──
+let _ranksSaved = false;
+function saveRanksToServer(markViewed) {
+    if (_ranksSaved) return;
+    _ranksSaved = true;
+    const ranks = {};
+    let hasAny = false;
+
+    // Shop cards: overall rank + per-part ranks (keyed by price ID)
+    document.querySelectorAll('.application-card:not(.pdf-application-card)').forEach(card => {
+        const appId = card.dataset.applicationId;
+        if (!appId) return;
+        const entry = { overall: '', parts: {} };
+
+        const ob = document.querySelector(`.shop-overall-rank[data-app-id="${appId}"]`);
+        if (ob && ob.style.display !== 'none' && ob.textContent.trim()) {
+            entry.overall = ob.textContent.trim().replace(/[^\d\/]/g, '');
+            hasAny = true;
+        }
+
+        card.querySelectorAll('tbody tr[data-part-idx]').forEach(tr => {
+            const priceId = tr.dataset.priceId;
+            const rl = tr.dataset.rankLabel;
+            if (priceId && rl) {
+                entry.parts[priceId] = rl.replace(/[^\d\/]/g, '');
+                hasAny = true;
+            }
+        });
+
+        ranks[appId] = entry;
+    });
+
+    // Garage cards: overall rank
+    document.querySelectorAll('.garage-card').forEach(card => {
+        const appId = card.dataset.applicationId;
+        if (!appId) return;
+        const badge = card.querySelector('.garage-rank-badge');
+        if (badge && badge.style.display !== 'none' && badge.textContent.trim()) {
+            ranks[appId] = ranks[appId] || { overall: '', parts: {} };
+            ranks[appId].overall = badge.textContent.trim().replace(/[^\d\/]/g, '');
+            hasAny = true;
+        }
+    });
+
+    markViewed = !!markViewed;
+    if (!hasAny && !markViewed) return; // still-encrypted page: nothing worth sending
+
+    fetch('{{ route("insurance.proforma.save-ranks", $proforma->id) }}', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]')?.content || '{{ csrf_token() }}'
+        },
+        body: JSON.stringify({ ranks: hasAny ? ranks : {}, mark_viewed: markViewed })
+    }).catch(() => { _ranksSaved = false; });
+}
+
 document.addEventListener('DOMContentLoaded', function() {
     computeShopRanks();
     computeGarageRanks();
+    // If any encrypted content still exists on the page, don't mark as viewed yet —
+    // that happens after applyDecryption(). Plain pages count as viewed on load.
+    const stillEncrypted = document.querySelector('.enc-unit-price, .encrypted-price, [data-pdf-encrypted="1"]') !== null;
+    saveRanksToServer(!stillEncrypted);
 
     // Handle Spare Part Shop select buttons
     document.querySelectorAll('.select-shop-btn').forEach(button => {
@@ -1643,6 +1709,8 @@ async function applyDecryption(privateKey) {
 
     computeShopRanks();
     computeGarageRanks();
+    _ranksSaved = false;
+    saveRanksToServer(true);
 
     const panel = document.getElementById('decryptPanel');
     if (panel) panel.innerHTML =
