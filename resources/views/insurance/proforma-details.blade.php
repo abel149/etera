@@ -198,11 +198,13 @@
             <span class="badge {{ $progress['filled'] >= $progress['total'] ? 'bg-success' : 'bg-warning' }} px-3 py-2" style="font-size: 0.95rem;">
                 Parts Priced: {{ $progress['filled'] }} / {{ $progress['total'] }}
             </span>
-            @if($proforma->decrypted_at)
-            <span class="badge bg-info px-3 py-2 ms-2" style="font-size: 0.85rem;">
-                <i class="bx bx-check-circle me-1"></i>Viewed &amp; Decrypted: {{ \Carbon\Carbon::parse($proforma->decrypted_at)->format('M d, Y h:i A') }}
+        </div>
+        @endif
+        @if($proforma->decrypted_at)
+        <div class="mb-3 text-center">
+            <span class="badge bg-info px-3 py-2" style="font-size: 0.85rem;">
+                <i class="bx bx-check-circle me-1"></i>Viewed & Decrypted: {{ \Carbon\Carbon::parse($proforma->decrypted_at)->format('M d, Y h:i A') }}
             </span>
-            @endif
         </div>
         @endif
     

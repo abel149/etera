@@ -4287,7 +4287,7 @@ Route::get('/received-proformas', function () {
     $proformas = Proforma::where('poster_id', $user->id)
         ->with(['brand', 'applications'])
         ->where('status', 'completed')       // ✅ only completed
-        ->orderBy('created_at', 'desc')      // ✅ newest first
+        ->orderBy('updated_at', 'desc')      // ✅ recently completed first
         ->paginate(10);
 
     return view('spare-part.received', compact('proformas'));
