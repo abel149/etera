@@ -206,6 +206,40 @@
         </div>
         @endif
     
+        @if($proforma->isShopOnlyInsurance() || $proforma->isShopGarageInsurance())
+        <div id="bestSummaryCard" class="card shadow mb-4 d-none" style="border-left:4px solid #f59e0b;">
+            <div class="card-header d-flex align-items-center justify-content-between flex-wrap gap-2">
+                <h6 class="mb-0"><i class="bx bx-trophy me-1" style="color:#f59e0b;"></i>Best Price Summary
+                    <small class="text-muted ms-1">(Rank 1 — cheapest shop per part)</small>
+                </h6>
+                <button type="button" class="btn btn-sm btn-outline-primary" onclick="openBestSummaryPrint()">
+                    <i class="bx bx-printer"></i> Print
+                </button>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>No</th>
+                                <th>Part Name &amp; Number</th>
+                                <th>Grade</th>
+                                <th>Country</th>
+                                <th>Qty</th>
+                                <th>Best Shop</th>
+                                <th class="text-end">Unit Price</th>
+                                <th class="text-end">Total</th>
+                            </tr>
+                        </thead>
+                        <tbody id="bestSummaryBody"></tbody>
+                        <tfoot id="bestSummaryFoot"></tfoot>
+                    </table>
+                </div>
+                <div id="bestSummaryNote" class="small text-warning px-3 py-2 d-none"></div>
+            </div>
+        </div>
+        @endif
+
         <div class="row">
             @if(!$proforma->isGarageOnlyInsurance())
             <div class="col-12 col-md-6 mx-auto">
@@ -883,6 +917,257 @@ function computeShopRanks() {
             badge.style.display = 'inline-block';
         });
     }
+
+    renderBestSummary();
+}
+
+// ── Best Price Summary: rank-1 (cheapest) shop per part + totals ──────────────
+let _bestSummary = null;
+const _bsEsc = s => String(s ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const _bsFmt = n => n.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + ' ETB';
+
+function computeBestSummary() {
+    const parts = new Map();
+    document.querySelectorAll('.application-card:not(.pdf-application-card)').forEach(card => {
+        const shop = card.dataset.shopName || 'N/A';
+        const storeId = card.dataset.storeId || '';
+        card.querySelectorAll('tbody tr[data-part-idx]').forEach(tr => {
+            const cells = tr.querySelectorAll('td');
+            if (cells.length < 8) return;
+            const idx = tr.dataset.partIdx;
+            let e = parts.get(idx);
+            if (!e) {
+                e = {
+                    idx: Number(idx),
+                    number: cells[1].textContent.trim(),
+                    condition: cells[2].textContent.trim(),
+                    grade: cells[3].textContent.trim(),
+                    country: cells[4].textContent.trim(),
+                    qty: parseFloat(tr.dataset.qty) || 1,
+                    best: null,
+                    ties: 0
+                };
+                parts.set(idx, e);
+            }
+            const unit = parseFloat(tr.dataset.unitPrice);
+            if (unit > 0) {
+                if (!e.best || unit < e.best.unit) { e.best = { unit, shop, storeId }; e.ties = 0; }
+                else if (unit === e.best.unit) { e.ties++; }
+            }
+        });
+    });
+
+    const rows = [...parts.values()].sort((a, b) => a.idx - b.idx);
+    const priced = rows.filter(r => r.best);
+    const net = priced.reduce((s, r) => s + r.best.unit * r.qty, 0);
+    const vatRate = 15;
+    const vat = net * (vatRate / 100);
+    return {
+        rows, pricedCount: priced.length, unpricedCount: rows.length - priced.length,
+        net, vat, vatRate, grand: net + vat
+    };
+}
+
+function renderBestSummary() {
+    const card = document.getElementById('bestSummaryCard');
+    if (!card) return;
+    const s = _bestSummary = computeBestSummary();
+    if (s.pricedCount === 0) { card.classList.add('d-none'); return; }
+
+    document.getElementById('bestSummaryBody').innerHTML = s.rows.map((r, i) => r.best ? `
+        <tr>
+            <td>${i + 1}</td>
+            <td>${_bsEsc(r.number)}</td>
+            <td>${_bsEsc(r.grade)}</td>
+            <td>${_bsEsc(r.country)}</td>
+            <td>${r.qty}</td>
+            <td><strong>${_bsEsc(r.best.shop)}</strong>${r.ties ? ' <span class="badge bg-secondary" title="Tied with ' + r.ties + ' other shop(s)">tie</span>' : ''}</td>
+            <td class="text-end">${_bsFmt(r.best.unit)}</td>
+            <td class="text-end">${_bsFmt(r.best.unit * r.qty)}</td>
+        </tr>` : `
+        <tr class="text-muted">
+            <td>${i + 1}</td>
+            <td>${_bsEsc(r.number)}</td>
+            <td>${_bsEsc(r.grade)}</td>
+            <td>${_bsEsc(r.country)}</td>
+            <td>${r.qty}</td>
+            <td colspan="3" class="text-center fst-italic">No price yet</td>
+        </tr>`).join('');
+
+    document.getElementById('bestSummaryFoot').innerHTML = `
+        <tr><td colspan="7" class="text-end"><strong>SUBTOTAL (Net)</strong></td><td class="text-end">${_bsFmt(s.net)}</td></tr>
+        <tr><td colspan="7" class="text-end"><strong>VAT (${s.vatRate}%)</strong></td><td class="text-end">${_bsFmt(s.vat)}</td></tr>
+        <tr style="background:rgba(245,158,11,0.12); font-weight:bold; border-top:2px solid #f59e0b;">
+            <td colspan="7" class="text-end"><strong>GRAND TOTAL (VAT Included)</strong></td>
+            <td class="text-end" style="font-size:1.05em;">${_bsFmt(s.grand)}</td>
+        </tr>`;
+
+    const note = document.getElementById('bestSummaryNote');
+    const stillEnc = document.querySelector('.application-card .enc-unit-price') !== null;
+    if (stillEnc) {
+        note.textContent = 'Some prices are still encrypted — decrypt to include them in this summary.';
+    } else if (s.unpricedCount > 0) {
+        note.textContent = s.unpricedCount + ' part(s) have not been priced by any shop yet.';
+    } else {
+        note.textContent = '';
+    }
+    note.classList.toggle('d-none', !note.textContent);
+    card.classList.remove('d-none');
+}
+
+function openBestSummaryPrint() {
+    const s = _bestSummary || computeBestSummary();
+    if (!s.pricedCount) return;
+    if (document.querySelector('.application-card .enc-unit-price')) {
+        if (!confirm('Some prices are still encrypted and will not be included. Print anyway?')) return;
+    }
+
+    const customerName = "{{ $proforma->customer_name ?? 'N/A' }}";
+    const customerPhone = "{{ $proforma->customer_phone_number ?? 'N/A' }}";
+    const brand = "{{ $proforma->brand->name ?? 'N/A' }}";
+    const year = "{{ $proforma->year ?? 'N/A' }}";
+    const plate = "{{ $proforma->license_plate_number ?? 'N/A' }}";
+    const fileNo = "{{ $proforma->file_number ?? '' }}";
+    const today = new Date().toLocaleDateString();
+    const priced = s.rows.filter(r => r.best);
+
+    const csvEsc = v => '"' + String(v ?? '').replace(/"/g, '""') + '"';
+    const csvRows = [
+        ['Best Price Summary'],
+        ['Date', today, 'File #', fileNo],
+        ['Customer', customerName, 'Customer Phone', customerPhone],
+        ['Car', year + ' ' + brand + ' [' + plate + ']'],
+        [],
+        ['No', 'Part Name & Number', 'Condition', 'Grade', 'Country', 'Qty', 'Best Shop', 'Unit Price', 'Total Price'],
+        ...priced.map((r, i) => [i + 1, r.number, r.condition, r.grade, r.country, r.qty, r.best.shop, r.best.unit.toFixed(2) + ' ETB', (r.best.unit * r.qty).toFixed(2) + ' ETB']),
+        [],
+        ['', '', '', '', '', '', '', 'SUBTOTAL (Net)', s.net.toFixed(2) + ' ETB'],
+        ['', '', '', '', '', '', '', 'VAT (' + s.vatRate + '%)', s.vat.toFixed(2) + ' ETB'],
+        ['', '', '', '', '', '', '', 'GRAND TOTAL (VAT Incl.)', s.grand.toFixed(2) + ' ETB'],
+    ];
+    const csvUri = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvRows.map(r => r.map(csvEsc).join(',')).join('\r\n'));
+
+    const printWindow = window.open('', '_blank');
+    printWindow.document.write(`
+        <!DOCTYPE html>
+        <html lang="en">
+        <head>
+            <meta charset="utf-8" />
+            <meta http-equiv="X-UA-Compatible" content="IE=edge">
+            <meta name="viewport" content="width=device-width, initial-scale=1">
+            <title>etera - Best Price Summary</title>
+            <link rel='stylesheet' href='https://fonts.googleapis.com/css?family=Poppins:300,400,500,600,700' type='text/css'>
+            <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/bootstrap/css/bootstrap.min.css') }}"/>
+            <link rel="stylesheet" href="{{ asset('assets/invoice/vendor/font-awesome/css/all.min.css') }}"/>
+            <link rel="stylesheet" href="{{ asset('assets/invoice/css/stylesheet.css') }}"/>
+            <style>
+                .table th, .table td { padding: 8px; }
+                .text-end { text-align: right; }
+                .invoice-container { position: relative; }
+                .text-primary { color: #1976d2 !important; }
+            </style>
+        </head>
+        <body>
+            <div class="container-fluid invoice-container">
+                <header>
+                    <div class="row align-items-center gy-3">
+                        <div class="col-sm-7 text-center text-sm-start">
+                            <h4 class="text-7 mb-0 text-primary">Best Price Summary</h4>
+                        </div>
+                        <div class="col-sm-5 text-center text-sm-end">
+                            <h6 class="mb-0">${fileNo ? 'File #' + _bsEsc(fileNo) : ''}</h6>
+                        </div>
+                    </div>
+                    <hr>
+                </header>
+
+                <main>
+                    <div class="row">
+                        <div class="col-sm-6"><strong>Date:</strong> ${_bsEsc(today)}</div>
+                        <div class="col-sm-6 text-sm-end"><strong>Cheapest shop per part</strong></div>
+                    </div>
+                    <hr>
+
+                    <div class="row gy-3 align-items-start">
+                        <div class="col-sm-6">
+                            <p class="mb-1"><strong>Customer:</strong> ${_bsEsc(customerName)}</p>
+                            <p class="mb-1"><strong>Customer Phone:</strong> ${_bsEsc(customerPhone)}</p>
+                            <p class="mb-1"><strong>Car:</strong> ${_bsEsc(year)} ${_bsEsc(brand)} [${_bsEsc(plate)}]</p>
+                        </div>
+                        <div class="col-sm-6 text-sm-end">
+                            <strong>Author:</strong>
+                            <address>
+                                etera<br />
+                                portal.eteraet.com<br />
+                                Addis Ababa, Ethiopia
+                            </address>
+                        </div>
+                    </div>
+
+                    <div class="table-responsive mt-4">
+                        <table class="table border">
+                            <thead>
+                                <tr>
+                                    <th>No</th>
+                                    <th>Part Name &amp; Number</th>
+                                    <th>Grade</th>
+                                    <th>Country</th>
+                                    <th>Qty</th>
+                                    <th>Shop</th>
+                                    <th>Unit Price</th>
+                                    <th>Total</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                ${priced.map((r, i) => `
+                                    <tr>
+                                        <td>${i + 1}</td>
+                                        <td>${_bsEsc(r.number)}</td>
+                                        <td>${_bsEsc(r.grade)}</td>
+                                        <td>${_bsEsc(r.country)}</td>
+                                        <td>${r.qty}</td>
+                                        <td>${_bsEsc(r.best.shop)}</td>
+                                        <td>${_bsFmt(r.best.unit)}</td>
+                                        <td>${_bsFmt(r.best.unit * r.qty)}</td>
+                                    </tr>
+                                `).join('')}
+                            </tbody>
+                            <tfoot>
+                                <tr>
+                                    <td colspan="7" class="text-end"><strong>SUBTOTAL (Net):</strong></td>
+                                    <td class="text-end">${_bsFmt(s.net)}</td>
+                                </tr>
+                                <tr>
+                                    <td colspan="7" class="text-end"><strong>VAT (${s.vatRate}%):</strong></td>
+                                    <td class="text-end">${_bsFmt(s.vat)}</td>
+                                </tr>
+                                <tr style="background-color: #e3f2fd; font-weight: bold; border-top: 2px solid #1976d2;">
+                                    <td colspan="7" class="text-end"><strong>GRAND TOTAL (VAT Included):</strong></td>
+                                    <td class="text-end text-primary" style="font-size: 1.1em;">${_bsFmt(s.grand)}</td>
+                                </tr>
+                            </tfoot>
+                        </table>
+                    </div>
+
+                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
+                </main>
+
+                <footer class="text-center mt-4">
+                    <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
+                    <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
+                        <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
+                            <i class="fa fa-print"></i> Print & Download
+                        </a>
+                        <a href="${csvUri}" download="best-price-summary.csv" class="btn btn-success shadow-none">
+                            &#128202; Download Excel
+                        </a>
+                    </div>
+                </footer>
+            </div>
+        </body>
+        </html>
+    `);
+    printWindow.document.close();
 }
 
 // ── Garage ranking by total (cheapest = #1/N). Garage-only: garage cards, reordered
