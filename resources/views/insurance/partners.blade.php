@@ -1,31 +1,12 @@
 @extends('layouts.insurance')
 @section('content')
 
-@php
-    $partners   = auth()->user()->partners;
-    $partnerIds = $partners ? $partners->pluck('partner_id') : collect();
-
-    $availableShopPartners = \App\Models\User::where('role', 'shop')
-        ->whereNotIn('id', $partnerIds)
-        ->where('is_test', 0)
-        ->orderBy('name', 'asc')
-        ->get();
-
-    $availableGaragePartners = \App\Models\User::where('role', 'garage')
-        ->whereNotIn('id', $partnerIds)
-        ->where('is_test', 0)
-        ->orderBy('name', 'asc')
-        ->get();
-
-    $sortedPartners = $partners
-        ? $partners
-            ->filter(fn($p) => $p->partner && !$p->partner->is_test)
-            ->sortBy(fn($p) => strtolower($p->partner->name ?? ''))
-            ->values()
-        : collect();
-@endphp
+@php $sortedPartners = $partners; @endphp
 
 <h3 class="mb-3">Partners List</h3>
+@if($errors->any())
+    <div class="alert alert-danger py-2">{{ $errors->first() }}</div>
+@endif
 
 <div class="row">
     <div class="col-12">
@@ -59,6 +40,7 @@
                                 <th>Role</th>
                                 <th>TIN #</th>
                                 <th>Phone Number</th>
+                                <th>Added By</th>
                                 <th></th>
                             </tr>
                         </thead>
@@ -83,7 +65,15 @@
                                 <td>{{ $partner->partner->tin_number ?? '—' }}</td>
                                 <td>{{ $partner->partner->phone_number }}</td>
                                 <td>
-                                    <form action="partners/{{ $partner->id }}" method="POST"
+                                    @if($partner->addedBy)
+                                        {{ $partner->addedBy->name }}
+                                        <span class="d-block font-13 text-secondary">{{ $partner->addedBy->role === 'insurance_agent' ? 'Claim Officer' : 'Insurance' }}</span>
+                                    @else
+                                        —
+                                    @endif
+                                </td>
+                                <td>
+                                    <form action="{{ route('partners.destroy', $partner->id) }}" method="POST"
                                           onsubmit="return confirm('Remove {{ addslashes($partner->partner->name) }} from your partners?')">
                                         @method('DELETE')
                                         @csrf
@@ -95,7 +85,7 @@
                             </tr>
                             @empty
                             <tr id="emptyRow">
-                                <td colspan="7" class="text-center text-secondary py-4">
+                                <td colspan="8" class="text-center text-secondary py-4">
                                     <i class="bx bx-group fs-4 d-block mb-1 text-secondary opacity-50"></i>
                                     No partners added yet.
                                 </td>

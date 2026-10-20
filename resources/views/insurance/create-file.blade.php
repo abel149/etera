@@ -483,6 +483,22 @@
                                 </div>
 
                                 <br>
+                                <div class="mb-3" style="max-width:420px;">
+                                    <label for="partnerSlots" class="form-label mb-1">Slots that use my partners</label>
+                                    <select id="partnerSlots" class="form-select" autocomplete="off" {{ $myPartnerIds->isEmpty() ? 'disabled' : '' }}>
+                                        <option value="0">None — every slot shows all partners</option>
+                                        @for($i = 1; $i <= 5; $i++)
+                                            <option value="{{ $i }}">First {{ $i }} {{ $i === 1 ? 'slot' : 'slots' }} — my partners only</option>
+                                        @endfor
+                                    </select>
+                                    <div class="form-text">
+                                        @if($myPartnerIds->isEmpty())
+                                            You have no partners yet. <a href="{{ url('/insurance/partners') }}">Add partners</a> to use this.
+                                        @else
+                                            Remaining slots keep showing the full list.
+                                        @endif
+                                    </div>
+                                </div>
                                 <p class="mb-2">Send to inbox <span class="text-secondary small">(optional — each row is a separate group; when one applies the others in that row are removed)</span></p>
 
                                 {{-- ── SHOPS ─────────────────────────────────────────────── --}}
@@ -585,6 +601,7 @@
                                 @php
                                     $partnerData = [
                                         'brands'  => $brands->map(fn($b) => [$b->id, $b->name])->values(),
+                                        'mine'    => $myPartnerIds->map(fn($id) => (int) $id)->values(),
                                         'shops'   => $all_shops->map(fn($s) => [$s->id, $s->store_id . ' — ' . $s->name, 'shop', (int) ($s->shop_garage ?? 0), $s->brands->pluck('id')->implode(',')])
                                             ->concat($all_garages->filter(fn($g) => $g->shop_garage == 1)->map(fn($g) => [$g->id, $g->store_id . ' — ' . $g->name, 'garage', (int) ($g->shop_garage ?? 0), '']))
                                             ->values(),
@@ -848,6 +865,9 @@ document.addEventListener('DOMContentLoaded', () => {
     const garageSelects  = document.querySelectorAll('#garageGroupsWrapper select');
     const partnerData    = JSON.parse(document.getElementById('partnerData').textContent);
     const readySelects   = new Set();
+    const minePartners   = new Set(partnerData.mine);
+    const partnerSlotsEl = document.getElementById('partnerSlots');
+    let partnerSlots     = 0;
     let partnersActive   = false;
     let currentShopType  = 'insurance_shop_only';
 
@@ -886,8 +906,12 @@ document.addEventListener('DOMContentLoaded', () => {
         if (window.jQuery && $(sel).hasClass('select2-hidden-accessible')) {
             $(sel).select2('destroy');
         }
+        const slotGroup    = sel.closest('.shop-inbox-group, .garage-inbox-group');
+        const slotNo       = slotGroup ? parseInt(slotGroup.dataset.group) : 0;
+        const partnersOnly = slotNo > 0 && slotNo <= partnerSlots;
         const frag = document.createDocumentFragment();
         (isShop ? partnerData.shops : partnerData.garages).forEach(p => {
+            if (partnersOnly && !minePartners.has(p[0])) return;
             if (isShop) {
                 let show;
                 if (dualOnly) {
@@ -943,6 +967,31 @@ document.addEventListener('DOMContentLoaded', () => {
 
     (window.requestIdleCallback || (cb => setTimeout(cb, 300)))(startPartners, { timeout: 2000 });
 
+    function applyPartnerSlots() {
+        partnerSlots = partnerSlotsEl ? (parseInt(partnerSlotsEl.value) || 0) : 0;
+        [...shopSelects, ...garageSelects].forEach(sel => {
+            if (readySelects.has(sel.id)) fillSelect(sel);
+        });
+        refreshExclusion();
+    }
+
+    function limitPartnerSlots(maxSlots) {
+        if (!partnerSlotsEl) return;
+        Array.from(partnerSlotsEl.options).forEach(o => {
+            const over = (parseInt(o.value) || 0) > maxSlots;
+            o.hidden   = over;
+            o.disabled = over;
+        });
+        if ((parseInt(partnerSlotsEl.value) || 0) > maxSlots) {
+            partnerSlotsEl.value = String(maxSlots);
+            applyPartnerSlots();
+        }
+    }
+
+    if (partnerSlotsEl) {
+        partnerSlotsEl.addEventListener('change', applyPartnerSlots);
+    }
+
     function filterShopOptions(type) {
         const shopOnly = type === 'insurance_shop_only';
         currentShopType = type;
@@ -974,6 +1023,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.querySelectorAll('.garage-inbox-group').forEach(el => {
             el.style.display = (parseInt(el.dataset.group) <= garageCount) ? '' : 'none';
         });
+        limitPartnerSlots(Math.max(shopCount, garageCount));
         activatePartners();
     }
 

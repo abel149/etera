@@ -3427,7 +3427,29 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
         });
         // Create file
         Route::get('partners', function () {
-            return view('insurance.partners');
+            $ownerId = auth()->user()->insuranceId();
+
+            $partners = \App\Models\Partner::with(['partner', 'addedBy:id,name,role'])
+                ->where('insurance_id', $ownerId)
+                ->get()
+                ->filter(fn($p) => $p->partner && !$p->partner->is_test)
+                ->sortBy(fn($p) => strtolower($p->partner->name ?? ''))
+                ->values();
+
+            $partnerIds = $partners->pluck('partner_id');
+            $listCols   = ['id', 'name', 'store_id'];
+
+            $availableShopPartners = \App\Models\User::where('role', 'shop')
+                ->where('approved', true)->where('is_test', 0)
+                ->whereNotIn('id', $partnerIds)
+                ->orderBy('name')->get($listCols);
+
+            $availableGaragePartners = \App\Models\User::where('role', 'garage')
+                ->where('approved', true)->where('is_test', 0)
+                ->whereNotIn('id', $partnerIds)
+                ->orderBy('name')->get($listCols);
+
+            return view('insurance.partners', compact('partners', 'availableShopPartners', 'availableGaragePartners'));
         });
         Route::delete('partners/{partner}', [
             PartnerController::class,
@@ -3541,9 +3563,6 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 ->orderBy('name')
                 ->get();
             $parts = \App\Models\CarPart::select(['id', 'name'])->orderBy('name')->get();
-            $spare_part_partners = auth()->user()->sparePartPartners();
-            $garage_partners = auth()->user()->garagePartners();
-
             $listCols = ['id', 'name', 'store_id', 'shop_garage'];
             $all_shops   = \App\Models\User::where('role', 'shop')->where('approved', true)
                 ->select($listCols)
@@ -3555,6 +3574,10 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 ->orderBy('name')
                 ->get();
 
+            $myPartnerIds        = \App\Models\Partner::where('insurance_id', auth()->user()->insuranceId())->pluck('partner_id');
+            $spare_part_partners = $all_shops->whereIn('id', $myPartnerIds)->values();
+            $garage_partners     = $all_garages->whereIn('id', $myPartnerIds)->values();
+
             return response()
                 ->view(
                     'insurance.create-file',
@@ -3564,7 +3587,8 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                         'spare_part_partners',
                         'garage_partners',
                         'all_shops',
-                        'all_garages'
+                        'all_garages',
+                        'myPartnerIds'
                     )
                 )
                 ->header('Cache-Control', 'no-cache, no-store, must-revalidate')

@@ -12,11 +12,17 @@ class Partner extends Model
     protected $fillable = [
       'insurance_id',
       'partner_id',
+      'added_by',
     ];
 
     public function insurance()
     {
         return $this->belongsTo(User::class, 'insurance_id');
+    }
+
+    public function addedBy()
+    {
+        return $this->belongsTo(User::class, 'added_by');
     }
 
     public function partner()

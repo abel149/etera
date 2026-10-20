@@ -180,15 +180,15 @@ class User extends Authenticatable
     // =====================
     public function sparePartPartners()
     {
-        if ($this->role !== self::ROLE_INSURANCE) return collect();
-        $ids = Partner::where('insurance_id', $this->id)->pluck('partner_id');
+        if (!$this->isInsuranceOrAgent()) return collect();
+        $ids = Partner::where('insurance_id', $this->insuranceId())->pluck('partner_id');
         return User::whereIn('id', $ids)->where('role', self::ROLE_SHOP)->orderBy('name')->get();
     }
 
     public function garagePartners()
     {
-        if ($this->role !== self::ROLE_INSURANCE) return collect();
-        $ids = Partner::where('insurance_id', $this->id)->pluck('partner_id');
+        if (!$this->isInsuranceOrAgent()) return collect();
+        $ids = Partner::where('insurance_id', $this->insuranceId())->pluck('partner_id');
         return User::whereIn('id', $ids)->where('role', self::ROLE_GARAGE)->orderBy('name')->get();
     }
 
