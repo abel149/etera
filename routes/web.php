@@ -1704,6 +1704,12 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         Log::info('Proforma type determined', ['type' => $type]);
 
+        // Loaded once and reused for billing + commissions (was 5+ separate queries)
+        $allApplications = ProformaApplication::where('proforma_id', $proforma->id)
+            ->with('applicationBy')
+            ->get();
+        $proformaPartsCount = $type === 'insurance' ? $proforma->parts()->count() : 0;
+
         /*
         |--------------------------------------------------------------------------
         | 🔹 REGULAR PROFORMA (FIXED PRICE BUG)
@@ -1711,7 +1717,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
         */
         if ($type === 'regular') {
 
-            $count = ProformaApplication::where('proforma_id', $proforma->id)->count();
+            $count = $allApplications->count();
 
             // Dynamic pricing from Cost table (EX: 1_proforma_cost, 2_proforma_cost ...)
             $field = "{$count}_proforma_cost";
@@ -1756,18 +1762,15 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             }
 
             // Count distinct groups that received at least one application
-            $filledGroups = ProformaApplication::where('proforma_id', $proforma->id)
-                ->whereNotNull('inbox_group')
-                ->distinct()
-                ->pluck('inbox_group')
-                ->count();
+            $filledGroups = $allApplications->whereNotNull('inbox_group')->pluck('inbox_group')->unique()->count();
 
             // Fallback: if no grouped applications, count all applications
             if ($filledGroups <= 0) {
-                $filledGroups = ProformaApplication::where('proforma_id', $proforma->id)->count();
+                $filledGroups = $allApplications->count();
             }
 
-            $totalParts = $proforma->parts()->count();
+            $totalParts = $proformaPartsCount;
+            $shopPartsFilled = (int) $allApplications->where('from', 'shop')->sum('filled_parts_count');
             $isGarageOnly = $proforma->isGarageOnlyInsurance();
             $isDualService = $proforma->isShopGarageInsurance();
             // Legacy 3+3 proformas (no explicit proforma_type) are also dual service
@@ -1781,9 +1784,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 $insuranceTotal = $perProformaCost * $filledGroups;
             } elseif ($isDualService && $totalParts > 0) {
                 // Dual service: prorate shop portion by parts filled + one flat perProformaCost for garage
-                $partsFilled = (int) ProformaApplication::where('proforma_id', $proforma->id)
-                    ->where('from', 'shop')
-                    ->sum('filled_parts_count');
+                $partsFilled = $shopPartsFilled;
 
                 $shopPortion = $perProformaCost * ($partsFilled / $totalParts);
 
@@ -1793,11 +1794,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                 $insuranceTotal = $shopPortion + $garagePortion;
             } elseif ($totalParts > 0) {
                 // Shop-only: prorate by parts filled across all groups
-                $partsFilled = (int) ProformaApplication::where('proforma_id', $proforma->id)
-                    ->where('from', 'shop')
-                    ->sum('filled_parts_count');
-
-                $insuranceTotal = $perProformaCost * ($partsFilled / $totalParts);
+                $insuranceTotal = $perProformaCost * ($shopPartsFilled / $totalParts);
             } else {
                 // No parts and not garage-only: fall back to flat per group
                 $insuranceTotal = $perProformaCost * $filledGroups;
@@ -1868,64 +1865,6 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         /*
         |--------------------------------------------------------------------------
-        | 🔹 SEND INVOICE LINK EMAIL
-        |--------------------------------------------------------------------------
-        */
-        if (!empty($savedInvoices)) {
-            $invoice = $savedInvoices[0];
-            $recipientEmail = $proforma->customer_email ?? $proforma->poster?->email;
-
-            if ($recipientEmail && \App\Models\EmailSetting::isEnabled('proforma_completed')) {
-                try {
-                    $invoiceUrl = url("/transaction/{$invoice->sku}");
-
-                    \Illuminate\Support\Facades\Mail::raw(
-                        "etera – Your Proforma is Complete!\n\n" .
-                        "Dear Customer,\n\n" .
-                        "Your proforma #{$proforma->file_number} has been completed successfully.\n\n" .
-                        "You can login and view the PIs ,\n\n" .
-                        "Your invoice (SKU: {$invoice->sku}) is now available.\n" .
-                        "View your full invoice here: {$invoiceUrl}\n\n" .
-                        "Thank you for using etera!",
-                        function ($message) use ($proforma, $recipientEmail, $invoice) {
-                            $message->to($recipientEmail)
-                                    ->subject("etera – Invoice for Proforma #{$proforma->file_number} (SKU: {$invoice->sku})");
-                        }
-                    );
-
-                    \App\Models\SentEmail::log(
-                        'proforma_completed',
-                        $recipientEmail,
-                        $proforma->customer_name,
-                        $proforma->poster?->id,
-                        $proforma->id,
-                        "etera – Invoice for Proforma #{$proforma->file_number}",
-                        'sent'
-                    );
-                } catch (\Throwable $emailEx) {
-                    Log::warning('Failed to send invoice link email', [
-                        'proforma_id' => $proforma->id,
-                        'email' => $recipientEmail,
-                        'error' => $emailEx->getMessage(),
-                    ]);
-                    try {
-                        \App\Models\SentEmail::log(
-                            'proforma_completed',
-                            $recipientEmail,
-                            $proforma->customer_name,
-                            $proforma->poster?->id,
-                            $proforma->id,
-                            "etera – Invoice for Proforma #{$proforma->file_number}",
-                            'failed',
-                            $emailEx->getMessage()
-                        );
-                    } catch (\Throwable $logEx) {}
-                }
-            }
-        }
-
-        /*
-        |--------------------------------------------------------------------------
         | 🔹 DEBIT POSTER WALLET (INVOICE)
         |--------------------------------------------------------------------------
         */
@@ -1960,12 +1899,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         // 🔹 Applicant commissions (INSURANCE ONLY)
         if ($type === 'insurance') {
-        $applications = ProformaApplication::where('proforma_id', $proforma->id)
-            ->with(['applicationBy', 'prices'])
-            ->get();
-
-        // Hoisted once — identical for every application of this proforma
-        $proformaPartsCount = $proforma->parts()->count();
+        $applications = $allApplications;
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
@@ -1984,7 +1918,7 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                     $totalParts = $proformaPartsCount;
                 }
                 if ($filledParts <= 0 && $totalParts > 0) {
-                    $filledParts = $application->prices
+                    $filledParts = $application->loadMissing('prices')->prices
                         ->filter(fn ($p) => ($p->unit_price ?? 0) > 0 || $p->price_is_encrypted)
                         ->count();
                 }
@@ -2018,13 +1952,12 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
                     ->limit(5)
                     ->get();
             } else {
-                $applications = ProformaApplication::where('proforma_id', $proforma->id)
-                    ->with('applicationBy')
-                    ->get();
+                $applications = $allApplications;
             }
 
         foreach ($applications as $application) {
             $user = $application->applicationBy;
+            if (!$user) continue;
                 $amount = ($commissions->othersPay ?? 0);
 
             if ($amount > 0) {
@@ -2077,22 +2010,24 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
             Log::warning('Verify: bell notification failed', ['error' => $e->getMessage()]);
         }
 
-        // Send Telegram notification to poster
-        try {
-            if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
-                $invoiceUrl = !empty($savedInvoices) ? url("/transaction/{$savedInvoices[0]->sku}") : '';
-                (new \App\Services\TelegramService())->sendSentToOwnerNotification(
-                    $proforma->poster->telegram_chat_id,
-                    $proforma,
-                    $invoiceUrl
-                );
+        // Send Telegram notification to poster AFTER the response, so the admin isn't blocked by the HTTP call
+        $invoiceUrl = !empty($savedInvoices) ? url("/transaction/{$savedInvoices[0]->sku}") : '';
+        dispatch(function () use ($proforma, $invoiceUrl) {
+            try {
+                if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                    (new \App\Services\TelegramService())->sendSentToOwnerNotification(
+                        $proforma->poster->telegram_chat_id,
+                        $proforma,
+                        $invoiceUrl
+                    );
+                }
+            } catch (\Throwable $e) {
+                Log::warning('Verify: Telegram notification failed', [
+                    'proforma_id' => $proforma->id,
+                    'error' => $e->getMessage(),
+                ]);
             }
-        } catch (\Throwable $e) {
-            Log::warning('Verify: Telegram notification failed', [
-                'proforma_id' => $proforma->id,
-                'error' => $e->getMessage(),
-            ]);
-        }
+        })->afterResponse();
 
         return redirect()->back()->with('success', 'Proforma verified successfully.');
 
