@@ -365,10 +365,10 @@
                                     $isDealerDetail = auth()->user()->shop_garage == 1;
                                 @endphp
                                 <h3>
-                                    {{ $poster?->name ?? 'N/A' }}
+                                    {{ $isAgent ? ($poster->parentInsurance?->name ?? $poster->name) : ($poster?->name ?? 'N/A') }}
                                     @if($isAgent)
                                         <small class="d-block text-muted" style="font-size:0.78rem;font-weight:400;">
-                                            {{ $poster->parentInsurance?->name ?? '' }}
+                                            {{ $poster->name }}
                                         </small>
                                     @endif
                                 </h3>

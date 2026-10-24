@@ -98,9 +98,9 @@
                                     <h6 class="card-title mb-1">{{ $proforma->file_number }}</h6>
                                 @endif
                                 <small class="text-muted">
-                                    {{ $p?->name ?? 'Unknown' }}
+                                    {{ $pIsAgent ? ($p->parentInsurance?->name ?? $p->name) : ($p?->name ?? 'Unknown') }}
                                     @if($pIsAgent)
-                                        <span class="d-block" style="font-size:0.72rem;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                        <span class="d-block" style="font-size:0.72rem;">{{ $p->name }}</span>
                                     @endif
                                 </small>
                             </div>

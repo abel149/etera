@@ -49,7 +49,13 @@
             </div>
 
             <div class="job-listing-description">
-                <h3 class="job-listing-title">{{ $proforma->poster->name ?? 'Unknown' }}</h3>
+                @php $p = $proforma->poster; @endphp
+                <h3 class="job-listing-title">
+                    {{ $p?->role === 'insurance_agent' ? ($p->parentInsurance?->name ?? $p->name) : ($p?->name ?? 'Unknown') }}
+                    @if($p?->role === 'insurance_agent')
+                        <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->name }}</span>
+                    @endif
+                </h3>
 
                 <div class="job-listing-footer">
                     <ul>

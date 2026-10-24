@@ -4365,7 +4365,7 @@ Route::get('/received-details', function (Request $request) {
         Route::get('/inbox', function () {
             $inbox = auth()->user()
                 ->myInbox()
-                ->with(['proforma.poster', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
+                ->with(['proforma.poster.parentInsurance', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
                 ->get();
             return view('spare-part.inbox', compact('inbox'));
         });
@@ -4674,7 +4674,7 @@ Route::prefix('spare-part-shops')
         Route::get('/inbox', function () {
             $inbox = auth()->user()
                 ->myInbox()
-                ->with(['proforma.poster', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
+                ->with(['proforma.poster.parentInsurance', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
                 ->get();
             return view('spare-part.inbox', compact('inbox'));
         });

@@ -63,7 +63,7 @@ class ListOfProformasFromInsurances extends Component
     public function render()
     {
         $query = Proforma::query()
-            ->with(['insurance', 'poster', 'parts.brand']);
+            ->with(['insurance', 'poster.parentInsurance', 'parts.brand']);
 
         // Apply filter by insurance user IDs
         if (!empty($this->selectedInsurances)) {

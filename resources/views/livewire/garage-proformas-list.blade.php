@@ -253,9 +253,9 @@
                                             $pIsAgent = $p?->role === 'insurance_agent';
                                         @endphp
                                         <h3 class="job-listing-title">
-                                            {{ $p?->name ?? 'N/A' }}
+                                            {{ $pIsAgent ? ($p->parentInsurance?->name ?? $p->name) : ($p?->name ?? 'N/A') }}
                                             @if($pIsAgent)
-                                                <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->name }}</span>
                                             @endif
                                         </h3>
 
