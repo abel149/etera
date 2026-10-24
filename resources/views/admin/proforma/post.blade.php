@@ -186,6 +186,67 @@
       </div>
     </div>
 
+    {{-- Commission preview / override (shop & garage) --}}
+    @if($proforma->isFromInsurance() && $proforma->status === 'closed' && in_array(auth()->user()->role, ['admin', 'superadmin']))
+      @php
+        $commissionCalculator = new \App\Services\CommissionCalculator();
+        $commissionRows = $commissionCalculator->usesInsuranceCommission($proforma)
+            ? $commissionCalculator->insuranceApplicants($proforma)
+            : collect();
+        $commissionOverrides = $commissionRows->isNotEmpty()
+            ? \App\Models\CommissionOverride::where('proforma_id', $proforma->id)->get()->keyBy('application_id')
+            : collect();
+      @endphp
+      @if($commissionRows->isNotEmpty())
+      <div class="card mt-4">
+        <div class="card-body">
+          <h5 class="mb-1">Shop &amp; Garage Commission</h5>
+          <p class="text-muted mb-3">Leave the amount blank to use the default. Changes are locked once the proforma is sent to owner.</p>
+
+          <form action="{{ url('/admin/commission-overrides/' . $proforma->id) }}" method="POST">
+            @csrf
+            <div class="table-responsive">
+              <table class="table table-bordered align-middle mb-3">
+                <thead class="table-light">
+                  <tr>
+                    <th>Applicant</th>
+                    <th>Role</th>
+                    <th>Default (ETB)</th>
+                    <th style="width:180px">Override (ETB)</th>
+                    <th>Reason (optional)</th>
+                    <th>Payable (ETB)</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  @foreach($commissionRows as $row)
+                    @php $saved = $commissionOverrides->get($row['application']->id); @endphp
+                    <tr>
+                      <td>{{ $row['user']->name }}</td>
+                      <td>{{ ucfirst($row['user']->role) }}</td>
+                      <td>{{ number_format($row['default'], 2) }}</td>
+                      <td>
+                        <input type="number" step="0.01" min="0" class="form-control"
+                               name="overrides[{{ $row['application']->id }}][amount]"
+                               value="{{ $saved ? $saved->amount : '' }}" placeholder="Default">
+                      </td>
+                      <td>
+                        <input type="text" maxlength="255" class="form-control"
+                               name="overrides[{{ $row['application']->id }}][reason]"
+                               value="{{ $saved->reason ?? '' }}">
+                      </td>
+                      <td class="fw-bold {{ $saved ? 'text-warning' : '' }}">{{ number_format($row['final'], 2) }}</td>
+                    </tr>
+                  @endforeach
+                </tbody>
+              </table>
+            </div>
+            <button type="submit" class="btn btn-primary btn-sm">Save Commission</button>
+          </form>
+        </div>
+      </div>
+      @endif
+    @endif
+
     {{-- Media Section --}}
     @if($proforma->media->count())
     <div class="mt-4">

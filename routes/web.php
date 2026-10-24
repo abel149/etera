@@ -1899,45 +1899,17 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         // 🔹 Applicant commissions (INSURANCE ONLY)
         if ($type === 'insurance') {
-        $applications = $allApplications;
+        // Shop/garage amounts (default formula, or admin override) from the shared calculator
+        $applicantCommissions = (new \App\Services\CommissionCalculator())
+            ->insuranceApplicants($proforma, $allApplications, $proformaPartsCount);
 
-        foreach ($applications as $application) {
-            $user = $application->applicationBy;
-            if (!$user) continue;
-
-            if ($user->role === 'garage') {
-                $amount = (float) ($commissions->garagePay ?? 0);
-            } else {
-                // Pro-rata for shops: scale by parts filled / total parts
-                $shopPay     = (float) ($commissions->shopPay ?? 0);
-                $totalParts  = (int) ($application->total_parts_count ?? 0);
-                $filledParts = (int) ($application->filled_parts_count ?? 0);
-
-                // Fall back to actual data if the tracked counters are missing (0)
-                if ($totalParts <= 0) {
-                    $totalParts = $proformaPartsCount;
-                }
-                if ($filledParts <= 0 && $totalParts > 0) {
-                    $filledParts = $application->loadMissing('prices')->prices
-                        ->filter(fn ($p) => ($p->unit_price ?? 0) > 0 || $p->price_is_encrypted)
-                        ->count();
-                }
-
-                if ($totalParts > 0 && $filledParts > 0) {
-                    $amount = round($shopPay * ($filledParts / $totalParts), 2);
-                } elseif ($totalParts > 0) {
-                    $amount = 0; // No actual part prices recorded — no commission
-                } else {
-                    $amount = $shopPay; // Legacy record: no parts data — full pay
-                }
-            }
-
-            if ($amount > 0) {
+        foreach ($applicantCommissions as $row) {
+            if ($row['final'] > 0) {
                 addCommissionRecord(
-                    $user,
+                    $row['user'],
                     $proforma->id,
-                    $application->id,
-                    $amount
+                    $row['application']->id,
+                    $row['final']
                 );
             }
         }
@@ -2042,6 +2014,55 @@ Route::get('/verify/{proforma}', function (Proforma $proforma) {
 
         return redirect()->back()->with('error', 'Verification failed.');
     }
+})->middleware('auth.user');
+
+// Admin: set/clear per-applicant shop/garage commission override (only while proforma is closed)
+Route::post('/commission-overrides/{proforma}', function (Request $request, Proforma $proforma) {
+
+    abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin']), 403);
+
+    if ($proforma->status !== 'closed') {
+        return redirect()->back()->with('error', 'Commission can only be changed while the proforma is closed.');
+    }
+
+    if (!(new \App\Services\CommissionCalculator())->usesInsuranceCommission($proforma)) {
+        return redirect()->back()->with('error', 'This proforma does not use shop/garage commission.');
+    }
+
+    $data = $request->validate([
+        'overrides'          => 'required|array',
+        'overrides.*.amount' => 'nullable|numeric|min:0|max:100000000',
+        'overrides.*.reason' => 'nullable|string|max:255',
+    ]);
+
+    $applications = ProformaApplication::where('proforma_id', $proforma->id)
+        ->whereIn('id', array_keys($data['overrides']))
+        ->with('applicationBy:id,role')
+        ->get()
+        ->filter(fn ($a) => in_array($a->applicationBy?->role, ['shop', 'garage']));
+
+    DB::transaction(function () use ($applications, $data, $proforma) {
+        foreach ($applications as $application) {
+            $input = $data['overrides'][$application->id];
+
+            if (!isset($input['amount']) || $input['amount'] === '') {
+                \App\Models\CommissionOverride::where('application_id', $application->id)->delete();
+                continue;
+            }
+
+            \App\Models\CommissionOverride::updateOrCreate(
+                ['application_id' => $application->id],
+                [
+                    'proforma_id' => $proforma->id,
+                    'amount'      => $input['amount'],
+                    'reason'      => $input['reason'] ?? null,
+                    'set_by'      => auth()->id(),
+                ]
+            );
+        }
+    });
+
+    return redirect()->back()->with('success', 'Commission amounts saved.');
 })->middleware('auth.user');
 
 
