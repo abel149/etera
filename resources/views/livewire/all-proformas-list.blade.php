@@ -330,9 +330,9 @@
                                             <h3 class="job-listing-title h5 mb-1">Garage</h3>
                                         @elseif($p?->role === 'insurance' || $pIsAgent)
                                             <h3 class="job-listing-title h5 mb-1">
-                                                {{ $p->name ?? 'N/A' }}
+                                                {{ $pIsAgent ? ($p->parentInsurance?->name ?? $p->name) : ($p->name ?? 'N/A') }}
                                                 @if($pIsAgent)
-                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->name }}</span>
                                                 @endif
                                             </h3>
                                         @else
@@ -408,9 +408,9 @@
                                             <h3 class="job-listing-title h5 mb-2">Garage</h3>
                                         @elseif($p?->role === 'insurance' || $pIsAgent)
                                             <h3 class="job-listing-title h5 mb-2">
-                                                {{ $p->name ?? 'N/A' }}
+                                                {{ $pIsAgent ? ($p->parentInsurance?->name ?? $p->name) : ($p->name ?? 'N/A') }}
                                                 @if($pIsAgent)
-                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->name }}</span>
                                                 @endif
                                             </h3>
                                         @else
@@ -461,9 +461,9 @@
                                             <h3 class="job-listing-title h5 mb-2">Garage</h3>
                                         @elseif($p?->role === 'insurance' || $pIsAgent)
                                             <h3 class="job-listing-title h5 mb-2">
-                                                {{ $p->name ?? 'N/A' }}
+                                                {{ $pIsAgent ? ($p->parentInsurance?->name ?? $p->name) : ($p->name ?? 'N/A') }}
                                                 @if($pIsAgent)
-                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->parentInsurance?->name ?? '' }}</span>
+                                                    <span class="d-block fw-normal" style="font-size:0.75rem;color:#6c757d;">{{ $p->name }}</span>
                                                 @endif
                                             </h3>
                                         @else
