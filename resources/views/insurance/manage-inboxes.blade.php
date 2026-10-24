@@ -106,6 +106,95 @@ select.js-select2-garage { display: none; }
         </div>
     </div>
 
+    {{-- Parts requested & pricing status (same data source as the admin parts modal) --}}
+    @php
+        $parts     = $proforma->parts;
+        $partStats = $parts->isEmpty() ? [] : $proforma->partPricingStats();
+        $pricedFull = $pricedSome = $pricedNone = 0;
+        foreach ($parts as $p) {
+            $s = $partStats[$p->id] ?? null;
+            if (!$s || $s['required'] <= 0) continue;
+            if ($s['priced'] >= $s['required']) $pricedFull++;
+            elseif ($s['priced'] > 0)            $pricedSome++;
+            else                                 $pricedNone++;
+        }
+    @endphp
+    <div class="card radius-10 mb-4">
+        <div class="card-header bg-light d-flex align-items-center justify-content-between flex-wrap gap-2">
+            <div class="d-flex align-items-center gap-2">
+                <i class="bx bx-list-check"></i>
+                <strong>Parts Requested &amp; Pricing Status</strong>
+            </div>
+            @if($parts->isNotEmpty() && !empty($partStats))
+            <div class="d-flex flex-wrap gap-2">
+                <span class="badge bg-dark">{{ $parts->count() }} requested</span>
+                <span class="badge bg-success">{{ $pricedFull }} fully priced</span>
+                <span class="badge bg-warning text-dark">{{ $pricedSome }} partially priced</span>
+                <span class="badge bg-danger">{{ $pricedNone }} not priced</span>
+            </div>
+            @endif
+        </div>
+        <div class="card-body">
+            @if($parts->isEmpty())
+                <span class="text-muted">No parts were requested on this file.</span>
+            @elseif(empty($partStats))
+                <span class="text-muted">{{ $parts->count() }} part(s) requested. Per-part pricing is not tracked for garage-only files.</span>
+            @else
+                <div class="table-responsive">
+                    <table class="table table-sm table-bordered align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>No</th>
+                                <th>Part Name / Number</th>
+                                <th>Grade</th>
+                                <th>Country</th>
+                                <th>Qty</th>
+                                <th>Condition</th>
+                                <th>Priced</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            @foreach($parts as $part)
+                                @php
+                                    $stat   = $partStats[$part->id] ?? null;
+                                    $priced = $stat['priced'] ?? 0;
+                                    $req    = $stat['required'] ?? 0;
+                                @endphp
+                                <tr>
+                                    <td>{{ $loop->iteration }}</td>
+                                    <td>{{ $part->number ?? 'N/A' }}</td>
+                                    <td>{{ $part->grade ?? 'N/A' }}</td>
+                                    <td>{{ $part->country ?? 'N/A' }}</td>
+                                    <td>{{ $part->quantity ?? 'N/A' }}</td>
+                                    <td>{{ $part->condition ?? 'N/A' }}</td>
+                                    <td>
+                                        @if($req > 0)
+                                            <span class="{{ $priced >= $req ? 'text-success fw-bold' : 'text-muted' }}">{{ $priced }}/{{ $req }}</span>
+                                        @else
+                                            <span class="text-muted">—</span>
+                                        @endif
+                                    </td>
+                                    <td>
+                                        @if($req <= 0)
+                                            <span class="badge bg-secondary">Waiting</span>
+                                        @elseif($priced >= $req)
+                                            <span class="badge bg-success">Priced</span>
+                                        @elseif($priced > 0)
+                                            <span class="badge bg-warning text-dark">Partial</span>
+                                        @else
+                                            <span class="badge bg-danger">Not priced</span>
+                                        @endif
+                                    </td>
+                                </tr>
+                            @endforeach
+                        </tbody>
+                    </table>
+                </div>
+            @endif
+        </div>
+    </div>
+
     {{-- Applied users (info) --}}
     @if($shopApplications->isNotEmpty() || $garageApplications->isNotEmpty())
     <div class="alert alert-info d-flex flex-wrap align-items-center gap-2">
