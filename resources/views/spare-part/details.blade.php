@@ -344,6 +344,47 @@
         #partImageGalleryModal .carousel-control-next { z-index: 1066; pointer-events: auto !important; }
         #partImageGalleryModal .btn,
         #partImageGalleryModal .btn-close { pointer-events: auto !important; }
+        /* ── Compact summary strip on top, pricing table full width ── */
+        .proforma-page .proforma-top { margin-bottom: 16px; }
+        .proforma-page .proforma-top .sidebar-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 16px;
+            align-items: flex-start;
+        }
+        .proforma-page .proforma-top .sidebar-widget { flex: 1 1 100%; margin: 0; }
+        .proforma-page .proforma-top .job-overview-inner ul {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+            gap: 10px 16px;
+            margin: 0;
+            padding: 0;
+        }
+        .proforma-page .proforma-top .job-overview-inner ul li { margin: 0 !important; min-width: 0; }
+        .proforma-page .proforma-top .job-overview-inner ul li h5 { word-break: break-word; }
+        .proforma-page .proforma-top .sidebar-container > div:not(.sidebar-widget) {
+            flex: 1 1 280px;
+            min-width: 0;
+        }
+        .proforma-page .proforma-top .sidebar-container > br { display: none; }
+        .proforma-page .proforma-top video { max-height: 220px !important; }
+        .proforma-page .proforma-pricing { margin-top: 0 !important; max-width: 100% !important; }
+        .proforma-page .proforma-pricing .table-container { margin-top: 0; -webkit-overflow-scrolling: touch; }
+        .proforma-page .proforma-pricing .basic-table th,
+        .proforma-page .proforma-pricing .basic-table td { padding: 10px 12px; }
+        @media (min-width: 1400px) {
+            .proforma-page .proforma-pricing .basic-table th,
+            .proforma-page .proforma-pricing .basic-table td { padding: 12px 16px; font-size: 1rem; }
+        }
+        @media (max-width: 767px) {
+            .proforma-page .proforma-top .job-overview-inner ul { grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+            .proforma-page .proforma-pricing .basic-table th,
+            .proforma-page .proforma-pricing .basic-table td { padding: 8px 8px; font-size: 0.85rem; }
+            .proforma-page .basic-table input[type="number"] { min-width: 90px; }
+        }
+        @media (max-width: 480px) {
+            .proforma-page .proforma-top .job-overview-inner ul { grid-template-columns: 1fr; }
+        }
         @keyframes pdfUploadPulse {
             0%, 100% { opacity: 1; background-position: 0% 50%; }
             50%       { opacity: 0.55; background-position: 100% 50%; }
@@ -424,9 +465,9 @@
         </div>
     @endif
 
-    <div class="container">
+    <div class="container-fluid px-2 px-md-3 px-xl-4 proforma-page">
         <div class="row">
-            <div class="col-xl-4 col-lg-4">
+            <div class="col-12 proforma-top">
                 <div class="sidebar-container">
                     <div class="sidebar-widget">
                         <div class="job-overview">
@@ -553,7 +594,7 @@
                 </div>
             </div>
 
-            <div class="col-xl-8 col-lg-8">
+            <div class="col-12 proforma-pricing">
 
                 @if(auth()->check() && auth()->user()->role === 'shop' && isset($lockedDataByPartId) && $lockedDataByPartId->isNotEmpty())
                 <div style="background: rgba(251,146,60,0.08); border: 1px solid rgba(251,146,60,0.35); border-radius: 10px; padding: 14px 18px; margin-bottom: 18px; display: flex; align-items: flex-start; gap: 12px;">
