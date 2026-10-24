@@ -471,7 +471,7 @@
                                                     <label class="form-label">Service</label>
                                                     <select name="parts[0][repair_renew]" class="form-select">
                                                         <option value="">— Select —</option>
-                                                        <option value="renew" {{ old('parts.0.repair_renew') == 'renew' ? 'selected' : '' }}>Renew</option>
+                                                        <option value="renew" {{ old('parts.0.repair_renew') == 'renew' ? 'selected' : '' }}>Replace</option>
                                                         <option value="repair" {{ old('parts.0.repair_renew') == 'repair' ? 'selected' : '' }}>Repair</option>
                                                     </select>
                                                 </div>
@@ -1532,7 +1532,7 @@ $(document).ready(function () {
                 let headers, example, colWidths;
                 if (includeService) {
                     headers   = ['Part Name and Number', 'Grade', 'Country', 'Qty', 'Condition', 'Component', 'Service'];
-                    example   = ['Example: Brake Pad F001', '1st Grade(Original OEM)', 'Japan', '2', 'New', 'Mechanical Parts', 'renew'];
+                    example   = ['Example: Brake Pad F001', '1st Grade(Original OEM)', 'Japan', '2', 'New', 'Mechanical Parts', 'replace'];
                     colWidths = [{ wch: 30 }, { wch: 25 }, { wch: 15 }, { wch: 6 }, { wch: 12 }, { wch: 18 }, { wch: 10 }];
                 } else {
                     headers   = ['Part Name and Number', 'Grade', 'Country', 'Qty', 'Condition', 'Component'];
@@ -1644,7 +1644,8 @@ $(document).ready(function () {
                 if (condSel)   condSel.value   = 'New';
                 if (compSel)   compSel.value   = matchOption(COMPONENT_OPTIONS, g('component'));
                 if (rrSel) {
-                    const raw = g('repair_renew').toLowerCase().trim();
+                    const rawIn = g('repair_renew').toLowerCase().trim();
+                    const raw   = rawIn === 'replace' ? 'renew' : rawIn;
                     rrSel.value = REPAIR_RENEW_OPTIONS.find(o => o === raw) || '';
                 }
             });

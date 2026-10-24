@@ -26,6 +26,15 @@ class ProformaPart extends Model
         'quantity' => 'integer',
     ];
 
+    public function getRepairRenewLabelAttribute(): ?string
+    {
+        return match ($this->repair_renew) {
+            'renew'  => 'Replace',
+            'repair' => 'Repair',
+            default  => $this->repair_renew ? ucfirst($this->repair_renew) : null,
+        };
+    }
+
     public function proforma()
     {
         return $this->belongsTo(Proforma::class);

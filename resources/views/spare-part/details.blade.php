@@ -631,7 +631,7 @@
                                         @if ($renewParts->count())
                                         <tr>
                                             <td colspan="8" style="background:rgba(77,208,196,0.12);color:#0a8f7d;font-weight:700;padding:10px 16px;border-bottom:2px solid rgba(77,208,196,0.35);">
-                                                <i class="bx bx-refresh me-1"></i> Parts to Renew &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $renewParts->count() }})</span>
+                                                <i class="bx bx-refresh me-1"></i> Parts to Replace &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $renewParts->count() }})</span>
                                             </td>
                                         </tr>
                                         @foreach ($renewParts as $part)
@@ -754,7 +754,7 @@
                                         @if ($renewParts->count())
                                         <tr>
                                             <td colspan="10" style="background:rgba(77,208,196,0.12);color:#0a8f7d;font-weight:700;padding:10px 16px;border-bottom:2px solid rgba(77,208,196,0.35);">
-                                                <i class="bx bx-refresh me-1"></i> Parts to Renew &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $renewParts->count() }})</span>
+                                                <i class="bx bx-refresh me-1"></i> Parts to Replace &nbsp;<span style="font-weight:400;font-size:0.88em;">({{ $renewParts->count() }})</span>
                                             </td>
                                         </tr>
                                         @foreach ($renewParts as $item)

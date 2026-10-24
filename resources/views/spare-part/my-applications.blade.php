@@ -382,7 +382,7 @@ class="current"
                                         <td>{{ $loop->iteration }}</td>
                                         <td>{{ $part->number }}</td>
                                         <td>{{ $part->component ?? '-' }}</td>
-                                        <td>{{ $part->repair_renew ? ucfirst($part->repair_renew) : '-' }}</td>
+                                        <td>{{ $part->repair_renew_label ?? '-' }}</td>
                                         <td>{{ $part->quantity ?? 1 }}</td>
                                     </tr>
                                 @endforeach

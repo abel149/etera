@@ -1596,7 +1596,7 @@ function openPrintPages(card) {
     const year = "{{ $proforma->year ?? 'N/A' }}";
     const plate = "{{ $proforma->license_plate_number ?? 'N/A' }}";
     const createdAt = "{{ $proforma->proformaInvoice?->created_at->format('M d, Y') }}";
-    const reqParts = {!! json_encode(($garageReqParts ?? collect())->map(fn($p) => ['number' => $p->number, 'component' => $p->component, 'service' => $p->repair_renew ? ucfirst($p->repair_renew) : null, 'qty' => $p->quantity ?? 1])->values(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
+    const reqParts = {!! json_encode(($garageReqParts ?? collect())->map(fn($p) => ['number' => $p->number, 'component' => $p->component, 'service' => $p->repair_renew_label, 'qty' => $p->quantity ?? 1])->values(), JSON_HEX_TAG | JSON_HEX_APOS | JSON_HEX_AMP | JSON_HEX_QUOT) !!};
     const escHtml = (v) => String(v ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
     const reqPartsHtml = reqParts.length ? `
                     <h6 class="mt-4 mb-2"><strong>Parts Requested</strong></h6>
