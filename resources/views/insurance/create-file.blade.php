@@ -287,17 +287,7 @@
                                         @error('customer_phone_number')
                                         <span class="text-danger">{{$message}}</span>
                                         @enderror
-                                    </div> <div class="col-12 col-lg-6">
-                                        <label for="InputEmail2" class="form-label">operator Phone Number</label>
-                                        <input type="text" name="Agent_phone_number" value="{{old('Agent_phone_number')}}" class="form-control required-field" id="InputEmail2" placeholder=""
-                                        required
-                                        oninvalid="this.setCustomValidity('Please enter the Phone number')"
-                                        oninput="this.setCustomValidity('')"
-                                        >
-                                        @error('Agent_phone_number')
-                                        <span class="text-danger">{{$message}}</span>
-                                        @enderror
-                                    </div>                                
+                                    </div>
                           
                                     
                                     <div class="col-12 col-lg-6">

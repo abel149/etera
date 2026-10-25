@@ -3733,7 +3733,6 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 'damage_severity' => $request->input('damage_severity'),
                 'customer_name' => $request->customer_name,
                 'customer_phone_number' => $request->customer_phone_number,
-                'Agent_phone_number' => $request->Agent_phone_number,
                 'customer_email' => $request->customer_email,
                 'chassis_number' => $request->chassis_number,
                 'license_plate_number' => $request->license_plate_number,

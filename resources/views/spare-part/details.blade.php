@@ -474,11 +474,15 @@
                             <div class="job-overview-headline">Proforma Summary</div>
                             <div class="job-overview-inner">
                                 <ul>
+                                    @if (!empty(config('etera.operator_phones')))
                                     <li>
                                         <i class="icon-material-outline-directions-car"></i>
-                                        <span>Operator Phone Number</span>
-                                        <h5>{{ $proforma->agent_phone_number ?? 'N/A' }}</h5>
+                                        <span>Etera Operator Phone Number</span>
+                                        @foreach (config('etera.operator_phones') as $operatorPhone)
+                                            <h5><a href="tel:{{ preg_replace('/\s+/', '', $operatorPhone) }}">{{ $operatorPhone }}</a></h5>
+                                        @endforeach
                                     </li>
+                                    @endif
                                     <li>
                                         <i class="icon-material-outline-directions-car"></i>
                                         <span>{{ $proforma->brand->name ?? 'N/A' }}</span>
