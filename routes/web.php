@@ -3663,7 +3663,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 'customer_name' => 'required',
                 'insured' => 'nullable|boolean',
                 'customer_phone_number' => 'required|string',
-                'Agent_phone_number' => 'required|string',
+                'Agent_phone_number' => 'nullable|string',
                 'customer_email' => 'nullable|string',
                 'chassis_number' => 'nullable',
                 'license_plate_number' => 'required|string',
