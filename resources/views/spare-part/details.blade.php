@@ -1306,6 +1306,13 @@
                                 <input type="text" class="with-border" value="15% (auto-applied)" disabled
                                     style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05); color:#0f172a;">
                             </div>
+                            <div>
+                                <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
+                                    Total Amount (Inc. VAT, ETB)
+                                </label>
+                                <input type="text" id="garage-total-amount" class="with-border" value="0.00" disabled
+                                    style="width: 100%; padding: 10px; border-radius: 6px; border: 1px solid rgba(59, 130, 246, 0.3); background: rgba(59, 130, 246, 0.05); color:#0f172a;">
+                            </div>
                         </div>
                         <div style="margin-bottom: 15px;">
                             <label style="font-weight: 600; font-size: 0.85rem; color: #60a5fa; display: block; margin-bottom: 6px;">
@@ -1491,6 +1498,23 @@
         }
 
         /**
+         * Calculates the garage total (Net + 15% VAT) for dual-service providers.
+         * Updates the "Total Amount (Inc. VAT, ETB)" field automatically.
+         */
+        function calculateGarageTotal() {
+            const garageInput = document.querySelector('input[name="garage_amount"]');
+            const totalInput = document.getElementById('garage-total-amount');
+
+            if (!garageInput || !totalInput) return;
+
+            const netAmount = parseFloat(garageInput.value) || 0;
+            const vatAmount = netAmount * (VAT_RATE / 100);
+            const grossTotal = netAmount + vatAmount;
+
+            totalInput.value = grossTotal > 0 ? grossTotal.toFixed(2) : '0.00';
+        }
+
+        /**
          * Handles form submission to show loading state.
          */
         function submitQuote(event) {
@@ -1563,6 +1587,14 @@
                         updatePartAmounts();
                     });
                 });
+
+                // Dual-service: Also listen to garage_amount input for auto-calculation
+                const garageAmountInput = document.querySelector('input[name="garage_amount"]');
+                if (garageAmountInput) {
+                    garageAmountInput.addEventListener('input', function() {
+                        calculateGarageTotal();
+                    });
+                }
             } else {
                 // Garage role: Listen to the main total amount input
                 const totalAmountInput = document.querySelector('#total-amount');
@@ -1581,6 +1613,11 @@
                     } else {
                         calculateAmounts();
                     }
+                }
+
+                // Initialize garage total calculation for dual-service providers
+                if (isShopRole) {
+                    calculateGarageTotal();
                 }
             }, 100);
 
