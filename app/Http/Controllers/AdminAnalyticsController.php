@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\User;
 use App\Models\PaidUser;
+use App\Models\Proforma;
 use App\Models\ProformaInvoice;
 use Illuminate\Http\Request;
 
@@ -90,20 +91,19 @@ public function receivePayment($userId)
 {
     abort_unless(in_array(auth()->user()->role, ['admin', 'superadmin', 'accountant']), 403);
 
-    // Get all unpaid insurance invoices for this user
-    $unpaid = ProformaInvoice::whereHas('proforma', function ($q) use ($userId) {
-        $q->where('poster_id', $userId);
-    })->where('is_paid', false)->get();
+    // The user's own invoices plus those of their claim officers (none for non-insurance users)
+    $posterIds = User::where('parent_insurance_id', $userId)
+        ->where('role', 'insurance_agent')
+        ->pluck('id')
+        ->push((int) $userId);
 
-    if ($unpaid->isEmpty()) {
-        return back()->with('error', 'User has no remaining balance.');
-    }
+    $updated = ProformaInvoice::where('is_paid', false)
+        ->whereIn('proforma_id', Proforma::whereIn('poster_id', $posterIds)->select('id'))
+        ->update(['is_paid' => true]);
 
-    foreach ($unpaid as $row) {
-        $row->markAsPaid(); // your existing model function
-    }
-
-    return back()->with('success', 'All unpaid invoices marked as paid.');
+    return $updated
+        ? back()->with('success', 'All unpaid invoices marked as paid.')
+        : back()->with('error', 'User has no remaining balance.');
 }
 
 
