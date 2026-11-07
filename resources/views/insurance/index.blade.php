@@ -35,7 +35,7 @@
 							<div class="d-flex align-items-center justify-content-between">
 								<div>
 									<p class="mb-0">Total Files</p>
-									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->count() : 0 }}</h5>
+									<h5 class="mb-0">{{ $stats['total'] }}</h5>
 								</div>
 								<div id="chart3"></div>
 							</div>
@@ -48,7 +48,7 @@
 							<div class="d-flex align-items-center justify-content-between">
 								<div>
 									<p class="mb-0">Completed Files</p>
-									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->where('status', 'completed')->count() : 0 }}</h5>
+									<h5 class="mb-0">{{ $stats['completed'] }}</h5>
 								</div>
 								<div id="chart4"></div>
 							</div>
@@ -61,7 +61,7 @@
 							<div class="d-flex align-items-center justify-content-between">
 								<div>
 									<p class="mb-0">Pending Files</p>
-									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->whereIn('status', ['pending', 'opened', 'published'])->count() : 0 }}</h5>
+									<h5 class="mb-0">{{ $stats['pending'] }}</h5>
 								</div>
 								<div id="chart5"></div>
 							</div>
@@ -74,7 +74,7 @@
 							<div class="d-flex align-items-center justify-content-between">
 								<div>
 									<p class="mb-0">Closed Files</p>
-									<h5 class="mb-0">{{ auth()->check() ? auth()->user()->proformas->where('status', 'closed')->count() : 0 }}</h5>
+									<h5 class="mb-0">{{ $stats['closed'] }}</h5>
 								</div>
 								<div id="chart6"></div>
 							</div>
@@ -153,7 +153,7 @@
 										<a href="{{ url('/insurance/proforma/' . $proforma->id . '/manage-inboxes') }}" class="btn btn-sm btn-outline-primary" title="Manage Inboxes">
 											<i class="bx bx-show"></i>
 										</a>
-										@if(in_array($proforma->status, ['published','pending','opened']) && !$proforma->close_request && $proforma->applications()->count() > 0)
+										@if(in_array($proforma->status, ['published','pending','opened']) && !$proforma->close_request && $proforma->applications_count > 0)
 											<form action="{{ route('insurance.proforma.request-close', ['proforma' => $proforma->id]) }}" method="POST" class="d-inline">
 												@csrf
 												<button type="submit" class="btn btn-primary btn-sm">Request Close Proforma</button>

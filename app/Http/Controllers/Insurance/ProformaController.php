@@ -15,8 +15,17 @@ class ProformaController extends Controller
     {
         // ... existing validation and file creation code ...
 
-        // Create the proforma (replace with actual creation logic as needed)
-        $proforma = Proforma::create($request->all());
+        // Create the proforma using only the validated/explicit fields — never $request->all().
+        $proforma = Proforma::create([
+            'poster_id'   => auth()->id(),
+            'file_number' => $request->file_number,
+            'car_brand_id' => $request->brand_id,
+            'model'       => $request->model,
+            'year'        => $request->year,
+            'customer_name' => $request->customer_name,
+            'customer_phone_number' => $request->customer_phone_number,
+            'chassis_number' => $request->chassis_number,
+        ]);
 
         // Log Activity
         \App\Models\ProformaActivityLog::create([

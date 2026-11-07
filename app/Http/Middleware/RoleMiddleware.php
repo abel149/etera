@@ -14,8 +14,7 @@ class RoleMiddleware
         }
 
         if (!in_array(Auth::user()->role, ['insurance', 'insurance_agent'])) {
-            Auth::logout();
-            return redirect('/login')->with('error', 'Please login again!');
+            return redirect('/login')->with('error', 'Access denied.');
         }
 
         return $next($request);

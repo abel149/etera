@@ -3012,7 +3012,8 @@ Route::prefix('insurance')
     ->middleware([\App\Http\Middleware\RoleMiddleware::class])
     ->group(function () {
         Route::get('/', function (Request $request) {
-            $query = auth()->user()->proformas()->orderBy('created_at', 'desc');
+            $user  = auth()->user();
+            $query = $user->proformas()->orderBy('created_at', 'desc');
 
             if ($request->filled('search')) {
                 $search = $request->search;
@@ -3024,10 +3025,24 @@ Route::prefix('insurance')
                 });
             }
 
-            $proformas  = $query->paginate(20)->withQueryString();
-            $hasAgents  = auth()->user()->agents()->exists();
+            // Dashboard stat counts — single GROUP-BY query, never loads rows into memory
+            $statusCounts = $user->proformas()
+                ->selectRaw('status, COUNT(*) as count')
+                ->groupBy('status')
+                ->pluck('count', 'status');
 
-            return view('insurance.index', compact('proformas', 'hasAgents'));
+            $stats = [
+                'total'     => $statusCounts->sum(),
+                'completed' => (int) ($statusCounts->get('completed', 0)),
+                'pending'   => (int) ($statusCounts->only(['pending', 'opened', 'published'])->sum()),
+                'closed'    => (int) ($statusCounts->get('closed', 0)),
+            ];
+
+            // withCount avoids N+1 when the view checks application counts per row
+            $proformas = $query->withCount('applications')->paginate(20)->withQueryString();
+            $hasAgents = $user->agents()->exists();
+
+            return view('insurance.index', compact('proformas', 'hasAgents', 'stats'));
         });
 
         // Agent proforma status stats — single GROUP-BY query, loaded lazily by the
@@ -3049,11 +3064,8 @@ Route::prefix('insurance')
             return response()->json($rows);
         })->name('insurance.agent-proforma-stats');
 
-        Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
-            $proforma = \App\Models\Proforma::find($proformaId);
-            if (!$proforma) {
-                return back()->with('error', 'Proforma not found.');
-            }
+        Route::post('/proforma/{proforma}/request-close', function (Proforma $proforma) {
+            abort_if($proforma->poster_id !== auth()->id(), 403);
             $proforma->update(['close_request' => true]);
             return back()->with('success', 'Close request submitted.');
         })->name('insurance.proforma.request-close');
@@ -3247,6 +3259,18 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 'proformaInvoice',
                 'brand',
             ])->findOrFail($request->query('proforma_id'));
+
+            // Authorization: insurance users may view their own proformas OR those
+            // posted by any of their claim officers. Agents may only view their own.
+            $user = auth()->user();
+            $authorizedPosterIds = collect([$user->id]);
+            if ($user->role === 'insurance') {
+                $agentIds = \App\Models\User::where('parent_insurance_id', $user->id)
+                    ->where('role', 'insurance_agent')
+                    ->pluck('id');
+                $authorizedPosterIds = $authorizedPosterIds->merge($agentIds);
+            }
+            abort_if(!$authorizedPosterIds->contains($proforma->poster_id), 403);
 
             // Shop applications — sort by inbox_group first, then by id.
             // (Sorting by subtotal is unreliable for encrypted proformas where all amounts are 0.)
@@ -3859,8 +3883,10 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
         $base64 = $request->voice_note;
 
         // Remove any header like "data:audio/webm;codecs=opus;base64,"
+        $allowedAudioExt = ['webm', 'mp3', 'wav', 'ogg', 'm4a', 'aac'];
         if (preg_match('/^data:audio\/(\w+);.*base64,/', $base64, $matches)) {
-            $extension = $matches[1]; // e.g. webm, mp3, wav
+            $ext = strtolower($matches[1]);
+            $extension = in_array($ext, $allowedAudioExt) ? $ext : 'webm';
             $base64 = substr($base64, strpos($base64, ',') + 1);
         } else {
             $extension = 'webm'; // default
@@ -4501,8 +4527,10 @@ foreach ($partsData['condition'] as $index => $condition) {
                     $base64 = $request->voice_note;
                     
                     // Extract the extension from the MIME type (handles codecs like audio/webm;codecs=opus)
+                    $allowedAudioExt = ['webm', 'mp3', 'wav', 'ogg', 'm4a', 'aac'];
                     if (preg_match('#^data:audio/([^;,]+)#i', $base64, $matches)) {
-                        $extension = $matches[1]; // e.g. webm, mp3, wav
+                        $ext = strtolower($matches[1]);
+                        $extension = in_array($ext, $allowedAudioExt) ? $ext : 'webm';
                     } else {
                         $extension = 'webm'; // default
                     }
@@ -5427,8 +5455,10 @@ Route::prefix('business-owner')
                         $base64 = $request->voice_note;
                         
                         // Extract the extension from the MIME type (handles codecs like audio/webm;codecs=opus)
+                        $allowedAudioExt = ['webm', 'mp3', 'wav', 'ogg', 'm4a', 'aac'];
                         if (preg_match('#^data:audio/([^;,]+)#i', $base64, $matches)) {
-                            $extension = $matches[1]; // e.g. webm, mp3, wav
+                            $ext = strtolower($matches[1]);
+                            $extension = in_array($ext, $allowedAudioExt) ? $ext : 'webm';
                         } else {
                             $extension = 'webm'; // default
                         }

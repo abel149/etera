@@ -14,8 +14,7 @@ class EmployeeMiddleware
         }
 
         if (Auth::user()->role !== 'employee') {
-            Auth::logout();
-            return redirect('/login')->with('error', 'Please login again!');
+            return redirect('/login')->with('error', 'Access denied.');
         }
 
         return $next($request);

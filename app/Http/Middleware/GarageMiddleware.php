@@ -14,8 +14,7 @@ class GarageMiddleware
         }
 
         if (Auth::user()->role !== 'garage' && Auth::user()->shop_garage != 1) {
-            Auth::logout();
-            return redirect('/login')->with('error', 'Please login again!');
+            return redirect('/login')->with('error', 'Access denied.');
         }
 
         return $next($request);
