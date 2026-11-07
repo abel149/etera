@@ -3026,10 +3026,11 @@ Route::prefix('insurance')
             }
 
             // Dashboard stat counts — single GROUP-BY query, never loads rows into memory.
-            // reorder() strips the inherited orderBy('created_at') from the relationship
-            // so MySQL's only_full_group_by mode doesn't reject the aggregate query.
+            // withoutGlobalScope suppresses the Proforma 'created_desc' global scope
+            // which adds ORDER BY created_at DESC; that ORDER BY is incompatible with
+            // MySQL only_full_group_by when the column is not in the GROUP BY clause.
             $statusCounts = $user->proformas()
-                ->reorder()
+                ->withoutGlobalScope('created_desc')
                 ->selectRaw('status, COUNT(*) as count')
                 ->groupBy('status')
                 ->pluck('count', 'status');
