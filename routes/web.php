@@ -3025,8 +3025,11 @@ Route::prefix('insurance')
                 });
             }
 
-            // Dashboard stat counts — single GROUP-BY query, never loads rows into memory
+            // Dashboard stat counts — single GROUP-BY query, never loads rows into memory.
+            // reorder() strips the inherited orderBy('created_at') from the relationship
+            // so MySQL's only_full_group_by mode doesn't reject the aggregate query.
             $statusCounts = $user->proformas()
+                ->reorder()
                 ->selectRaw('status, COUNT(*) as count')
                 ->groupBy('status')
                 ->pluck('count', 'status');
