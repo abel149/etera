@@ -47,7 +47,12 @@ class AllProformasList extends Component
 
     public function render()
     {
-        $user   = Auth::user();
+        $user = Auth::user();
+
+        if (!$user) {
+            return $this->redirect('/login', navigate: false);
+        }
+
         $userId = $user->id;
 
         /**
