@@ -974,17 +974,13 @@ Route::put('/profile/update', function (Request $request) {
         // Register Users
 
 
-        Route::get('/signup', [\App\Http\Controllers\RegisterController::class, 'showRegistrationForm'])->name('signup.2');
         Route::post('/add-register', [\App\Http\Controllers\RegisterController::class, 'store'])->name('add-register');
 
         // Separate signup routes for different user types
-        Route::get('/signup/individual', [\App\Http\Controllers\RegisterController::class, 'showIndividualRegistrationForm'])->name('signup.individual.2');
         Route::post('/register/individual', [\App\Http\Controllers\RegisterController::class, 'storeIndividual'])->name('register.individual');
         
-        Route::get('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'showBusinessOwnerRegistrationForm'])->name('signup.business-owner.2');
         Route::post('/signup/business-owner', [\App\Http\Controllers\RegisterController::class, 'storeBusinessOwner'])->name('register.business-owner');
         
-        Route::get('/signup/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'showGarageSparePartRegistrationForm'])->name('signup.garage-sparepart.2');
         Route::post('/register/garage-sparepart', [\App\Http\Controllers\RegisterController::class, 'storeGarageSparepart'])->name('register.garage-sparepart');
 
 

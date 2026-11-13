@@ -403,7 +403,7 @@
                                 @php
                                     $poster   = $proforma->poster;
                                     $isAgent  = $poster?->role === 'insurance_agent';
-                                    $isDealerDetail = auth()->user()->shop_garage == 1;
+                                    $isDealerDetail = auth()->user()?->shop_garage == 1;
                                 @endphp
                                 <h3>
                                     {{ $isAgent ? ($poster->parentInsurance?->name ?? $poster->name) : ($poster?->name ?? 'N/A') }}
