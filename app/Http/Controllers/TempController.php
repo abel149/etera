@@ -36,7 +36,19 @@ class TempController extends Controller
 
                     Log::info('UploadPartImage: file uploaded to temp', [
                         'field' => $fieldName,
-                        'path' => $path
+                        'path' => $path,
+                        'size' => $file->getSize(),
+                        'mime' => $file->getClientMimeType(),
+                    ]);
+                } else {
+                    Log::warning('UploadPartImage: invalid file received', [
+                        'user_id' => auth()->id(),
+                        'field' => $fieldName,
+                        'upload_error' => $file instanceof UploadedFile ? $file->getError() : 'not an UploadedFile',
+                        'error_message' => $file instanceof UploadedFile ? $file->getErrorMessage() : null,
+                        'client_name' => $file instanceof UploadedFile ? $file->getClientOriginalName() : null,
+                        'client_size' => $file instanceof UploadedFile ? $file->getSize() : null,
+                        'content_length' => $request->header('Content-Length'),
                     ]);
                 }
             }
@@ -45,7 +57,13 @@ class TempController extends Controller
                 return response()->json(['success' => true, 'files' => $uploadedPaths]);
             }
 
-            Log::error('UploadPartImage: no valid file found');
+            Log::error('UploadPartImage: no valid file found', [
+                'user_id' => auth()->id(),
+                'files_received' => array_keys($flattenedFiles),
+                'content_length' => $request->header('Content-Length'),
+                'php_upload_max' => ini_get('upload_max_filesize'),
+                'php_post_max' => ini_get('post_max_size'),
+            ]);
             return response()->json(['success' => false, 'message' => 'No valid file uploaded'], 400);
 
         } catch (\Exception $e) {
@@ -66,6 +84,36 @@ class TempController extends Controller
             }
         }
         return $flat;
+    }
+
+    /**
+     * Receives client-side upload diagnostics (FilePond errors, file metadata)
+     * so browser-side failures that never reach the server are still visible
+     * in storage/logs/laravel.log.
+     */
+    public function clientUploadLog(Request $request)
+    {
+        $event = substr((string) $request->input('event'), 0, 50);
+        $context = [
+            'user_id' => auth()->id(),
+            'ip' => $request->ip(),
+            'user_agent' => substr((string) $request->userAgent(), 0, 300),
+            'event' => $event,
+            'page' => substr((string) $request->input('page'), 0, 200),
+            'data' => array_map(
+                fn ($v) => is_scalar($v) ? substr((string) $v, 0, 300) : null,
+                $request->only([
+                    'input', 'error_main', 'error_sub', 'error_code', 'file_name',
+                    'file_size', 'file_type', 'last_modified', 'server_id',
+                ])
+            ),
+        ];
+
+        in_array($event, ['file_added', 'process_success'], true)
+            ? Log::info('ClientUpload: ' . $event, $context)
+            : Log::warning('ClientUpload: ' . $event, $context);
+
+        return response()->json(['ok' => true]);
     }
 
     public function revert(Request $request)

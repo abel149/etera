@@ -125,6 +125,9 @@ Route::post('/reviews/store', [UserReviewController::class, 'store'])
 
 Route::post('/upload-part-image', [TempController::class, 'uploadPartImage'])->name('upload.part.image');
 Route::delete('/delete-part-image', [TempController::class, 'revert'])->name('upload.part.image.revert');
+Route::post('/client-upload-log', [TempController::class, 'clientUploadLog'])
+    ->middleware(['auth', 'throttle:30,1'])
+    ->name('client.upload.log');
 
 
 // Livewire File Upload Demo Route

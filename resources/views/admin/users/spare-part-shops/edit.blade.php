@@ -459,7 +459,71 @@ document.addEventListener('DOMContentLoaded', function() {
     });
     // ─────────────────────────────────────────────────────────────────────────
 
-    FilePond.registerPlugin(FilePondPluginImagePreview, FilePondPluginFileValidateType, FilePondPluginFileValidateSize);
+    const fpPlugins = [FilePondPluginImagePreview, FilePondPluginFileValidateType, FilePondPluginFileValidateSize];
+    if (window.FilePondPluginImageExifOrientation) fpPlugins.push(FilePondPluginImageExifOrientation);
+    if (window.FilePondPluginImageResize) fpPlugins.push(FilePondPluginImageResize);
+    if (window.FilePondPluginImageTransform) fpPlugins.push(FilePondPluginImageTransform);
+    FilePond.registerPlugin(...fpPlugins);
+
+    function reportUploadLog(event, data) {
+        try {
+            fetch('{{ route("client.upload.log") }}', {
+                method: 'POST',
+                keepalive: true,
+                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
+                body: JSON.stringify(Object.assign({ event: event, page: location.pathname }, data || {})),
+            });
+        } catch (e) {}
+    }
+
+    function attachUploadLogging(pond, input) {
+        pond.on('error', (error, file, status) => {
+            reportUploadLog('filepond_error', {
+                input: input,
+                error_main: error && error.main,
+                error_sub: error && error.sub,
+                error_code: error && error.code,
+                file_name: file && file.filename,
+                file_size: file && file.fileSize,
+                file_type: file && file.fileType,
+            });
+        });
+        pond.on('addfile', (error, file) => {
+            if (error) {
+                reportUploadLog('addfile_failed', {
+                    input: input,
+                    error_main: error && error.main,
+                    error_sub: error && error.sub,
+                    file_name: file && file.filename,
+                });
+            } else if (file) {
+                reportUploadLog('file_added', {
+                    input: input,
+                    file_name: file.filename,
+                    file_size: file.fileSize,
+                    file_type: file.fileType,
+                    last_modified: file.file && file.file.lastModified,
+                });
+            }
+        });
+        pond.on('processfileerror', (file) => {
+            reportUploadLog('process_failed', {
+                input: input,
+                file_name: file && file.filename,
+                file_size: file && file.fileSize,
+                file_type: file && file.fileType,
+                server_id: file && file.serverId,
+            });
+        });
+        pond.on('processfile', (error, file) => {
+            if (error) return;
+            reportUploadLog('process_success', {
+                input: input,
+                file_name: file && file.filename,
+                file_size: file && file.fileSize,
+            });
+        });
+    }
 
     const serverConfig = {
         process: {
@@ -487,13 +551,23 @@ document.addEventListener('DOMContentLoaded', function() {
         stylePanelAspectRatio: '3:2',
         labelIdle: '📷 Drag & Drop or <span class="filepond--label-action">Browse</span>',
         name: 'image',
+        // Re-encode to an in-memory copy so the file can't change on
+        // disk mid-upload (fixes flaky "retry" uploads on Android)
+        allowImageExifOrientation: true,
+        imageResizeMode: 'contain',
+        imageResizeTargetWidth: 1600,
+        imageResizeTargetHeight: 1600,
+        imageResizeUpscale: false,
+        imageTransformOutputQuality: 85,
     };
 
     const licensePond = FilePond.create(document.querySelector('.filepond-license'), pondOptions);
+    attachUploadLogging(licensePond, 'license_image');
     licensePond.on('processfile', (error, file) => { if (!error) { document.getElementById('license_image_data').value = file.serverId; document.getElementById('remove_license_image').value = ''; } });
     licensePond.on('removefile', () => { document.getElementById('license_image_data').value = ''; });
 
     const stampPond = FilePond.create(document.querySelector('.filepond-stamp'), pondOptions);
+    attachUploadLogging(stampPond, 'stamp_image');
     stampPond.on('processfile', (error, file) => { if (!error) { document.getElementById('stamp_image_data').value = file.serverId; document.getElementById('remove_stamp_image').value = ''; } });
     stampPond.on('removefile', () => { document.getElementById('stamp_image_data').value = ''; });
 });
