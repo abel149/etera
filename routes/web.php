@@ -3257,6 +3257,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
             $proforma = \App\Models\Proforma::with([
                 'applications.prices',
                 'applications.applicationBy',
+                'applications.applicationBy.bankAccounts',
                 'applications.pdf',
                 'parts',
                 'proformaInvoice',

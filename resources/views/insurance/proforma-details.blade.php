@@ -276,6 +276,7 @@
                          data-location="{{ $application->applicationBy->location }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                         data-license-image="{{ $application->applicationBy->license_image ? asset('storage/' . $application->applicationBy->license_image) : '' }}"
                          data-notes='@json($application->notes ?? '')'
                          data-application-date="{{ $application->created_at?->format('F j, Y') }}"
                          data-amount="{{ $application->amount ?? 0 }}"
@@ -401,13 +402,14 @@
                          data-shop-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                         data-license-image="{{ $application->applicationBy->license_image ? asset('storage/' . $application->applicationBy->license_image) : '' }}"
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-amount-is-encrypted="{{ $application->amount_is_encrypted && $application->encrypted_amount ? '1' : '0' }}"
                          data-notes="{{ $application->notes ?? '' }}"
                          data-application-date="{{ $application->created_at?->format('F j, Y') }}">
 
-                         
+
                         <div class="card-stamp">
                             @if($application->applicationBy->stamp_image)
                             <img class="profile-pic stamp-image" src="{{ asset('storage/' . $application->applicationBy->stamp_image) }}" alt="Stamp" />
@@ -609,6 +611,7 @@
                          data-garage-name="{{ $application->applicationBy->name }}"
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
+                         data-license-image="{{ $application->applicationBy->license_image ? asset('storage/' . $application->applicationBy->license_image) : '' }}"
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
@@ -644,6 +647,14 @@
                                 <div class="col-6">
                                     <span><b class="font-17">Tin #: </b>
                                         <span class="text-secondary font-16">{{ $application->applicationBy->tin_number }}</span>
+                                    </span>
+                                </div>
+                                <div class="col-6">
+                                    <span><b class="font-17">Bank Account #: </b>
+                                        @php $bank = $application->applicationBy->bankAccounts->first(); @endphp
+                                        <span class="text-secondary font-16">
+                                            {{ $bank ? $bank->bank_name . ' — ' . $bank->account_number : '—' }}
+                                        </span>
                                     </span>
                                 </div>
                                 <div class="col-10">
@@ -757,9 +768,7 @@
                                         </tr>
                                     </tfoot>
                                 </table>
-                                <p style="font-size: 9px; margin-top: 4px;">
-                                    <strong class="text-danger">NOTE:</strong> All prices including VAT
-                                </p>
+                                
                             </div>
                             @if($application->notes)
                             <div style="margin: 10px 16px 4px; background: rgba(13,148,136,0.06); border-left: 3px solid #4dd0c4; border-radius: 0 6px 6px 0; padding: 8px 12px;">
@@ -1155,7 +1164,7 @@ function openBestSummaryPrint() {
                 </main>
 
                 <footer class="text-center mt-4">
-                    <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
+                    
                     <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
                             <i class="fa fa-print"></i> Print & Download
@@ -1323,6 +1332,7 @@ function openPrintPage(card) {
     const shopName = card.dataset.shopName || "N/A";
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
+    const licenseImage = card.dataset.licenseImage || "";
     const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const garageAmount = parseFloat(card.dataset.amount) || 0;
     const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
@@ -1556,6 +1566,14 @@ function openPrintPage(card) {
                     </div>
                 </main>
 
+                ${licenseImage ? `
+                <section class="license-page" style="page-break-before: always; text-align: center; padding-top: 2rem;">
+                    <h5 style="margin-bottom: 1rem;"><strong>Shop License — ${shopName}</strong></h5>
+                    <img src="${licenseImage}" alt="Shop License"
+                         style="max-width: 100%; max-height: 85vh; object-fit: contain; border: 1px solid #dee2e6; padding: 4px;" />
+                </section>
+                ` : ''}
+
                 <footer class="text-center mt-4">
                     <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
                     <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
@@ -1582,6 +1600,7 @@ function openPrintPages(card) {
     const garageName = card.dataset.garageName || "N/A";
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
+    const licenseImage = card.dataset.licenseImage || "";
     const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const amount = parseFloat(card.dataset.amount) || 0;
     const applicantNotes = card.dataset.notes || "";
@@ -1776,6 +1795,14 @@ function openPrintPages(card) {
                         <img class="stamp-image" src="${stampImage}" alt="Stamp" />
                     </div>
                 </main>
+
+                ${licenseImage ? `
+                <section class="license-page" style="page-break-before: always; text-align: center; padding-top: 2rem;">
+                    <h5 style="margin-bottom: 1rem;"><strong>Garage License — ${garageName}</strong></h5>
+                    <img src="${licenseImage}" alt="Garage License"
+                         style="max-width: 100%; max-height: 85vh; object-fit: contain; border: 1px solid #dee2e6; padding: 4px;" />
+                </section>
+                ` : ''}
 
                 <footer class="text-center mt-4">
                     <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
