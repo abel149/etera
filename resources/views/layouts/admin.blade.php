@@ -192,7 +192,19 @@
 
 					<ul>
 
-						<li> <a href="/admin/user-approval"><i class='bx bx-user-check'></i>User Approval</a>
+						@php
+							$pendingApprovalCount = \App\Models\User::where('role', '!=', 'superadmin')
+								->where('id', '!=', auth()->id())
+								->where(function ($q) {
+									$q->where('approved', false)->orWhereNull('approved')->orWhere('approved', '');
+								})
+								->count();
+						@endphp
+						<li> <a href="/admin/user-approval"><i class='bx bx-user-check'></i>User Approval
+							@if($pendingApprovalCount > 0)
+								<span class="badge rounded-pill bg-danger ms-1">{{ $pendingApprovalCount }}</span>
+							@endif
+						</a>
 
 						</li>
 
