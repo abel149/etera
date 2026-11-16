@@ -133,8 +133,6 @@
         <button type="button" class="btn radius-10 p-1 text-danger" data-bs-toggle="modal" data-bs-target="#singleDelete{{$shop->id}}">
             <i class="bx bx-trash me-0"></i>
         </button>
-    </td>
-</tr>
 
 <!-- Modal for Full Row Click -->
 <div class="modal fade" id="shopDetailModal{{$shop->id}}" tabindex="-1" aria-hidden="true">
