@@ -312,6 +312,8 @@
                             <div class="row g-2 mb-3">
                                 <div class="col-6"><span><b class="font-17">Store ID: </b><span class="text-secondary font-16">{{ $application->applicationBy->store_id }}</span></span></div>
                                 <div class="col-6"><span><b class="font-17">Tin #: </b><span class="text-secondary font-16">{{ $application->applicationBy->tin_number }}</span></span></div>
+                                @php $bank = $application->applicationBy->bankAccounts->first(); @endphp
+                                <div class="col-12"><span><b class="font-17">Bank Account #: </b><span class="text-secondary font-16">{{ $bank ? $bank->bank_name . ' — ' . $bank->account_number : '—' }}</span></span></div>
                                 <div class="col-12"><span><b class="font-17">Location: </b><span class="text-secondary font-16">{{ $application->applicationBy->location }}</span></span></div>
                                 <div class="col-12"><span><b class="font-17">Application Date: </b><span class="text-secondary font-16">{{ $application->created_at?->format('F j, Y') }}</span></span></div>
                             </div>
@@ -454,6 +456,14 @@
                                         <span class="text-secondary font-16">{{ $application->applicationBy->tin_number }}</span>
                                     </span>
                                 </div>
+                                <div class="col-6">
+                                    <span><b class="font-17">Bank Account #: </b>
+                                        @php $bank = $application->applicationBy->bankAccounts->first(); @endphp
+                                        <span class="text-secondary font-16">
+                                            {{ $bank ? $bank->bank_name . ' — ' . $bank->account_number : '—' }}
+                                        </span>
+                                    </span>
+                                </div>
                                 <div class="col-10">
                                     <span><b class="font-17">Location: </b>
                                         <span class="text-secondary font-16">{{ $application->applicationBy->location }}</span>
@@ -563,10 +573,6 @@
                                     </div>
                                 </div>
                                 @endif
-
-                                <p style="font-size: 9px; margin-top: 4px;">
-                                    <strong class="text-danger">NOTE:</strong> All prices including VAT
-                                </p>
 
                                 <div style="font-size: 10px; margin-top: 2px;">
                                     <strong>VAT:</strong> 15% (included in total)
@@ -1160,8 +1166,7 @@ function openBestSummaryPrint() {
                         </table>
                     </div>
 
-                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
-                </main>
+                                    </main>
 
                 <footer class="text-center mt-4">
                     
@@ -1558,8 +1563,7 @@ function openPrintPage(card) {
                         </table>
                     </div>
 
-                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
-                    ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
+                                        ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 
                     <div class="card-stamp">
                         <img class="stamp-image" src="${stampImage}" alt="Stamp" />
@@ -1569,14 +1573,18 @@ function openPrintPage(card) {
                 ${licenseImage ? `
                 <section class="license-page" style="page-break-before: always; text-align: center; padding-top: 2rem;">
                     <h5 style="margin-bottom: 1rem;"><strong>Shop License — ${shopName}</strong></h5>
-                    <img src="${licenseImage}" alt="Shop License"
+                    <a href="${licenseImage}" target="_blank" class="d-print-none" title="Click to view full size">
+                        <img src="${licenseImage}" alt="Shop License"
+                             style="max-width: 100%; max-height: 85vh; object-fit: contain; border: 1px solid #dee2e6; padding: 4px; cursor: zoom-in;" />
+                    </a>
+                    <img src="${licenseImage}" alt="Shop License" class="d-none d-print-block"
                          style="max-width: 100%; max-height: 85vh; object-fit: contain; border: 1px solid #dee2e6; padding: 4px;" />
+                    <p class="d-print-none" style="font-size: 0.8rem; color: #6c757d;">Click the image to view full size</p>
                 </section>
                 ` : ''}
 
                 <footer class="text-center mt-4">
-                    <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
-                    <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
                             <i class="fa fa-print"></i> Print & Download
                         </a>
@@ -1788,8 +1796,7 @@ function openPrintPages(card) {
                         </table>
                     </div>
 
-                    <p class="text-danger mt-4"><strong>NOTE:</strong> All prices including VAT</p>
-                    ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
+                                        ${applicantNotes ? `<div style="margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;"><p style="font-size:0.8rem;font-weight:700;color:#0f766e;margin-bottom:4px;">&#128172; Applicant Notes</p><p style="font-size:0.9rem;margin:0;white-space:pre-wrap;color:#1f2937;">${applicantNotes}</p></div>` : ''}
 
                     <div class="card-stamp">
                         <img class="stamp-image" src="${stampImage}" alt="Stamp" />
@@ -1799,14 +1806,18 @@ function openPrintPages(card) {
                 ${licenseImage ? `
                 <section class="license-page" style="page-break-before: always; text-align: center; padding-top: 2rem;">
                     <h5 style="margin-bottom: 1rem;"><strong>Garage License — ${garageName}</strong></h5>
-                    <img src="${licenseImage}" alt="Garage License"
+                    <a href="${licenseImage}" target="_blank" class="d-print-none" title="Click to view full size">
+                        <img src="${licenseImage}" alt="Garage License"
+                             style="max-width: 100%; max-height: 85vh; object-fit: contain; border: 1px solid #dee2e6; padding: 4px; cursor: zoom-in;" />
+                    </a>
+                    <img src="${licenseImage}" alt="Garage License" class="d-none d-print-block"
                          style="max-width: 100%; max-height: 85vh; object-fit: contain; border: 1px solid #dee2e6; padding: 4px;" />
+                    <p class="d-print-none" style="font-size: 0.8rem; color: #6c757d;">Click the image to view full size</p>
                 </section>
                 ` : ''}
 
                 <footer class="text-center mt-4">
-                    <p><strong>NOTE:</strong> Price is including 15% VAT.</p>
-                    <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
+                                        <div class="d-flex justify-content-center gap-2 flex-wrap d-print-none">
                         <a href="javascript:window.print()" class="btn btn-light border text-black-50 shadow-none">
                             <i class="fa fa-print"></i> Print & Download
                         </a>
