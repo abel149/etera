@@ -277,6 +277,7 @@
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-license-image="{{ $application->applicationBy->license_image ? asset('storage/' . $application->applicationBy->license_image) : '' }}"
+                         data-bank-account="{{ $application->applicationBy->bankAccounts->first()?->bank_name }} {{ $application->applicationBy->bankAccounts->first()?->account_number }}"
                          data-notes='@json($application->notes ?? '')'
                          data-application-date="{{ $application->created_at?->format('F j, Y') }}"
                          data-amount="{{ $application->amount ?? 0 }}"
@@ -405,6 +406,7 @@
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-license-image="{{ $application->applicationBy->license_image ? asset('storage/' . $application->applicationBy->license_image) : '' }}"
+                         data-bank-account="{{ $application->applicationBy->bankAccounts->first()?->bank_name }} {{ $application->applicationBy->bankAccounts->first()?->account_number }}"
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-amount-is-encrypted="{{ $application->amount_is_encrypted && $application->encrypted_amount ? '1' : '0' }}"
@@ -618,6 +620,7 @@
                          data-phone="{{ $application->applicationBy->phone_number ?? 'N/A' }}"
                          data-stamp-image="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                          data-license-image="{{ $application->applicationBy->license_image ? asset('storage/' . $application->applicationBy->license_image) : '' }}"
+                         data-bank-account="{{ $application->applicationBy->bankAccounts->first()?->bank_name }} {{ $application->applicationBy->bankAccounts->first()?->account_number }}"
                          data-vat-rate="15"
                          data-amount="{{ $application->amount ?? 0 }}"
                          data-encrypted-amount="{{ $application->encrypted_amount ?? '' }}"
@@ -1338,6 +1341,7 @@ function openPrintPage(card) {
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
     const licenseImage = card.dataset.licenseImage || "";
+    const bankAccount = (card.dataset.bankAccount || "").trim();
     const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const garageAmount = parseFloat(card.dataset.amount) || 0;
     const isDualService = {{ $proforma->isShopGarageInsurance() ? 'true' : 'false' }};
@@ -1490,6 +1494,7 @@ function openPrintPage(card) {
                             <p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
                             <p class="mb-1"><strong>Shop Name:</strong> ${shopName}</p>
                             <p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
+                            ${bankAccount ? `<p class="mb-1"><strong>Bank Account:</strong> ${bankAccount}</p>` : ''}
                             <p class="mb-1"><strong>Location:</strong> ${location}</p>
                             <p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
                         </div>
@@ -1609,6 +1614,7 @@ function openPrintPages(card) {
     const phoneNumber = card.dataset.phone || "N/A";
     const stampImage = card.dataset.stampImage || "{{ asset('assets/images/stamp.png') }}";
     const licenseImage = card.dataset.licenseImage || "";
+    const bankAccount = (card.dataset.bankAccount || "").trim();
     const vatRate = parseFloat(card.dataset.vatRate) || 15;
     const amount = parseFloat(card.dataset.amount) || 0;
     const applicantNotes = card.dataset.notes || "";
@@ -1741,6 +1747,7 @@ function openPrintPages(card) {
                             <p class="mb-1"><strong>Store ID:</strong> ${storeId}</p>
                             <p class="mb-1"><strong>Garage Name:</strong> ${garageName}</p>
                             <p class="mb-1"><strong>Tin #:</strong> ${tinNumber}</p>
+                            ${bankAccount ? `<p class="mb-1"><strong>Bank Account:</strong> ${bankAccount}</p>` : ''}
                             <p class="mb-1"><strong>Location:</strong> ${location}</p>
                             <p class="mb-1"><strong>Phone:</strong> ${phoneNumber}</p>
                         </div>
