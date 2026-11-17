@@ -5,6 +5,30 @@
 @section('content')
 
     <style type="text/css">
+        /* ---- Print: keep page as-is, hide app chrome ---- */
+        @media print {
+            .sp-header, .sp-footer, .sp-commission-banner,
+            .no-print, .alert, .toast-container,
+            #partImageGalleryModal, .modal, .modal-backdrop,
+            .apply-now-button, .btn-outline-primary { display: none !important; }
+
+            .sp-content-wrapper, .sp-main-content,
+            .proforma-page, .container-fluid { max-width: 100% !important; padding: 0 !important; }
+            body { background: #fff !important; }
+
+            .table-container { overflow: visible !important; white-space: normal !important; }
+            .basic-table { min-width: 0 !important; }
+
+            input, select, textarea {
+                border: 1px solid #999 !important;
+                background: #fff !important;
+                color: #000 !important;
+            }
+
+            a { color: #000 !important; text-decoration: none !important; }
+            * { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+        }
+
         .player audio {
             width: 100%;
             border-radius: 6px;
@@ -445,6 +469,12 @@
             || ($isDualServiceProforma && auth()->user()->shop_garage == 1)
         );
     @endphp
+
+    <div class="no-print" style="text-align: center; margin-bottom: 10px;">
+        <button type="button" class="btn btn-primary" onclick="window.print()">
+            <i class="bx bx-printer"></i> Print / Save as PDF
+        </button>
+    </div>
 
     @if(isset($proforma->images) && count($proforma->images) > 0)
         @php
