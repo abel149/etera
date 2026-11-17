@@ -526,6 +526,94 @@ class Proforma extends Model implements HasMedia
         return false;
     }
 
+    /**
+     * Why $user can NOT apply right now, or null if they can.
+     * Inboxed (partner/admin) users and active partial-group shops keep their reserved slot;
+     * public users only get slots that are neither filled nor reserved for an inbox.
+     */
+    public function applicationBlockReason(User $user): ?string
+    {
+        if (!in_array($this->status, ['pending', 'published', 'opened'], true)) {
+            return 'This proforma is no longer accepting applications.';
+        }
+
+        if ($this->isEteraCheretaMode()) {
+            return $this->isTimerExpired() ? 'The bidding time for this proforma has ended.' : null;
+        }
+
+        $isDual = $this->isShopGarageInsurance();
+        $asShop = $user->role === 'shop' || ($isDual && $user->role === 'garage' && $user->shop_garage == 1);
+
+        if ($isDual && $user->shop_garage != 1) {
+            return 'This proforma is only available to dual-service providers.';
+        }
+
+        $required = (int) ($asShop ? $this->required_number_of_shops : $this->required_number_of_garages);
+        if (!in_array($user->role, ['shop', 'garage'], true) || $required <= 0) {
+            return 'This proforma is not open to your account type.';
+        }
+
+        $fullMessage = 'All open slots for this proforma are filled. The remaining slots are reserved for invited partners.';
+
+        if (Partial::where('proforma_id', $this->id)->where('user_id', $user->id)->where('active', true)->exists()) {
+            return null;
+        }
+
+        // Inbox rows are removed as soon as their slot is used, so an existing inbox = a reserved slot.
+        if ($this->inboxes()->where('user_id', $user->id)->whereIn('source', ['insurance', 'admin'])->exists()) {
+            return null;
+        }
+
+        // Group-based shop proformas: a public shop needs an empty, unreserved group.
+        if ($asShop && !$isDual) {
+            return (new \App\Services\ProformaGroupService())->autoAssignGroup($this) === null ? $fullMessage : null;
+        }
+
+        // Dual-service (as shop) and garages: count used slots plus slots still reserved by inboxes.
+        $from = $asShop ? 'shop' : 'garage';
+        $applied = $this->applications()->where('from', $from)->count();
+
+        $pending = $this->inboxes()
+            ->whereIn('source', ['insurance', 'admin'])
+            ->whereHas('user', fn ($q) => $asShop
+                ? $q->where(fn ($q1) => $q1->where('role', 'shop')
+                    ->orWhere(fn ($q2) => $q2->where('role', 'garage')->where('shop_garage', 1)))
+                : $q->where('role', 'garage'))
+            ->get(['source', 'inbox_group']);
+
+        $reserved = $pending->where('source', 'insurance')->whereNotNull('inbox_group')->pluck('inbox_group')->unique()->count()
+            + $pending->where('source', 'admin')->count();
+
+        if ($pending->where('source', 'insurance')->whereNull('inbox_group')->isNotEmpty()) {
+            $quota = $asShop ? $this->shopPartnerQuota() : $this->garagePartnerQuota();
+            $partnerApplied = $this->applications()->where('from', $from)->where('application_source', 'partner')->count();
+            $reserved += max(1, $quota - $partnerApplied);
+        }
+
+        return ($required - $applied - $reserved) > 0 ? null : $fullMessage;
+    }
+
+    /** Proformas list URL for an applicant (used for graceful "go back" redirects). */
+    public static function applicantListUrl(?User $user): string
+    {
+        return $user?->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
+    }
+
+    /**
+     * Details-page guard: redirect shops/garages who can no longer apply back to their list.
+     * Users who already applied may still open the page to view their submission.
+     */
+    public function detailsRedirectFor(?User $user): ?\Illuminate\Http\RedirectResponse
+    {
+        if (!$user || !in_array($user->role, ['shop', 'garage'], true) || $this->userAlreadyApplied($user->id)) {
+            return null;
+        }
+
+        $reason = $this->applicationBlockReason($user);
+
+        return $reason ? redirect(self::applicantListUrl($user))->with('error', $reason) : null;
+    }
+
     public function numberOfInboxesSentToShops()
     {
         $count = 0;

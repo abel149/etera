@@ -765,8 +765,6 @@ Route::get('/application/{application}/file/encrypted', function (\App\Models\Pr
 
 // ─────────────────────────────────────────────────────────────────────────────
 
-
-
 Route::get('/', function () {
     if (Auth::check()) {
         $user = Auth::user();
@@ -841,38 +839,6 @@ Route::get('/received-details', function (Request $request) {
 
 // Login route is now handled in the guest middleware group above
 // Profile routes are now handled in the auth.user middleware group above
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 // Update Profile Route
 Route::put('/profile/update', function (Request $request) {
     $user = Auth::user();
@@ -4005,6 +3971,9 @@ Route::get('proforma-details', function (Request $request) {
     if (!$proforma) {
         return redirect()->back();
     }
+    if ($blocked = $proforma->detailsRedirectFor(auth()->user())) {
+        return $blocked;
+    }
 
     $assignedGroup   = null;
     $lockedParts     = collect();
@@ -4114,6 +4083,9 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
             if (! $proforma) {
                 return redirect()->back();
             }
+            if ($blocked = $proforma->detailsRedirectFor(auth()->user())) {
+                return $blocked;
+            }
 
             return view('spare-part.details', compact('proforma'));
         })->name('garage.proforma-details');
@@ -4146,151 +4118,161 @@ Route::post('/proforma/{proforma}/request-close', function ($proformaId) {
                     ->withInput();
             }
 
-            // Guard: prevent duplicate applications from the same user (concurrent session safety)
-            $alreadyApplied = \App\Models\ProformaApplication::where('proforma_id', $proforma->id)
-                ->where('application_by', auth()->id())
-                ->exists();
-            if ($alreadyApplied) {
-                return redirect('/garage/proformas')
-                    ->with('error', 'You have already applied to this proforma.');
-            }
+            // Lock the proforma row so concurrent garages can't overfill slots or apply after closing
+            return DB::transaction(function () use ($request, $proforma, $isEncrypted, $hasPdf) {
+                $proforma = Proforma::whereKey($proforma->id)->lockForUpdate()->firstOrFail();
 
-            $discount     = $request->discount ?? 0;
-            $finalAmount  = 0;
-
-            if (!$isEncrypted && !$hasPdf) {
-                $initialPrice = $request->amount;
-                $finalAmount  = $initialPrice - ($initialPrice * $discount / 100);
-                $finalAmount  = max($finalAmount, 1);
-            }
-
-            // Detect inbox source AND group BEFORE deleting inbox
-            $ownInbox           = $proforma->inboxes()->where('user_id', auth()->id())->first();
-            $isInsuranceInboxed = $ownInbox && $ownInbox->source === 'insurance';
-            $isAdminInboxed     = $ownInbox && $ownInbox->source === 'admin';
-            $inboxGroup         = $ownInbox?->inbox_group;
-
-            $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
-
-            $appData = [
-                'application_by'    => auth()->id(),
-                'from'              => 'garage',
-                'amount'            => $finalAmount,
-                'discount'          => $isEncrypted ? 0 : $discount,
-                'notes'             => $request->filled('notes') ? trim($request->notes) : null,
-                'application_source'=> $applicationSource,
-                'inbox_group'       => $inboxGroup,
-                'expiry_date'       => $request->filled('expiry_date') ? $request->expiry_date : null,
-            ];
-            if ($isEncrypted && $request->filled('encrypted_amount')) {
-                $appData['encrypted_amount']   = $request->encrypted_amount;
-                $appData['amount_is_encrypted'] = true;
-            }
-            $application = $proforma->applications()->create($appData);
-
-            // ── PDF / image quotation storage ──────────────────────────────────
-            if ($hasPdf) {
-                try {
-                    $originalFilename = $request->pdf_filename ?? 'quotation.pdf';
-                    $ext = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) ?: 'pdf';
-
-                    if ($request->filled('encrypted_pdf')) {
-                        $encBytes = base64_decode($request->encrypted_pdf);
-                        $filename = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.enc';
-                        Storage::disk('local')->put('application-files/' . $filename, $encBytes);
-                        \App\Models\ApplicationPdf::create([
-                            'application_id'    => $application->id,
-                            'storage_type'      => 'encrypted',
-                            'file_path'         => 'application-files/' . $filename,
-                            'encrypted_aes_key' => $request->encrypted_aes_key,
-                            'aes_iv'            => $request->aes_iv,
-                            'original_filename' => $originalFilename,
-                        ]);
-                    } elseif ($request->filled('pdf_data')) {
-                        $fileBytes = base64_decode($request->pdf_data);
-                        $filename  = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.' . $ext;
-                        Storage::disk('local')->put('application-files/' . $filename, $fileBytes);
-                        \App\Models\ApplicationPdf::create([
-                            'application_id'    => $application->id,
-                            'storage_type'      => 'plain',
-                            'file_path'         => 'application-files/' . $filename,
-                            'original_filename' => $originalFilename,
-                        ]);
-                    }
-                } catch (\Exception $e) {
-                    Log::error('Failed to store garage application file: ' . $e->getMessage());
+                // Guard: prevent duplicate applications from the same user (concurrent session safety)
+                $alreadyApplied = \App\Models\ProformaApplication::where('proforma_id', $proforma->id)
+                    ->where('application_by', auth()->id())
+                    ->exists();
+                if ($alreadyApplied) {
+                    return redirect('/garage/proformas')
+                        ->with('error', 'You have already applied to this proforma.');
                 }
-            }
 
-            // ── Inbox cleanup ─────────────────────────────────────────────────
-            // Remove own inbox record
-            \App\Models\Inbox::where('user_id', auth()->id())
-                ->where('proforma_id', $proforma->id)
-                ->delete();
+                // Closed, or remaining slots filled / reserved for inboxed partners → back to the list
+                if ($blockReason = $proforma->applicationBlockReason(auth()->user())) {
+                    return redirect('/garage/proformas')->with('error', $blockReason);
+                }
 
-            // Chereta: wipe all garage inbox siblings in the same group (per-group cleanup)
-            if ($isInsuranceInboxed) {
-                $garageUserIds = \App\Models\User::where('role', 'garage')->pluck('id');
+                $discount     = $request->discount ?? 0;
+                $finalAmount  = 0;
 
-                if ($inboxGroup !== null) {
-                    // Per-group chereta: wipe all others in the same inbox_group
-                    $proforma->inboxes()
-                        ->where('source', 'insurance')
-                        ->where('inbox_group', $inboxGroup)
-                        ->whereIn('user_id', $garageUserIds)
-                        ->delete();
-                } else {
-                    // Legacy (no inbox_group): quota-based cleanup
-                    $garagePartnerApplied = $proforma->applications()
-                        ->where('from', 'garage')
-                        ->where('application_source', 'partner')
-                        ->count();
-                    $garageQuota = (int) ($proforma->insurance_garage_quota ?? 1);
-                    if ($garagePartnerApplied >= $garageQuota) {
+                if (!$isEncrypted && !$hasPdf) {
+                    $initialPrice = $request->amount;
+                    $finalAmount  = $initialPrice - ($initialPrice * $discount / 100);
+                    $finalAmount  = max($finalAmount, 1);
+                }
+
+                // Detect inbox source AND group BEFORE deleting inbox
+                $ownInbox           = $proforma->inboxes()->where('user_id', auth()->id())->first();
+                $isInsuranceInboxed = $ownInbox && $ownInbox->source === 'insurance';
+                $isAdminInboxed     = $ownInbox && $ownInbox->source === 'admin';
+                $inboxGroup         = $ownInbox?->inbox_group;
+
+                $applicationSource = $isInsuranceInboxed ? 'partner' : ($isAdminInboxed ? 'admin' : 'public');
+
+                $appData = [
+                    'application_by'    => auth()->id(),
+                    'from'              => 'garage',
+                    'amount'            => $finalAmount,
+                    'discount'          => $isEncrypted ? 0 : $discount,
+                    'notes'             => $request->filled('notes') ? trim($request->notes) : null,
+                    'application_source'=> $applicationSource,
+                    'inbox_group'       => $inboxGroup,
+                    'expiry_date'       => $request->filled('expiry_date') ? $request->expiry_date : null,
+                ];
+                if ($isEncrypted && $request->filled('encrypted_amount')) {
+                    $appData['encrypted_amount']   = $request->encrypted_amount;
+                    $appData['amount_is_encrypted'] = true;
+                }
+                $application = $proforma->applications()->create($appData);
+
+                // ── PDF / image quotation storage ──────────────────────────────────
+                if ($hasPdf) {
+                    try {
+                        $originalFilename = $request->pdf_filename ?? 'quotation.pdf';
+                        $ext = strtolower(pathinfo($originalFilename, PATHINFO_EXTENSION)) ?: 'pdf';
+
+                        if ($request->filled('encrypted_pdf')) {
+                            $encBytes = base64_decode($request->encrypted_pdf);
+                            $filename = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.enc';
+                            Storage::disk('local')->put('application-files/' . $filename, $encBytes);
+                            \App\Models\ApplicationPdf::create([
+                                'application_id'    => $application->id,
+                                'storage_type'      => 'encrypted',
+                                'file_path'         => 'application-files/' . $filename,
+                                'encrypted_aes_key' => $request->encrypted_aes_key,
+                                'aes_iv'            => $request->aes_iv,
+                                'original_filename' => $originalFilename,
+                            ]);
+                        } elseif ($request->filled('pdf_data')) {
+                            $fileBytes = base64_decode($request->pdf_data);
+                            $filename  = $application->id . '_' . \Illuminate\Support\Str::uuid() . '.' . $ext;
+                            Storage::disk('local')->put('application-files/' . $filename, $fileBytes);
+                            \App\Models\ApplicationPdf::create([
+                                'application_id'    => $application->id,
+                                'storage_type'      => 'plain',
+                                'file_path'         => 'application-files/' . $filename,
+                                'original_filename' => $originalFilename,
+                            ]);
+                        }
+                    } catch (\Exception $e) {
+                        Log::error('Failed to store garage application file: ' . $e->getMessage());
+                    }
+                }
+
+                // ── Inbox cleanup ─────────────────────────────────────────────────
+                // Remove own inbox record
+                \App\Models\Inbox::where('user_id', auth()->id())
+                    ->where('proforma_id', $proforma->id)
+                    ->delete();
+
+                // Chereta: wipe all garage inbox siblings in the same group (per-group cleanup)
+                if ($isInsuranceInboxed) {
+                    $garageUserIds = \App\Models\User::where('role', 'garage')->pluck('id');
+
+                    if ($inboxGroup !== null) {
+                        // Per-group chereta: wipe all others in the same inbox_group
                         $proforma->inboxes()
                             ->where('source', 'insurance')
-                            ->whereNull('inbox_group')
+                            ->where('inbox_group', $inboxGroup)
                             ->whereIn('user_id', $garageUserIds)
                             ->delete();
+                    } else {
+                        // Legacy (no inbox_group): quota-based cleanup
+                        $garagePartnerApplied = $proforma->applications()
+                            ->where('from', 'garage')
+                            ->where('application_source', 'partner')
+                            ->count();
+                        $garageQuota = (int) ($proforma->insurance_garage_quota ?? 1);
+                        if ($garagePartnerApplied >= $garageQuota) {
+                            $proforma->inboxes()
+                                ->where('source', 'insurance')
+                                ->whereNull('inbox_group')
+                                ->whereIn('user_id', $garageUserIds)
+                                ->delete();
+                        }
                     }
                 }
-            }
 
-            // ── Proforma closure check ────────────────────────────────────────
-            $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
-            $shopApplicationsCount   = $proforma->applications()->where('from', 'shop')->count();
-            $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
-            $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
+                // ── Proforma closure check ────────────────────────────────────────
+                $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
+                $shopApplicationsCount   = $proforma->applications()->where('from', 'shop')->count();
+                $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
+                $requiredShops   = (int) ($proforma->required_number_of_shops ?? 0);
 
-            $isEteraChereta       = ($requiredGarages + $requiredShops) === 0;
-            $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
-            $shopRequirementMet   = $requiredShops   === 0 || $shopApplicationsCount   >= $requiredShops;
+                $isEteraChereta       = ($requiredGarages + $requiredShops) === 0;
+                $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
+                $shopRequirementMet   = $requiredShops   === 0 || $shopApplicationsCount   >= $requiredShops;
 
-            if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet && ($requiredGarages > 0 || $requiredShops > 0)) {
-                $proforma->update(['status' => 'closed']);
-                $proforma->inboxes()->delete();
-            }
-
-            // ── Notify poster via Telegram (best-effort — must not crash the apply flow) ──
-            try {
-                if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
-                    $telegram = new \App\Services\TelegramService();
-                    $telegram->sendApplicationReceivedNotification(
-                        $proforma->poster->telegram_chat_id,
-                        $proforma,
-                        auth()->user()->role
-                    );
+                if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet && ($requiredGarages > 0 || $requiredShops > 0)) {
+                    $proforma->update(['status' => 'closed']);
+                    $proforma->inboxes()->delete();
                 }
-            } catch (\Throwable $e) {
-                \Illuminate\Support\Facades\Log::warning('Garage application notification failed', [
-                    'proforma_id' => $proforma->id,
-                    'user_id'     => auth()->id(),
-                    'error'       => $e->getMessage(),
-                ]);
-            }
 
-            return redirect('/garage/proformas')
-                ->with('success', 'Price quote submitted successfully!');
+                // ── Notify poster via Telegram (best-effort — must not crash the apply flow) ──
+                try {
+                    if ($proforma->poster && !empty($proforma->poster->telegram_chat_id)) {
+                        $telegram = new \App\Services\TelegramService();
+                        $telegram->sendApplicationReceivedNotification(
+                            $proforma->poster->telegram_chat_id,
+                            $proforma,
+                            auth()->user()->role
+                        );
+                    }
+                } catch (\Throwable $e) {
+                    \Illuminate\Support\Facades\Log::warning('Garage application notification failed', [
+                        'proforma_id' => $proforma->id,
+                        'user_id'     => auth()->id(),
+                        'error'       => $e->getMessage(),
+                    ]);
+                }
+
+                return redirect('/garage/proformas')
+                    ->with('success', 'Price quote submitted successfully!');
+            });
         })->name('garage.proforma.apply');
 
 // Located inside the Route::prefix('garage') group
@@ -4683,6 +4665,9 @@ Route::prefix('spare-part-shops')
             if (! $proforma) {
                 return redirect()->back();
             }
+            if ($blocked = $proforma->detailsRedirectFor(auth()->user())) {
+                return $blocked;
+            }
 
             $assignedGroup  = null;
             $lockedParts    = collect();
@@ -4771,58 +4756,6 @@ Route::prefix('spare-part-shops')
 
             return view('spare-part.details', compact('proforma', 'assignedGroup', 'lockedParts', 'lockedDataByPartId', 'applicationMode'));
         })->name('proforma-details.2');
-
-Route::post('apply/{proforma}', function (
-    Request $request,
-    Proforma $proforma
-) {
-    $request->validate([
-        'amount' => 'required|numeric|min:1',
-    ]);
-
-    // Guard: prevent duplicate applications from the same user (concurrent session safety)
-    // Exception: if the user has an active Partial record, they may apply to a different group.
-    $alreadyApplied = \App\Models\ProformaApplication::where('proforma_id', $proforma->id)
-        ->where('application_by', auth()->id())
-        ->exists();
-    $hasActivePartial = \App\Models\Partial::where('proforma_id', $proforma->id)
-        ->where('user_id', auth()->id())
-        ->where('active', true)
-        ->exists();
-    if ($alreadyApplied && !$hasActivePartial) {
-        return redirect('/spare-part-shops/proformas')
-            ->with('error', 'You have already applied to this proforma.');
-    }
-
-    $application = $proforma->applications()->create([
-        'application_by' => auth()->check()
-            ? Auth::id()
-            : \App\Models\User::Where('role', 'shop')->first()->id,
-        'from' => 'shop',
-        'amount' => $request->amount,
-    ]);
-
-    // Check if proforma should be closed (both garage and shop requirements met)
-    $garageApplicationsCount = $proforma->applications()->where('from', 'garage')->count();
-    $shopApplicationsCount = $proforma->applications()->where('from', 'shop')->count();
-    $requiredGarages = (int) ($proforma->required_number_of_garages ?? 0);
-    $requiredShops = (int) ($proforma->required_number_of_shops ?? 0);
-    
-    // Check if BOTH garage and shop requirements are met and not an Etera-Chereta (0,0) proforma
-    $isEteraChereta = ($requiredGarages + $requiredShops) === 0;
-    $garageRequirementMet = $requiredGarages === 0 || $garageApplicationsCount >= $requiredGarages;
-    $shopRequirementMet = $requiredShops === 0 || $shopApplicationsCount >= $requiredShops;
-    
-    if (!$isEteraChereta && $garageRequirementMet && $shopRequirementMet && ($requiredGarages > 0 || $requiredShops > 0)) {
-        if ($proforma->selected()) {
-            $proforma->update(['status' => 'closed']);
-        } 
-        $proforma->save();
-    }
-
-    return redirect('/spare-part-shops/proformas')
-        ->with('success', 'Application submitted successfully');
-});
 
         Route::get('/profile', function () {
             return view('spare-part.profile');

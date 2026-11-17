@@ -79,6 +79,11 @@ class ProformaApplicationController extends Controller
                         ->with('error', 'This proforma is only available to dual-service providers.');
                 }
 
+                // Remaining slots filled or reserved for inboxed partners → back to the list
+                if ($blockReason = $proforma->applicationBlockReason(auth()->user())) {
+                    return redirect(Proforma::applicantListUrl(auth()->user()))->with('error', $blockReason);
+                }
+
                 // Step 1b: Logging
                 Log::info('Price quote submission: started', [
                     'proforma_id' => $proforma->id ?? null,
@@ -285,7 +290,7 @@ class ProformaApplicationController extends Controller
                             }
 
                             if ($inboxGroup === null) {
-                                return redirect()->back()->with('error', 'All available slots are currently being filled. You may receive a notification if additional pricing is needed.');
+                                return redirect('/spare-part-shops/proformas')->with('error', 'All available slots are currently being filled. You may receive a notification if additional pricing is needed.');
                             }
                         }
                     }
