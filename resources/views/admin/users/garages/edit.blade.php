@@ -240,6 +240,8 @@
                         <span class="text-danger">{{ $message }}</span>
                     @enderror
 
+                    @include('partials.bank-account-fields', ['bankAccount' => \App\Models\BankAccount::primaryFor($garage)])
+
                     {{-- <div class="col-md-6">
                         <label for="input6" class="form-label">Business License Proc. Number</label>
                         <input name="business_license_number" type="text" class="form-control" id="input6" placeholder="Proclamation Number" value="{{ old('business_license_number', $garage->business_license_number) }}">

@@ -278,6 +278,8 @@
                     <span class="text-danger">{{ $message }}</span>
                     @enderror
 
+                    @include('partials.bank-account-fields', ['bankAccount' => \App\Models\BankAccount::primaryFor($shop)])
+
                     <div class="col-md-6">
                         <label class="form-label d-flex justify-content-between align-items-center">
                             <span>Car Brands To Serve</span>

@@ -97,6 +97,8 @@ class GarageController extends Controller
 
     public function update(Request $request, $id)
 {
+    $garage = User::findOrFail($id);
+
     $request->validate([
         'name' => 'required|string|max:255',
         'phone_number' => 'required|string|max:255',
@@ -107,9 +109,7 @@ class GarageController extends Controller
         'email' => 'nullable|email|max:255',
         'license_image' => 'nullable|file|image',
         'stamp_image' => 'nullable|file|image',
-    ]);
-
-    $garage = User::findOrFail($id);
+    ] + BankAccount::optionalRules(BankAccount::primaryFor($garage)?->bank_name));
 
     $data = $request->only([
         'name', 'phone_number', 'tin_number', 'location',
@@ -164,7 +164,10 @@ class GarageController extends Controller
         $data['shop_garage'] = $request->has('shop_garage') ? 1 : 0;
     }
 
-    $garage->update($data);
+    DB::transaction(function () use ($garage, $data, $request) {
+        $garage->update($data);
+        BankAccount::syncFromRequest($garage, $request);
+    });
 
     if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
         return redirect()->to('/admin/garages')->with('success', 'Garage updated successfully');

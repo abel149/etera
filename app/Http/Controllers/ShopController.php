@@ -294,6 +294,9 @@ public function edit(string $id)
 
 
         
+        // Find the shop to update
+        $shop = User::findOrFail($id);
+
         $request->validate([
             'name' => 'required',
             'email' => 'nullable|email|unique:users,email,' . $id,
@@ -304,12 +307,7 @@ public function edit(string $id)
             'tin_number' => 'nullable|unique:users,tin_number,' . $id,
             'brands' => 'required',
             'brands.*' => 'required|exists:brands,id', // Ensure the brand exists
-
-
-        ]);
-    
-        // Find the shop to update
-        $shop = User::findOrFail($id);
+        ] + BankAccount::optionalRules(BankAccount::primaryFor($shop)?->bank_name));
     
     
         // Handle license image - FilePond async upload, direct file, or removal
@@ -366,17 +364,21 @@ public function edit(string $id)
         $shop->shop_garage = $request->has('shop_garage') ? 1 : 0;
 
 
-        // Save the updated shop
-        $shop->save();
-    
-        // Remove existing brands and add new ones
-        BrandUser::where('user_id', $id)->delete();
-        foreach ($request->brands as $brand) {
-            BrandUser::create([
-                'brand_id' => $brand,
-                'user_id' => $shop->id,
-            ]);
-        }
+        // Save the shop, its brands and bank account atomically
+        DB::transaction(function () use ($shop, $request, $id) {
+            $shop->save();
+
+            // Remove existing brands and add new ones
+            BrandUser::where('user_id', $id)->delete();
+            foreach ($request->brands as $brand) {
+                BrandUser::create([
+                    'brand_id' => $brand,
+                    'user_id' => $shop->id,
+                ]);
+            }
+
+            BankAccount::syncFromRequest($shop, $request);
+        });
     
         // Redirect based on the user role
         if (in_array(auth()->user()->role, ['admin', 'superadmin'])) {
