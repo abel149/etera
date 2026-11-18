@@ -4,7 +4,9 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\BrandUser;
+use App\Models\BankAccount;
 use App\Models\User;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage; // Correct import for Storage
 use Illuminate\Support\Facades\Auth;
 
@@ -50,7 +52,7 @@ public function store(Request $request)
 
         'dealers' => 'nullable|boolean',
         'shop_garage' => 'nullable|boolean',
-    ]);
+    ] + BankAccount::optionalRules());
 
     // Default password handling
     $password = $request->password ?? '123456';
@@ -69,30 +71,36 @@ public function store(Request $request)
     $licenseImagePath = $request->hasFile('license_image') ? $request->file('license_image')->store('public/licenses') : null;
     $stampImagePath = $request->hasFile('stamp_image') ? $request->file('stamp_image')->store('public/stamps') : null;
 
-    // Create the shop user
-    $user = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'phone_number' => $request->phone_number,
-        'password' => bcrypt($password),
-        'location' => $request->location,
-        'role' => 'shop',
-        'tin_number' => $request->tin_number,
-        'registered_by' => auth()->user()->id,
-        'license_image' => $licenseImagePath,
-        'stamp_image' => $stampImagePath,
-        'store_id' => $newStoreId,
-        'dealers' => $request->has('dealers') ? 1 : 0,
-        'shop_garage' => $request->has('shop_garage') ? 1 : 0,
-    ]);
-
-    // Attach brands
-    foreach ($request->brands as $brand) {
-        BrandUser::create([
-            'brand_id' => $brand,
-            'user_id' => $user->id,
+    // Create the shop user, its brands and optional bank account atomically
+    $user = DB::transaction(function () use ($request, $password, $licenseImagePath, $stampImagePath, $newStoreId) {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone_number' => $request->phone_number,
+            'password' => bcrypt($password),
+            'location' => $request->location,
+            'role' => 'shop',
+            'tin_number' => $request->tin_number,
+            'registered_by' => auth()->user()->id,
+            'license_image' => $licenseImagePath,
+            'stamp_image' => $stampImagePath,
+            'store_id' => $newStoreId,
+            'dealers' => $request->has('dealers') ? 1 : 0,
+            'shop_garage' => $request->has('shop_garage') ? 1 : 0,
         ]);
-    }
+
+        // Attach brands
+        foreach ($request->brands as $brand) {
+            BrandUser::create([
+                'brand_id' => $brand,
+                'user_id' => $user->id,
+            ]);
+        }
+
+        BankAccount::createFromRequest($user, $request);
+
+        return $user;
+    });
 
     // Redirect based on role
     if (auth()->user()->role === 'admin') {

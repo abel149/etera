@@ -500,43 +500,9 @@
                         <label>Bank / Payment Provider</label>
                           <select name="bank_name" id="bankSelect" class="form-select @error('bank_name') is-invalid @enderror" required>
         <option value="">Select Your Bank or Telebirr</option>
-
-<!-- State-Owned Banks -->
-<option value="Commercial Bank of Ethiopia">Commercial Bank of Ethiopia (CBE)</option>
-<option value="Development Bank of Ethiopia">Development Bank of Ethiopia (DBE)</option>
-
-<!-- Private Banks -->
-<option value="Awash Bank">Awash Bank</option>
-<option value="Dashen Bank">Dashen Bank</option>
-<option value="Bank of Abyssinia">Bank of Abyssinia</option>
-<option value="Wegagen Bank">Wegagen Bank</option>
-<option value="Nib International Bank">Nib International Bank</option>
-<option value="Cooperative Bank of Oromia">Cooperative Bank of Oromia</option>
-<option value="Hibret Bank">Hibret Bank</option>
-<option value="Bunna Bank">Bunna Bank</option>
-<option value="Berhan Bank">Berhan Bank</option>
-<option value="Enat Bank">Enat Bank</option>
-<option value="Lion Bank">Lion Bank</option>
-<option value="Zemen Bank">Zemen Bank</option>
-<option value="Addis International Bank">Addis International Bank</option>
-<option value="Abay Bank">Abay Bank</option>
-<option value="Oromia International Bank">Oromia International Bank</option>
-<option value="Construction and Business Bank">Construction and Business Bank (CBB)</option>
-<option value="Amhara Bank">Amhara Bank</option>
-<option value="Tsehay Bank">Tsehay Bank</option>
-<option value="Ahadu Bank">Ahadu Bank</option>
-<option value="Tsedey Bank">Tsedey Bank</option>
-<option value="Siinqee Bank">Siinqee Bank</option>
-<option value="Gadaa Bank">Gadaa Bank</option>
-<option value="Sidama Bank">Sidama Bank</option>
-<option value="Shabelle Bank">Shabelle Bank</option>
-<option value="ZamZam Bank">ZamZam Bank</option>
-<option value="Hijra Bank">Hijra Bank</option>
-<option value="Debub Global Bank">Debub Global Bank</option>
-<option value="Global Bank Ethiopia">Global Bank Ethiopia</option>
-
-<!-- Mobile Wallet -->
-<option value="Telebirr">Telebirr (Mobile Wallet)</option>
+        @foreach(config('etera.banks', []) as $value => $label)
+            <option value="{{ $value }}" @selected(old('bank_name') === $value)>{{ $label }}</option>
+        @endforeach
 
     </select>
 

@@ -47,6 +47,8 @@
                         @enderror
                     </div>
 
+                    @include('partials.bank-account-fields')
+
                     <!-- Business License Image -->
                     <div class="col-md-6">
                         <label for="license_image_fp" class="form-label">Business License Image</label>

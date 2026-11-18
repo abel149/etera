@@ -12,6 +12,7 @@ use App\Models\Inbox;
 use App\Models\Partial;
 use App\Models\PaidUser;
 use App\Models\BrandUser;
+use App\Models\BankAccount;
 
 class GarageController extends Controller
 {
@@ -30,7 +31,7 @@ class GarageController extends Controller
         'tin_number' => 'required|unique:users,tin_number',
         'license_image' => 'nullable|file|image',
         'stamp_image' => 'nullable|file|image',
-    ]);
+    ] + BankAccount::optionalRules());
 
     // If password is null, default to 123456
     $password = $request->password ?: '123456';
@@ -39,20 +40,25 @@ class GarageController extends Controller
     $licenseImagePath = $request->hasFile('license_image') ? $request->file('license_image')->store('public/licenses') : null;
     $stampImagePath = $request->hasFile('stamp_image') ? $request->file('stamp_image')->store('public/stamps') : null;
 
-    // Create a new user with the additional fields
-    $user = User::create([
-        'name' => $request->name,
-        'email' => $request->email,
-        'phone_number' => $request->phone_number,
-        'password' => bcrypt($password),
-        'role' => 'garage',  // Set role to garage
-        'location' => $request->location,
-        'tin_number' => $request->tin_number,
-        'registered_by' => auth()->user()->id,
-        'license_image' => $licenseImagePath,
-        'stamp_image' => $stampImagePath,
-        'shop_garage' => $request->has('shop_garage') ? 1 : 0,
-    ]);
+    // Create a new user with the additional fields (+ optional bank account) atomically
+    $user = DB::transaction(function () use ($request, $password, $licenseImagePath, $stampImagePath) {
+        $user = User::create([
+            'name' => $request->name,
+            'email' => $request->email,
+            'phone_number' => $request->phone_number,
+            'password' => bcrypt($password),
+            'role' => 'garage',  // Set role to garage
+            'location' => $request->location,
+            'tin_number' => $request->tin_number,
+            'registered_by' => auth()->user()->id,
+            'license_image' => $licenseImagePath,
+            'stamp_image' => $stampImagePath,
+            'shop_garage' => $request->has('shop_garage') ? 1 : 0,
+        ]);
+        BankAccount::createFromRequest($user, $request);
+
+        return $user;
+    });
 
     // Redirect based on user role
     if (auth()->user()->role === 'admin') {

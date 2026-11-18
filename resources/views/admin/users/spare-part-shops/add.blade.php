@@ -47,6 +47,9 @@
                             <span class="text-danger">{{ $message }}</span>
                         @enderror
                     </div>
+
+                    @include('partials.bank-account-fields')
+
                     <!-- BRANDS -->
                     <div class="col-md-6">
                         <label class="form-label d-flex justify-content-between align-items-center">
