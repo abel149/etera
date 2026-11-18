@@ -634,7 +634,8 @@ class ProformaApplicationController extends Controller
                 }
 
                 // Step 9: Redirect with a success message.
-                $redirectUrl = route('role.proformas');
+                // Redirect straight to the list: going via role.proformas is a second redirect that drops the flash message
+                $redirectUrl = Proforma::applicantListUrl(auth()->user());
                 Log::info('Price quote submission: completed', [
                     'proforma_id' => $proforma->id,
                     'application_id' => $application->id,

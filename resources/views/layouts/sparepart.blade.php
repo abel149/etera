@@ -906,6 +906,18 @@
 </div>
 @endif
 
+<!-- Error / Warning / Info Messages -->
+@foreach(['error' => 'danger', 'warning' => 'warning', 'info' => 'info'] as $flashKey => $flashClass)
+	@if(session($flashKey))
+	<div class="px-3 px-md-4 mt-3" style="position: sticky; top: 80px; z-index: 1050;">
+		<div class="alert alert-{{ $flashClass }} alert-dismissible fade show mb-0" role="alert">
+			{{ session($flashKey) }}
+			<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+		</div>
+	</div>
+	@endif
+@endforeach
+
 <!-- Main Content -->
 <div class="sp-main-content">
 	<div class="sp-content-wrapper">
