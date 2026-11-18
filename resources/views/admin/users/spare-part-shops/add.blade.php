@@ -141,6 +141,7 @@
 </div>
 <!-- end page wrapper -->
 
+@include('partials.etera-upload')
 <script>
 $(document).ready(function () {
 
@@ -174,27 +175,8 @@ $(document).ready(function () {
     if (window.FilePondPluginImageTransform) fpPlugins.push(FilePondPluginImageTransform);
     FilePond.registerPlugin(...fpPlugins);
 
-    function reportUploadLog(event, data) {
-        try {
-            fetch('{{ route("client.upload.log") }}', {
-                method: 'POST',
-                keepalive: true,
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify(Object.assign({ event: event, page: location.pathname }, data || {})),
-            });
-        } catch (e) {}
-    }
-
-    // Block submit until FilePond has written the prepared (in-memory) file
-    // into the form, otherwise a fast tap on "Add" could post without it.
-    const pendingPrep = new Set();
-    const syncSubmit = (form) => {
-        const btn = form && form.querySelector('button[type="submit"]');
-        if (btn) btn.disabled = pendingPrep.size > 0;
-    };
-
     document.querySelectorAll('.filepond-upload').forEach(el => {
-        const form = el.closest('form');
+        const inputName = el.name || el.id;
         const pond = FilePond.create(el, {
             allowMultiple: false,
             acceptedFileTypes: ['image/*'],
@@ -215,31 +197,7 @@ $(document).ready(function () {
             imageTransformOutputQuality: 85,
         });
 
-        pond.on('error', (error, file, status) => {
-            reportUploadLog('filepond_error', {
-                input: el.name || el.id,
-                error_main: error && error.main,
-                error_sub: error && error.sub,
-                error_code: error && error.code,
-                file_name: file && file.filename,
-                file_size: file && file.fileSize,
-                file_type: file && file.fileType,
-            });
-        });
-
-        const releasePrep = (file) => {
-            if (!file) return;
-            // FilePond writes the prepared file to the input on the next tick
-            setTimeout(() => { pendingPrep.delete(file.id); syncSubmit(form); }, 50);
-        };
-        pond.on('addfilestart', (file) => {
-            pendingPrep.add(file.id);
-            syncSubmit(form);
-            setTimeout(() => releasePrep(file), 15000);
-        });
-        pond.on('preparefile', (file) => releasePrep(file));
-        pond.on('addfile', (error, file) => { if (error) releasePrep(file); });
-        pond.on('removefile', (...args) => releasePrep(args.find(a => a && a.id)));
+        EteraUpload.attachForm(pond, inputName);
 
         const progressWrap = document.getElementById(el.id + '_progress');
         const bar  = progressWrap && progressWrap.querySelector('.upload-progress-bar');
@@ -262,25 +220,7 @@ $(document).ready(function () {
             }, 40);
         });
 
-        pond.on('addfile', (error, file) => {
-            if (error) {
-                reportUploadLog('addfile_failed', {
-                    input: el.name || el.id,
-                    error_main: error && error.main,
-                    error_sub: error && error.sub,
-                    file_name: file && file.filename,
-                    file_size: file && file.fileSize,
-                    file_type: file && file.fileType,
-                });
-            } else if (file) {
-                reportUploadLog('file_added', {
-                    input: el.name || el.id,
-                    file_name: file.filename,
-                    file_size: file.fileSize,
-                    file_type: file.fileType,
-                    last_modified: file.file && file.file.lastModified,
-                });
-            }
+        pond.on('addfile', (error) => {
             if (!progressWrap) return;
             clearInterval(el._uploadInterval);
             if (error) {

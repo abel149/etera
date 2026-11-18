@@ -104,7 +104,7 @@ class TempController extends Controller
                 fn ($v) => is_scalar($v) ? substr((string) $v, 0, 300) : null,
                 $request->only([
                     'input', 'error_main', 'error_sub', 'error_code', 'file_name',
-                    'file_size', 'file_type', 'last_modified', 'server_id',
+                    'file_size', 'file_type', 'last_modified', 'server_id', 'stage', 'attempt',
                 ])
             ),
         ];

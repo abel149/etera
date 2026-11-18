@@ -363,6 +363,7 @@
     .filepond--image-preview-wrapper { border-radius: 6px !important; overflow: hidden; }
 </style>
 
+@include('partials.etera-upload')
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const fpPlugins = [FilePondPluginImagePreview, FilePondPluginFileValidateType, FilePondPluginFileValidateSize];
@@ -371,86 +372,25 @@ document.addEventListener('DOMContentLoaded', function() {
     if (window.FilePondPluginImageTransform) fpPlugins.push(FilePondPluginImageTransform);
     FilePond.registerPlugin(...fpPlugins);
 
-    function reportUploadLog(event, data) {
-        try {
-            fetch('{{ route("client.upload.log") }}', {
-                method: 'POST',
-                keepalive: true,
-                headers: { 'Content-Type': 'application/json', 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-                body: JSON.stringify(Object.assign({ event: event, page: location.pathname }, data || {})),
-            });
-        } catch (e) {}
-    }
+    const parseUpload = (response) => {
+        const data = JSON.parse(response);
+        if (data.success && data.files && data.files.length > 0) return data.files[0].temp_path;
+        throw new Error('Upload failed.');
+    };
 
-    function attachUploadLogging(pond, input) {
-        pond.on('error', (error, file, status) => {
-            reportUploadLog('filepond_error', {
-                input: input,
-                error_main: error && error.main,
-                error_sub: error && error.sub,
-                error_code: error && error.code,
-                file_name: file && file.filename,
-                file_size: file && file.fileSize,
-                file_type: file && file.fileType,
-            });
-        });
-        pond.on('addfile', (error, file) => {
-            if (error) {
-                reportUploadLog('addfile_failed', {
-                    input: input,
-                    error_main: error && error.main,
-                    error_sub: error && error.sub,
-                    file_name: file && file.filename,
-                });
-            } else if (file) {
-                reportUploadLog('file_added', {
-                    input: input,
-                    file_name: file.filename,
-                    file_size: file.fileSize,
-                    file_type: file.fileType,
-                    last_modified: file.file && file.file.lastModified,
-                });
-            }
-        });
-        pond.on('processfileerror', (file) => {
-            reportUploadLog('process_failed', {
-                input: input,
-                file_name: file && file.filename,
-                file_size: file && file.fileSize,
-                file_type: file && file.fileType,
-                server_id: file && file.serverId,
-            });
-        });
-        pond.on('processfile', (error, file) => {
-            if (error) return;
-            reportUploadLog('process_success', {
-                input: input,
-                file_name: file && file.filename,
-                file_size: file && file.fileSize,
-            });
-        });
-    }
-
-    const serverConfig = {
-        process: {
-            url: '{{ route("upload.part.image") }}',
-            method: 'POST',
-            headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
-            onload: (response) => { const data = JSON.parse(response); if (data.success && data.files && data.files.length > 0) return data.files[0].temp_path; return 'Upload failed.'; },
-            onerror: (response) => { try { return JSON.parse(response).message || 'Upload error.'; } catch(e) { return 'Upload error.'; } },
-        },
+    const serverConfig = (input) => ({
+        process: EteraUpload.processor({ url: @json(route('upload.part.image')), input: input, parse: parseUpload }),
         revert: {
             url: '{{ route("upload.part.image.revert") }}',
             method: 'DELETE',
             headers: { 'X-CSRF-TOKEN': '{{ csrf_token() }}' },
         },
-    };
+    });
 
     const pondOptions = {
         acceptedFileTypes: ['image/png', 'image/jpeg', 'image/jpg'],
         maxFileSize: '10MB',
         maxFiles: 1,
-        server: serverConfig,
         allowRevert: true,
         imagePreviewHeight: 140,
         stylePanelLayout: 'compact',
@@ -467,13 +407,13 @@ document.addEventListener('DOMContentLoaded', function() {
         imageTransformOutputQuality: 85,
     };
 
-    const licensePond = FilePond.create(document.querySelector('.filepond-license'), pondOptions);
-    attachUploadLogging(licensePond, 'license_image');
+    const licensePond = FilePond.create(document.querySelector('.filepond-license'), Object.assign({}, pondOptions, { server: serverConfig('license_image') }));
+    EteraUpload.watch(licensePond, 'license_image');
     licensePond.on('processfile', (error, file) => { if (!error) { document.getElementById('license_image_data').value = file.serverId; document.getElementById('remove_license_image').value = ''; } });
     licensePond.on('removefile', () => { document.getElementById('license_image_data').value = ''; });
 
-    const stampPond = FilePond.create(document.querySelector('.filepond-stamp'), pondOptions);
-    attachUploadLogging(stampPond, 'stamp_image');
+    const stampPond = FilePond.create(document.querySelector('.filepond-stamp'), Object.assign({}, pondOptions, { server: serverConfig('stamp_image') }));
+    EteraUpload.watch(stampPond, 'stamp_image');
     stampPond.on('processfile', (error, file) => { if (!error) { document.getElementById('stamp_image_data').value = file.serverId; document.getElementById('remove_stamp_image').value = ''; } });
     stampPond.on('removefile', () => { document.getElementById('stamp_image_data').value = ''; });
 });
