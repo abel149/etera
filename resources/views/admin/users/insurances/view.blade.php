@@ -47,7 +47,6 @@
 									<div class="">
 										<img src="{{asset('assets/images/avatars/avatar-9.jpg')}}" class="" width="40" height="40" alt="">
 									</div>
-									@endif
 								</td>
 								<td>
 									<div class="d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#insuranceDetailModal{{$insurance->id}}">
