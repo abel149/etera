@@ -70,18 +70,13 @@ class RefreshCsrfToken
     }
 
     /**
-     * Refresh CSRF token if needed
+     * Touch last_activity so the session stays alive.
+     * Do NOT regenerate the CSRF token here — that creates a window where
+     * the client holds a stale token and every Livewire AJAX call returns 419.
+     * Laravel regenerates the token automatically on login/logout.
      */
     protected function refreshCsrfTokenIfNeeded(): void
     {
-        // Update last activity timestamp
         Session::put('last_activity', time());
-
-        // Regenerate CSRF token if it's old (every 30 minutes)
-        $tokenAge = Session::get('csrf_token_age', 0);
-        if ((time() - $tokenAge) > 1800) { // 30 minutes
-            Session::regenerateToken();
-            Session::put('csrf_token_age', time());
-        }
     }
 } 

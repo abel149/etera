@@ -129,7 +129,7 @@ class User extends Authenticatable
     // =====================
     // Role Checking Methods
     // =====================
-    public function isSuperAdmin()         { return $this->role === self::ROLE_SUPERADMIN; }
+    public function isSuperAdmin()         { return $this->role === self::ROLE_SUPERADMIN || $this->is_superadmin == 1; }
     public function isAdmin()              { return $this->role === self::ROLE_ADMIN; }
     public function isAdminOrSuperAdmin()  { return in_array($this->role, [self::ROLE_ADMIN, self::ROLE_SUPERADMIN]); }
     public function isManager()            { return $this->role === self::ROLE_MANAGER; }

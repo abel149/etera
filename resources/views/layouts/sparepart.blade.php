@@ -1003,6 +1003,45 @@
 @livewireScripts
 
 <script>
+// Livewire v3 — silent 419 handler.
+// Without this, Livewire shows a browser confirm() dialog ("This page has expired.")
+// every time a Livewire AJAX request hits a 419 (stale CSRF token).
+// Instead: silently fetch a fresh CSRF token; if the session is truly gone, reload.
+document.addEventListener('livewire:init', function () {
+    Livewire.hook('request', function (ref) {
+        ref.fail(function (ctx) {
+            if (ctx.status === 419) {
+                ctx.preventDefault(); // suppress the native browser dialog
+
+                fetch('/csrf-token', {
+                    method: 'GET',
+                    headers: { 'X-Requested-With': 'XMLHttpRequest' },
+                    credentials: 'same-origin'
+                })
+                .then(function (r) { return r.ok ? r.json() : null; })
+                .then(function (data) {
+                    if (data && data.token) {
+                        // Update the meta tag so subsequent requests use the new token
+                        var meta = document.querySelector('meta[name="csrf-token"]');
+                        if (meta) meta.setAttribute('content', data.token);
+                        document.querySelectorAll('input[name="_token"]').forEach(function (el) {
+                            el.value = data.token;
+                        });
+                        if (window.Livewire && typeof window.Livewire.updateCsrfToken === 'function') {
+                            window.Livewire.updateCsrfToken(data.token);
+                        }
+                    }
+                    // Reload the page to get a fresh Livewire state with the new token
+                    window.location.reload();
+                })
+                .catch(function () { window.location.reload(); });
+            }
+        });
+    });
+});
+</script>
+
+<script>
 	// FilePond initialization
 	document.addEventListener("DOMContentLoaded", function() {
 		const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content') || '';
