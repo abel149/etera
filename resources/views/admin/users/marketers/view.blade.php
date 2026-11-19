@@ -182,6 +182,7 @@
                                         <td>{{$marketer->email}}</td>
                                         <td>{{$marketer->created_at}}</td>
 										<td>
+                                            @if(auth()->user()->is_superadmin)
                                             <!-- Edit Button -->
                                             <a href="{{ route('admin.users.marketers.edit', $marketer->id) }}" class="btn radius-10">
                                                 <i class="bx bx-edit me-0"></i>
@@ -215,6 +216,7 @@
                                                 </div>
                                             </div>
                                             <!-- End Modal for Confirmation -->
+                                            @endif
 
                                         </td>
 

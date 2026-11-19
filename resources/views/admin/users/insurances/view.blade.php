@@ -47,6 +47,7 @@
 									<div class="">
 										<img src="{{asset('assets/images/avatars/avatar-9.jpg')}}" class="" width="40" height="40" alt="">
 									</div>
+									@endif
 								</td>
 								<td>
 									<div class="d-flex align-items-center" data-bs-toggle="modal" data-bs-target="#insuranceDetailModal{{$insurance->id}}">
@@ -60,6 +61,7 @@
 								<td>{{$insurance->created_at}}</td>
 					
 									<td>
+									@if(auth()->user()->is_superadmin)
 									<a href="{{ route('edit-insurance', $insurance->id) }}" class="btn radius-10 ">
 										<i class="bx bx-edit me-0"></i>
 									</a>
@@ -90,6 +92,7 @@
 										</div>
 									</div>
 									<!-- End Modal for Confirmation -->
+								@endif
 
 								</td>
 

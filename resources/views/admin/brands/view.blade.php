@@ -37,7 +37,7 @@
 							<tr>
 								<td>{{$brand->name}}</td>
 								<td class="text-end">
-									
+									@if(auth()->user()->is_superadmin)
 									
 								
 
@@ -59,6 +59,7 @@
 											</a>
 										</button>
 
+									@endif
 
 										
 								</td>

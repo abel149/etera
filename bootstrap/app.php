@@ -54,8 +54,9 @@ return Application::configure(basePath: dirname(__DIR__))
 
         // Route middleware aliases
         $middleware->alias([
-            'auth.user' => \App\Http\Middleware\AuthenticateUser::class,
-            'guest'     => \App\Http\Middleware\RedirectIfAuthenticated::class,
+            'auth.user'  => \App\Http\Middleware\AuthenticateUser::class,
+            'guest'      => \App\Http\Middleware\RedirectIfAuthenticated::class,
+            'superadmin' => \App\Http\Middleware\SuperAdminMiddleware::class,
         ]);
     })
 

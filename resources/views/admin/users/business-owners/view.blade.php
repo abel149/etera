@@ -106,7 +106,6 @@
     @else
         <!-- Default color for valid date -->
         <div class="badge rounded-pill bg-success w-100">{{ $formattedDate }}</div>
-    @endif
 								</td>
 								{{-- <td>
 									<a href="{{ route('admin.users.business-owners.edit', $garage->id) }}" class="btn btn-primary btn-sm radius-10">
@@ -123,6 +122,7 @@
 
 								<!-- Resources/views/admin/business-owner/index.blade.php -->
 <td>
+@if(auth()->user()->is_superadmin)
     <a href="{{ route('admin.business-owners.edit', $garage->id) }}" class="btn btn-sm radius-10">
         <i class="bx bx-edit"></i> 
     </a>
@@ -132,6 +132,7 @@
 <button type="button" class="btn radius-10 text-danger" data-bs-toggle="modal" data-bs-target="#singleDelete{{$garage->id}}">
 	<i class="bx bx-trash me-0"></i>
 </button>
+@endif
 </td>
 
 
@@ -143,6 +144,7 @@
 	
 
 
+@if(auth()->user()->is_superadmin)
 <!-- Modal for Confirmation -->
 <div class="modal fade" id="singleDelete{{$garage->id}}" tabindex="-1" aria-hidden="true">
 	<div class="modal-dialog modal-dialog-centered">
@@ -162,6 +164,7 @@
 		</div>
 	</div>
 </div>
+@endif
 </td>
 
 

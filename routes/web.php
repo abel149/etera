@@ -2174,17 +2174,17 @@ Route::post('/commission-overrides/{proforma}', function (Request $request, Prof
         Route::get('/edit-insurance/{id}', [
             \App\Http\Controllers\InsuranceController::class,
             'edit',
-        ])->name('edit-insurance');
+        ])->middleware('superadmin')->name('edit-insurance');
         
         Route::put('/update-insurance/{id}', [
             \App\Http\Controllers\InsuranceController::class,
             'update',
-        ])->name('update-insurance');
+        ])->middleware('superadmin')->name('update-insurance');
         
         Route::post('/delete-insurance/{id}', [
             \App\Http\Controllers\InsuranceController::class,
             'destroy',
-        ])->name('delete-insurance');
+        ])->middleware('superadmin')->name('delete-insurance');
         
 
 
@@ -2229,32 +2229,32 @@ Route::post('/commission-overrides/{proforma}', function (Request $request, Prof
             \App\Http\Controllers\GarageController::class,
             'edit',
             
-        ])->name('edit-garage');
+        ])->middleware('superadmin')->name('edit-garage');
 
 
 
         Route::put('/update-garage/{id}', [
             \App\Http\Controllers\GarageController::class,
             'update',
-        ])->name('update-garage');
+        ])->middleware('superadmin')->name('update-garage');
 
         Route::post('/delete-garage/{id}', [
             \App\Http\Controllers\GarageController::class,
             'destroy',
-        ])->name('delete-garage');
+        ])->middleware('superadmin')->name('delete-garage');
 
 
 // Edit Business Owner (GET)
 Route::get('/business-owners/{id}/edit', [BusinessOwnerController::class, 'edit'])
-    ->name('admin.business-owners.edit');  // Ensure this is plural
+    ->middleware('superadmin')->name('admin.business-owners.edit');  // Ensure this is plural
 
 // Update Business Owner (PUT)
 Route::put('/business-owners/{id}', [BusinessOwnerController::class, 'update'])
-    ->name('admin.business-owners.update');
+    ->middleware('superadmin')->name('admin.business-owners.update');
 
 // Delete Business Owner (DELETE)
 Route::POST('/business-owners/{id}', [BusinessOwnerController::class, 'destroy'])
-    ->name('admin.business-owners.destroy');
+    ->middleware('superadmin')->name('admin.business-owners.destroy');
 
 
 
@@ -2262,15 +2262,15 @@ Route::POST('/business-owners/{id}', [BusinessOwnerController::class, 'destroy']
 
 // Edit Marketer (GET)
 Route::get('/admin/marketers/{id}/edit', [MarketerController::class, 'edit'])
-    ->name('admin.users.marketers.edit');
+    ->middleware('superadmin')->name('admin.users.marketers.edit');
 
 // Update Marketer (PUT)
 Route::put('/admin/marketers/{id}', [MarketerController::class, 'update'])
-    ->name('admin.users.marketers.update');
+    ->middleware('superadmin')->name('admin.users.marketers.update');
 
 // Delete Marketer (DELETE)
 Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
-    ->name('admin.users.marketers.destroy');
+    ->middleware('superadmin')->name('admin.users.marketers.destroy');
 
 
 
@@ -2368,19 +2368,19 @@ Route::post('/admin/marketers/{id}', [MarketerController::class, 'destroy'])
             \App\Http\Controllers\ShopController::class,
             'edit',
             
-        ])->name('edit-shop');
+        ])->middleware('superadmin')->name('edit-shop');
 
 
         
         Route::put('/update-shop/{id}', [
             \App\Http\Controllers\ShopController::class,
             'update',
-        ])->name('update-shop');
+        ])->middleware('superadmin')->name('update-shop');
 
         Route::post('/delete-shop/{id}', [
             \App\Http\Controllers\ShopController::class,
             'destroy',
-        ])->name('delete-shop');
+        ])->middleware('superadmin')->name('delete-shop');
 
 
         // spare part shops
@@ -2582,7 +2582,7 @@ Route::get('/brands', function () {
         Route::get('/brands/{id}', function ($id) {
             $brands = Brand::findOrFail($id);  // Get the car part by ID
             return view('admin.brands.edit', ['brands' => $brands]);  // Pass car part to the view
-        })->name('brands');  // Name the route 'parts'
+        })->middleware('superadmin')->name('brands');  // Name the route 'parts'
         
         
         
@@ -2593,7 +2593,7 @@ Route::get('/brands', function () {
             // return redirect()->route('admin.parts.view', $carPart->id);
             return redirect()->to('/admin/brands');
         
-        })->name('brands.update');
+        })->middleware('superadmin')->name('brands.update');
         
         
         
@@ -2605,7 +2605,7 @@ Route::get('/brands', function () {
             return redirect()->to('/admin/brands');
             
         
-        })->name('brands.destroy');
+        })->middleware('superadmin')->name('brands.destroy');
         
         
         

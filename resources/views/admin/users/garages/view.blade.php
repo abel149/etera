@@ -87,7 +87,7 @@
 								</td>
 								<td>
 				
-
+									@if(auth()->user()->is_superadmin)
 									<a href="{{ route('edit-garage', $garage->id) }}" class="btn radius-10">
 										<i class="bx bx-edit me-0"></i>
 									</a>
@@ -119,6 +119,7 @@
 										</div>
 									</div>
 									<!-- End Modal for Confirmation -->
+									@endif
 
 								</td>
 

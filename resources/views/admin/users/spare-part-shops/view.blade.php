@@ -124,15 +124,19 @@
         @endif
     </td>
     <td>
+        @if(auth()->user()->is_superadmin)
         <a href="{{ route('edit-shop', $shop->id) }}" class="btn radius-10 p-1" title="Edit">
             <i class="bx bx-edit me-0"></i>
         </a>
+        @endif
         <button type="button" class="btn radius-10 p-1 text-info" data-bs-toggle="modal" data-bs-target="#shopBrandsModal{{$shop->id}}" title="View Brands">
             <i class="bx bx-purchase-tag me-0"></i>
         </button>
+        @if(auth()->user()->is_superadmin)
         <button type="button" class="btn radius-10 p-1 text-danger" data-bs-toggle="modal" data-bs-target="#singleDelete{{$shop->id}}">
             <i class="bx bx-trash me-0"></i>
         </button>
+        @endif
 
 <!-- Modal for Full Row Click -->
 <div class="modal fade" id="shopDetailModal{{$shop->id}}" tabindex="-1" aria-hidden="true">
@@ -200,6 +204,7 @@
     </div>
 </div>
 
+@if(auth()->user()->is_superadmin)
 <!-- Modal for Delete Confirmation -->
 <div class="modal fade" id="singleDelete{{$shop->id}}" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
@@ -219,6 +224,7 @@
         </div>
     </div>
 </div>
+@endif
 
 <!-- Modal for Shop Brands -->
 <div class="modal fade" id="shopBrandsModal{{$shop->id}}" tabindex="-1" aria-hidden="true">
