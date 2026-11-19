@@ -237,19 +237,7 @@
 
 				</li>
 
-				<li>
-
-					<a href="/admin/employees">
-
-						<div class="parent-icon"><i class="bx bx-id-card"></i>
-
-						</div>
-
-						<div class="menu-title">Operators Management</div>
-
-					</a>
-
-				</li>
+				{{-- Operators Management hidden - not used in this version --}}
 
 				<li>
 				    <a href="/admin/ratings">
