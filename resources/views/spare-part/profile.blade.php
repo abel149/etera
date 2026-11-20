@@ -1,49 +1,26 @@
-
 @extends('layouts.sparepart')
 @section('content')
 <div class="container margin-top-45 margin-bottom-45">
     <div class="row">
         <div class="col-md-12">
-            <style type="text/css">
-                .pp {
-                    /* Add styling if needed */
+            <style>
+                .profile-img-box {
+                    display: flex;
+                    flex-direction: column;
+                    align-items: center;
+                    gap: 8px;
                 }
-                .fu {
-                    /* Add styling if needed */
+                .profile-img-box img {
+                    width: 140px;
+                    height: 140px;
+                    object-fit: cover;
+                    border-radius: 10px;
+                    border: 1px solid #e4e4e4;
                 }
-                .ub {
-                    /* Add styling if needed */
+                .profile-img-label {
+                    font-size: 0.85rem;
+                    color: #666;
                 }
-
-                .avatar-wrapper {
-                    position: relative;
-                    display: inline-block;
-                }
-
-                .zoom-btn {
-                    position: absolute;
-                    bottom: 10px;
-                    left: 50%;
-                    transform: translateX(-50%);
-                    background-color: var(--etera-teal);
-                    color: white;
-                    border: none;
-                    padding: 5px 10px;
-                    cursor: pointer;
-                    font-size: 14px;
-                    border-radius: 5px;
-                    z-index: 10; /* Ensure buttons appear above the image */
-                }
-
-                .zoomable {
-                    transition: transform 0.3s ease;
-                }
-
-                .zoomed {
-                    transform: scale(1.5); /* Adjust the scale for zoom */
-                }
-
-                /* Fullscreen modal styling */
                 .fullscreen-modal {
                     display: none;
                     position: fixed;
@@ -56,13 +33,11 @@
                     align-items: center;
                     z-index: 1000;
                 }
-
                 .fullscreen-modal img {
                     max-width: 100%;
                     max-height: 100%;
                     object-fit: contain;
                 }
-
                 .close-modal {
                     position: absolute;
                     top: 20px;
@@ -75,14 +50,11 @@
                     z-index: 1001;
                 }
             </style>
-            <link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2.min.css')}}" />
-            <link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2-bootstrap-5-theme.min.css')}}" />
 
-            <!-- Row -->
-            <div class="row margin-bottom-45">
+            <!-- Counters -->
+            <div class="row margin-bottom-30">
                 <div class="col-xl-12">
                     <div class="counters-container">
-                        <!-- Counter -->
                         <div class="single-counter">
                             <i class="icon-line-awesome-files-o"></i>
                             <div class="counter-inner">
@@ -90,8 +62,6 @@
                                 <span class="counter-title">Total Applied Proformas</span>
                             </div>
                         </div>
-
-                        <!-- Counter -->
                         <div class="single-counter">
                             <i class="icon-line-awesome-money"></i>
                             <div class="counter-inner">
@@ -101,356 +71,151 @@
                         </div>
                     </div>
                 </div>
-                <br>
-                @if(Session::has('success'))
-                    <div class="headline">
-                        <h3 class="text-success">{{Session::get('success')}}</h3>
-                    </div>
-                @endif
-                {{-- <form action="{{route('update.profile',auth()->user()->id)}}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    @method('PUT')
-                    <!-- Dashboard Box -->
-                    <div class="col-xl-12">
-                        <div class="dashboard-box margin-top-0">
-                            <!-- Headline -->
-                            <div class="headline">
-                                <h3><i class="icon-material-outline-account-circle"></i> My Account</h3>
-                            </div>
-                            <div class="content with-padding padding-bottom-0">
-                                <div class="row">
-                                    <div class="col-auto">
-                                        <div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Stamp">
-                                            @if(auth()->user()->stamp_image)
-                                                <img class="profile-pic stamp-image" src="{{ asset('storage/' . auth()->user()->stamp_image) }}" alt="Stamp" />
-                                            @else
-                                                <img class="profile-pic stamp-image" src="{{asset('assets/images/stamp.png')}}" alt="No Stamp Here" />
-                                            @endif
-                                            <div class="upload-button"></div>
-                                            <input class="file-upload" type="file" name="stamp_image" accept="image/*"/>
-                                            <!-- Zoom Buttons for Stamp Image -->
-                                            <button class="zoom-btn" type="button" onclick="openFullScreen('stamp-image')">Zoom</button>
-                                        </div>
-                                    </div>
-                                    <div class="col-auto">
-                                        <div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Business License">
-                                            @if(auth()->user()->license_image)
-                                                <img class="pp license-image" src="{{ asset('storage/' . auth()->user()->license_image) }}" alt="Business License" />
-                                            @else
-                                                <img class="pp license-image" src="{{asset('assets/images/license.png')}}" alt="No License Here" />
-                                            @endif
-                                            <div class="ub"></div>
-                                            <input class="fu" type="file" name="license_image" accept="image/*"/>
-                                            <!-- Zoom Buttons for License Image -->
-                                            <button class="zoom-btn" type="button" onclick="openFullScreen('license-image')">Zoom</button>
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div class="col">
-                                    <div class="row">
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Name</h5>
-                                                <input type="text" value="{{auth()->user()->name}}" name="name"  class="with-border">
-                                                @error('name')
-                                                    <span class="text-danger">{{$message}}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Phone number</h5>
-                                                <input value="{{auth()->user()->phone_number}}" type="text" name="phone_number" class="with-border" >
-                                                @error('phone_number')
-                                                    <span class="text-danger">{{$message}}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Email</h5>
-                                                <input value="{{auth()->user()->email}}" type="text" name="email" class="with-border" >
-                                                @error('email')
-                                                    <span class="text-danger">{{$message}}</span>
-                                                @enderror
-                                            </div>
-                                        </div>
-
-                                        @if(auth()->user()->role == 'shop')
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Car To Serve</h5>
-                                                <div class="keywords-container">
-                                                    <select class="keyword-select" name="brands[]" multiple data-live-search="true" title="Select keywords">
-                                                        @foreach(\App\Models\Brand::all() as $brand)
-                                                            <option {{auth()->user()->brands()->where('brand_id',$brand->id)->exists() ? 'selected' : ''}} value="{{$brand->id}}">{{$brand->name}}</option>
-                                                        @endforeach
-                                                    </select>
-                                                </div>
-                                            </div>
-                                        </div>
-                                        @endif
-
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Tin Number</h5>
-                                                <input value="{{auth()->user()->tin_number}}" type="text" name="tin_number" class="with-border" >
-                                            </div>
-                                        </div>
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Business License Proc. Number</h5>
-                                                <input value="{{auth()->user()->business_license_number}}" type="text" name="business_license_number" class="with-border" >
-                                            </div>
-                                        </div>
-                                        <div class="col-xl-6">
-                                            <div class="submit-field">
-                                                <h5>Business License Expiry Date</h5>
-                                                <input value="{{auth()->user()->license_expire_date}}" type="date" name="license_expire_date" class="with-border" >
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <br>
-                    <!-- Dashboard Box -->
-                    <div class="col-xl-12">
-                        <div id="test1" class="dashboard-box">
-                            <!-- Headline -->
-                            <div class="headline">
-                                <h3><i class="icon-material-outline-lock"></i> Password & Security</h3>
-                            </div>
-
-                            <div class="content with-padding">
-                                <div class="row">
-                                    <div class="col-xl-4">
-                                        <div class="submit-field">
-                                            <h5>Current Password</h5>
-                                            <input type="password" class="with-border" name="current_password">
-                                            @error('current_password')
-                                                <span class="text-danger">{{$message}}</span>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="col-xl-4">
-                                        <div class="submit-field">
-                                            <h5>New Password</h5>
-                                            <input type="password" class="with-border" name="password">
-                                            @error('password')
-                                                <span class="text-danger">{{$message}}</span>
-                                            @enderror
-                                        </div>
-                                    </div>
-
-                                    <div class="col-xl-4">
-                                        <div class="submit-field">
-                                            <h5>Repeat New Password</h5>
-                                            <input type="password" class="with-border" name="password_confirmation">
-                                            @error('password_confirmation')
-                                                <span class="text-danger">{{$message}}</span>
-                                            @enderror
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <!-- Button -->
-                    <div class="col-xl-12">
-                        <button type="submit" class="button radius-30 ripple-effect big margin-top-30">Save Changes</button>
-                    </div>
-                </form> --}}
-    
-@if(session('success'))
-<div class="alert alert-success alert-dismissible fade show" role="alert">
-    {{ session('success') }}
-</div>
-
-<script>
-    setTimeout(function() {
-        document.querySelector('.alert-success')?.remove();
-    }, 3000); // Hides after 3 seconds
-</script>
-@endif
-
-
-                <form action="{{ route('user.profile.update') }}" method="POST" enctype="multipart/form-data">
-                    @csrf
-                    @method('PUT')
-					<!-- Dashboard Box -->
-					<div class="col-xl-12">
-						<div class="dashboard-box margin-top-0">
-							<!-- Headline -->
-							<div class="headline">
-								<h3><i class="icon-material-outline-account-circle"></i> My Account</h3>
-							</div>
-							<div class="content with-padding padding-bottom-0">
-								<div class="row">
-									<div class="col-auto">
-										<div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Stamp">
-											@if(auth()->user()->stamp_image)
-												<img class="profile-pic stamp-image" src="{{ asset('storage/' . auth()->user()->stamp_image) }}" alt="Stamp" />
-                                        
-                                                @else
-												<img class="profile-pic stamp-image" src="{{asset('assets/images/stamp.png')}}" alt="No Stamp Here" />
-											@endif
-											<div class="upload-button"></div>
-											<input class="file-upload" type="file" name="stamp_image" accept="image/*"/>
-											<!-- Zoom Buttons for Stamp Image -->
-											<button class="zoom-btn" type="button" onclick="openFullScreen('stamp-image')">Zoom</button>
-										</div>
-									</div>
-									<div class="col-auto">
-										<div class="avatar-wrapper" data-tippy-placement="bottom" title="Change Business License">
-											@if(auth()->user()->license_image)
-												<img class="pp license-image" src="{{ asset('storage/' . auth()->user()->license_image) }}" alt="Business License" />
-											@else
-												<img class="pp license-image" src="{{asset('assets/images/license.png')}}" alt="No License Here" />
-											@endif
-											<div class="ub"></div>
-											<input class="fu" type="file" name="license_image" accept="image/*"/>
-											<!-- Zoom Buttons for License Image -->
-											<button class="zoom-btn" type="button" onclick="openFullScreen('license-image')">Zoom</button>
-										</div>
-									</div>
-								</div>
-				
-								<div class="col">
-									<div class="row">
-										<div class="col-xl-6">
-											<div class="submit-field">
-												<h5>Name</h5>
-												<input type="text" value="{{auth()->user()->name}}" name="name"  class="with-border">
-												@error('name')
-													<span class="text-danger">{{$message}}</span>
-												@enderror
-											</div>
-										</div>
-				
-										<div class="col-xl-6">
-											<div class="submit-field">
-												<h5>Phone number</h5>
-												<input value="{{auth()->user()->phone_number}}" type="text" name="phone_number" class="with-border" >
-												@error('phone_number')
-													<span class="text-danger">{{$message}}</span>
-												@enderror
-											</div>
-										</div>
-				
-										<div class="col-xl-6">
-											<div class="submit-field">
-												<h5>Email</h5>
-												<input value="{{ filter_var(auth()->user()->email, FILTER_VALIDATE_EMAIL) ? auth()->user()->email : '' }}" type="email" name="email" class="with-border" autocomplete="off">
-												@error('email')
-													<span class="text-danger">{{$message}}</span>
-												@enderror
-											</div>
-										</div>
-				
-										<div class="col-xl-6">
-											<div class="submit-field">
-												<h5>Tin Number</h5>
-												<input value="{{auth()->user()->tin_number}}" type="text" name="tin_number" class="with-border" >
-											</div>
-										</div>
-										{{-- <div class="col-xl-6">
-											<div class="submit-field">
-												<h5>Business License Proc. Number</h5>
-												<input value="{{auth()->user()->business_license_number}}" type="text" name="business_license_number" class="with-border" >
-											</div>
-										</div>
-										<div class="col-xl-6">
-											<div class="submit-field">
-												<h5>Business License Expiry Date</h5>
-												<input value="{{auth()->user()->license_expire_date}}" type="date" name="license_expire_date" class="with-border" >
-											</div>
-										</div> --}}
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-					<br>
-					<!-- Dashboard Box -->
-					<div class="col-xl-12">
-						<div id="test1" class="dashboard-box">
-							<!-- Headline -->
-							<div class="headline">
-								<h3><i class="icon-material-outline-lock"></i> Password & Security</h3>
-							</div>
-				
-							<div class="content with-padding">
-								<div class="row">
-									<div class="col-xl-4">
-										<div class="submit-field">
-											<h5>Current Password</h5>
-											<input type="password" class="with-border" name="current_password">
-											@error('current_password')
-												<span class="text-danger">{{$message}}</span>
-											@enderror
-										</div>
-									</div>
-				
-									<div class="col-xl-4">
-										<div class="submit-field">
-											<h5>New Password</h5>
-											<input type="password" class="with-border" name="password">
-											@error('password')
-												<span class="text-danger">{{$message}}</span>
-											@enderror
-										</div>
-									</div>
-				
-									<div class="col-xl-4">
-										<div class="submit-field">
-											<h5>Repeat New Password</h5>
-											<input type="password" class="with-border" name="password_confirmation">
-											@error('password_confirmation')
-												<span class="text-danger">{{$message}}</span>
-											@enderror
-										</div>
-									</div>
-								</div>
-							</div>
-						</div>
-					</div>
-					<!-- Button -->
-					<div class="col-xl-12">
-						<button type="submit" class="button radius-30 ripple-effect big margin-top-30">Save Changes</button>
-					</div>
-				</form>
-				
             </div>
+
+            @if(session('success'))
+            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                {{ session('success') }}
+            </div>
+            <script>
+                setTimeout(function() {
+                    document.querySelector('.alert-success')?.remove();
+                }, 3000);
+            </script>
+            @endif
+
+            <form action="{{ route('user.profile.update') }}" method="POST">
+                @csrf
+                @method('PUT')
+
+                <!-- My Account -->
+                <div class="col-xl-12 padding-left-0 padding-right-0">
+                    <div class="dashboard-box margin-top-0">
+                        <div class="headline">
+                            <h3><i class="icon-material-outline-account-circle"></i> My Account</h3>
+                        </div>
+                        <div class="content with-padding padding-bottom-0">
+
+                            <!-- Read-only documents -->
+                            <div class="row margin-bottom-20">
+                                <div class="col-auto">
+                                    <div class="profile-img-box">
+                                        @if(auth()->user()->stamp_image)
+                                            <img class="stamp-image" src="{{ asset('storage/' . auth()->user()->stamp_image) }}" alt="Stamp" style="cursor: pointer;" onclick="openFullScreen('stamp-image')" />
+                                        @else
+                                            <img class="stamp-image" src="{{asset('assets/images/stamp.png')}}" alt="No Stamp Here" />
+                                        @endif
+                                        <span class="profile-img-label">Stamp</span>
+                                    </div>
+                                </div>
+                                <div class="col-auto">
+                                    <div class="profile-img-box">
+                                        @if(auth()->user()->license_image)
+                                            <img class="license-image" src="{{ asset('storage/' . auth()->user()->license_image) }}" alt="Business License" style="cursor: pointer;" onclick="openFullScreen('license-image')" />
+                                        @else
+                                            <img class="license-image" src="{{asset('assets/images/license.png')}}" alt="No License Here" />
+                                        @endif
+                                        <span class="profile-img-label">Business License</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <!-- Fields -->
+                            <div class="row">
+                                <div class="col-xl-6">
+                                    <div class="submit-field">
+                                        <h5>Name</h5>
+                                        <input type="text" value="{{auth()->user()->name}}" name="name" class="with-border">
+                                        @error('name')
+                                            <span class="text-danger">{{$message}}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-xl-6">
+                                    <div class="submit-field">
+                                        <h5>Phone number</h5>
+                                        <input value="{{auth()->user()->phone_number}}" type="text" name="phone_number" class="with-border">
+                                        @error('phone_number')
+                                            <span class="text-danger">{{$message}}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-xl-6">
+                                    <div class="submit-field">
+                                        <h5>Tin Number</h5>
+                                        <input value="{{auth()->user()->tin_number}}" type="text" name="tin_number" class="with-border">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password & Security -->
+                <div class="col-xl-12 padding-left-0 padding-right-0">
+                    <div class="dashboard-box">
+                        <div class="headline">
+                            <h3><i class="icon-material-outline-lock"></i> Password &amp; Security</h3>
+                        </div>
+                        <div class="content with-padding">
+                            <div class="row">
+                                <div class="col-xl-4">
+                                    <div class="submit-field">
+                                        <h5>Current Password</h5>
+                                        <input type="password" class="with-border" name="current_password" autocomplete="current-password">
+                                        @error('current_password')
+                                            <span class="text-danger">{{$message}}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-xl-4">
+                                    <div class="submit-field">
+                                        <h5>New Password</h5>
+                                        <input type="password" class="with-border" name="password" autocomplete="new-password">
+                                        @error('password')
+                                            <span class="text-danger">{{$message}}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                                <div class="col-xl-4">
+                                    <div class="submit-field">
+                                        <h5>Repeat New Password</h5>
+                                        <input type="password" class="with-border" name="password_confirmation" autocomplete="new-password">
+                                        @error('password_confirmation')
+                                            <span class="text-danger">{{$message}}</span>
+                                        @enderror
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Save -->
+                <div class="col-xl-12 padding-left-0 padding-right-0">
+                    <button type="submit" class="button radius-30 ripple-effect big margin-top-30">Save Changes</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>
 
 <!-- Fullscreen Modal -->
 <div id="fullscreenModal" class="fullscreen-modal">
-    <button class="close-modal" onclick="closeFullScreen()">×</button>
+    <button class="close-modal" type="button" onclick="closeFullScreen()">×</button>
     <img id="fullscreenImage" src="" alt="Full Screen" />
 </div>
 
-
-
 <script>
     function openFullScreen(imageClass) {
-        var imageSrc = document.querySelector('.' + imageClass).src;
-        var modal = document.getElementById('fullscreenModal');
-        var modalImage = document.getElementById('fullscreenImage');
-        modalImage.src = imageSrc;
-        modal.style.display = 'flex';
+        var image = document.querySelector('.' + imageClass);
+        if (!image || !image.src) return;
+        document.getElementById('fullscreenImage').src = image.src;
+        document.getElementById('fullscreenModal').style.display = 'flex';
     }
 
     function closeFullScreen() {
-        var modal = document.getElementById('fullscreenModal');
-        modal.style.display = 'none';
+        document.getElementById('fullscreenModal').style.display = 'none';
     }
 </script>
 <script src="https://cdn.jsdelivr.net/npm/select2@4.0.13/dist/js/select2.min.js"></script>
