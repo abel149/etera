@@ -34,11 +34,10 @@
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2.min.css')}}" />
 	<link rel="stylesheet" href="{{asset('assets/plugins/select2/css/select2-bootstrap-5-theme.min.css')}}" />
 	<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
-	<link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500&display=swap" rel="stylesheet">
-	<!-- Bootstrap CSS -->
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
-<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
+	<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"/>
+	<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+	<link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+	<link href="https://unpkg.com/boxicons@2.1.4/css/boxicons.min.css" rel="stylesheet">
 
 	<link href="{{asset('assets/css/app.css')}}" rel="stylesheet">
 	<link href="{{asset('assets/css/icons.css')}}" rel="stylesheet">
@@ -49,288 +48,90 @@
 	@livewireStyles
 
 	<style type="text/css">
+	body {
+		font-family: 'Inter', system-ui, -apple-system, sans-serif;
+		font-size: 0.95rem;
+	}
+
+	.card {
+		border: none;
+		box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
+		border-radius: 12px;
+	}
+
 	.tbl td:last-child {
       white-space: nowrap;
       width: 1%; /* Makes the column take as little space as possible based on content */
-      
-		/* Layout */
-		html, body {
-			height: 100%;
-			margin: 0;
-			padding: 0;
-		}
-
-		/* Flexbox Layout */
-		body {
-			display: flex;
-			flex-direction: column;
-		}
-
-		.content {
-			flex: 1; /* Takes up remaining space */
-		}
-
-		footer {
-			background-color: #333;
-			color: #fff;
-			text-align: center;
-			padding: 10px 0;
-		}
-
-		/* Header Styling */
-		#header-container {
-			background: #fff;
-			box-shadow: 0 2px 10px rgba(0,0,0,0.1);
-			position: relative;
-			z-index: 1000;
-		}
-
-		#logo img {
-			max-width: 7.5rem;
-		}
-
-		.nav-list {
-			display: flex;
-			align-items: center;
-			margin: 0;
-			padding: 0;
-			list-style: none;
-		}
-
-		.nav-list li {
-			margin-right: 20px;
-		}
-
-		.nav-item {
-			color: #333;
-			text-decoration: none;
-			font-weight: 500;
-			padding: 10px 0;
-			position: relative;
-			transition: color 0.3s;
-		}
-
-		.nav-item:hover {
-			color: #2a41e8;
-		}
-
-		.nav-item.active {
-			color: #2a41e8;
-		}
-
-		.nav-item.active:after {
-			content: '';
-			position: absolute;
-			bottom: 0;
-			left: 0;
-			width: 100%;
-			height: 3px;
-			background: #2a41e8;
-		}
-
-		/* User Menu */
-		.header-widget {
-			display: flex;
-			align-items: center;
-		}
-
-		.user-avatar {
-			width: 40px;
-			height: 40px;
-			border-radius: 50%;
-			overflow: hidden;
-		}
-
-		.user-avatar img {
-			width: 100%;
-			height: 100%;
-			object-fit: cover;
-		}
-
-		.header-notifications-dropdown {
-			position: absolute;
-			top: 100%;
-			right: 0;
-			width: 280px;
-			background: #fff;
-			border-radius: 4px;
-			box-shadow: 0 5px 25px rgba(0,0,0,0.1);
-			z-index: 1001;
-			display: none;
-		}
-
-		.header-notifications:hover .header-notifications-dropdown,
-		.user-menu:hover .header-notifications-dropdown {
-			display: block;
-		}
-
-		/* Badge Styling (for unread messages) */
-		.badge {
-			background-color: #E74C3C;
-			color: #fff;
-			padding: 2px 8px;
-			border-radius: 50%;
-			font-size: 12px;
-			margin-left: 8px;
-		}
-
-		/* Pagination */
-		.pagination-container {
-			margin-top: 20px; /* Add margin to the top of the pagination */
-			margin-bottom: 30px; /* Add margin to the bottom to give spacing from the bottom of the page */
-		}
-
-		.pagination {
-			display: flex;
-			justify-content: center;
-			align-items: center;
-			gap: 10px;
-			list-style: none;
-			padding: 0;
-			margin: 0;
-		}
-
-		.pagination li {
-			padding: 5px 10px;
-			border: 1px solid #ddd;
-			border-radius: 4px;
-			cursor: pointer;
-		}
-
-		.pagination li:hover {
-			background-color: #f0f0f0;
-		}
-
-		.pagination .active {
-			background-color: #007bff;
-			color: #fff;
-		}
-
-		.pagination li.disabled {
-			cursor: not-allowed;
-			opacity: 0.5;
-		}
-
-		/* Footer - Updated to match the second code */
-		.footer-top-section {
-			background: #333; /* Changed to match the second code */
-			color: #fff;
-			padding: 40px 0;
-		}
-
-		.footer-bottom-section {
-			background: #333; /* Changed to match the second code */
-			color: #fff;
-			padding: 20px 0;
-		}
-
-		.footer-social-links {
-			display: flex;
-			list-style: none;
-			padding: 0;
-			margin: 0;
-		}
-
-		.footer-social-links li {
-			margin-right: 15px;
-		}
-
-		.footer-social-links a {
-			color: #fff;
-			font-size: 18px;
-		}
-
-		/* Remove bold text styles */
-		.user-name span,
-		.notification-text strong,
-		.footer-bottom-section strong {
-			font-weight: normal; /* Changed from bold to normal */
-		}
-
-		/* Responsive */
-		@media (max-width: 992px) {
-			.nav-list {
-				flex-direction: column;
-				align-items: flex-start;
-			}
-			
-			.nav-list li {
-				margin-right: 0;
-				margin-bottom: 10px;
-			}
-			
-			
-		}
-
-		/* Ensure modals work properly */
-		.modal {
-			z-index: 1060;
-		}
-
-		.modal-backdrop {
-			z-index: 1050;
-			pointer-events: none !important; /* Allow interactions with modal controls above */
-		}
-		/* Commission Info Icon */
-.commission-info-wrapper {
-    display: inline-block;
-    margin-left: 10px;
-}
-
-.commission-info-icon {
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 14px;
-    cursor: pointer;
-    color: #fff;
-    background: linear-gradient(45deg, #00ff99, #0066ff);
-    box-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
-    animation: commissionGlow 1.5s infinite alternate;
-    user-select: none;
-}
-
-/* Flashing green & blue */
-@keyframes commissionGlow {
-    0% {
-        box-shadow: 0 0 6px #00ff99;
-        background: #00ff99;
     }
-    100% {
-        box-shadow: 0 0 14px #0066ff;
-        background: #0066ff;
-    }
-}
-/* Commission tooltip – white background & big text */
-.tooltip-inner {
-    background-color: #ffffff !important;
-    color: #000000 !important;
-    font-size: 18px;
-    font-weight: 600;
-    padding: 14px 18px;
-    border-radius: 8px;
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
-    max-width: 320px;
-    text-align: center;
-}
 
-/* Tooltip arrow (Bootstrap 4) */
-.tooltip.bs-tooltip-bottom .arrow::before,
-.tooltip.bs-tooltip-top .arrow::before,
-.tooltip.bs-tooltip-left .arrow::before,
-.tooltip.bs-tooltip-right .arrow::before {
-    border-bottom-color: #ffffff !important;
-    border-top-color: #ffffff !important;
-    border-left-color: #ffffff !important;
-    border-right-color: #ffffff !important;
-}
+	/* Ensure modals work properly */
+	.modal {
+		z-index: 1060;
+	}
 
+	.modal-backdrop {
+		z-index: 1050;
+		pointer-events: none !important; /* Allow interactions with modal controls above */
+	}
 
-    }
+	/* Commission Info Icon */
+	.commission-info-wrapper {
+	    display: inline-block;
+	    margin-left: 10px;
+	}
+
+	.commission-info-icon {
+	    width: 22px;
+	    height: 22px;
+	    border-radius: 50%;
+	    display: inline-flex;
+	    align-items: center;
+	    justify-content: center;
+	    font-weight: bold;
+	    font-size: 14px;
+	    cursor: pointer;
+	    color: #fff;
+	    background: linear-gradient(45deg, #00ff99, #0066ff);
+	    box-shadow: 0 0 8px rgba(0, 255, 153, 0.8);
+	    animation: commissionGlow 1.5s infinite alternate;
+	    user-select: none;
+	}
+
+	/* Flashing green & blue */
+	@keyframes commissionGlow {
+	    0% {
+	        box-shadow: 0 0 6px #00ff99;
+	        background: #00ff99;
+	    }
+	    100% {
+	        box-shadow: 0 0 14px #0066ff;
+	        background: #0066ff;
+	    }
+	}
+
+	/* Commission tooltip – white background & big text */
+	.tooltip-inner {
+	    background-color: #ffffff !important;
+	    color: #000000 !important;
+	    font-size: 18px;
+	    font-weight: 600;
+	    padding: 14px 18px;
+	    border-radius: 8px;
+	    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+	    max-width: 320px;
+	    text-align: center;
+	}
+
+	/* Tooltip arrow (Bootstrap 4) */
+	.tooltip.bs-tooltip-bottom .arrow::before,
+	.tooltip.bs-tooltip-top .arrow::before,
+	.tooltip.bs-tooltip-left .arrow::before,
+	.tooltip.bs-tooltip-right .arrow::before {
+	    border-bottom-color: #ffffff !important;
+	    border-top-color: #ffffff !important;
+	    border-left-color: #ffffff !important;
+	    border-right-color: #ffffff !important;
+	}
 </style>
 	<title> etera | Marketer</title>
 @include('partials.green-theme')

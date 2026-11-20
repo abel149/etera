@@ -4,111 +4,126 @@
 <div class="page-wrapper">
 	<div class="page-content">
 		@php
-    $i=1;
-    $myUsers = auth()->user()->myRegistrations;
-    $myTotalUsers = $myUsers ? $myUsers->count() : 0;
-    $myTotalInsurances = $myUsers ? $myUsers->where('role','insurance')->count() : 0;
-    $myTotalShops = $myUsers ? $myUsers->where('role','shop')->count() : 0;
-    @endphp
-		<div class="row row-cols-2 row-cols-md-3 row-cols-xl-4">
+			$myUsers = auth()->user()->myRegistrations;
+			$myTotalUsers = $myUsers ? $myUsers->count() : 0;
+			$myTotalInsurances = $myUsers ? $myUsers->where('role','insurance')->count() : 0;
+			$myTotalShops = $myUsers ? $myUsers->where('role','shop')->count() : 0;
+			$myTotalGarages = $myUsers ? $myUsers->where('role','garage')->count() : 0;
+		@endphp
+
+		<div class="row row-cols-1 row-cols-md-2 row-cols-xl-4 g-3">
 			<div class="col">
-				<div class="card radius-10">
+				<div class="card radius-12 border-start border-3 border-primary">
 					<div class="card-body">
-						<div class="d-flex align-items-center justify-content-between"  style="min-height: 100px;">
+						<div class="d-flex align-items-center">
 							<div>
-								<h6 class="mb-0">Total Users Registered by You</h6>
-								<h2 class="mb-0">{{$myTotalUsers}}</h2>
+								<p class="mb-1 text-secondary">Total Users Registered</p>
+								<h3 class="mb-0 fw-bold">{{$myTotalUsers}}</h3>
 							</div>
-							<div id="chart1"></div>
+							<div class="ms-auto">
+								<div class="widgets-icons rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center" style="width:54px;height:54px;font-size:1.5rem;">
+									<i class='bx bx-group'></i>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div class="col">
-				<div class="card radius-10">
-					<div class="card-body">						
-						<div class="d-flex align-items-center justify-content-between"  style="min-height: 100px;">
+				<div class="card radius-12 border-start border-3 border-success">
+					<div class="card-body">
+						<div class="d-flex align-items-center">
 							<div>
-								<h6 class="mb-0">Insurances</h6>
-								<h2 class="mb-0">{{$myTotalInsurances}}</h2>
+								<p class="mb-1 text-secondary">Insurances</p>
+								<h3 class="mb-0 fw-bold">{{$myTotalInsurances}}</h3>
 							</div>
-							<div id="chart3"></div>
+							<div class="ms-auto">
+								<div class="widgets-icons rounded-circle bg-success bg-opacity-10 text-success d-flex align-items-center justify-content-center" style="width:54px;height:54px;font-size:1.5rem;">
+									<i class='bx bx-shield-quarter'></i>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div class="col">
-				<div class="card radius-10">
-					<div class="card-body">						
-						<div class="d-flex align-items-center justify-content-between"  style="min-height: 100px;">
+				<div class="card radius-12 border-start border-3 border-warning">
+					<div class="card-body">
+						<div class="d-flex align-items-center">
 							<div>
-								<h6 class="mb-0">Garages</h6>
-								<h2 class="mb-0">{{$myUsers ? $myUsers->where('role','garage')->count() : 0}}</h2>
+								<p class="mb-1 text-secondary">Garages</p>
+								<h3 class="mb-0 fw-bold">{{$myTotalGarages}}</h3>
 							</div>
-							<div id="chart4"></div>
+							<div class="ms-auto">
+								<div class="widgets-icons rounded-circle bg-warning bg-opacity-10 text-warning d-flex align-items-center justify-content-center" style="width:54px;height:54px;font-size:1.5rem;">
+									<i class='bx bx-wrench'></i>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 			<div class="col">
-				<div class="card radius-10">
-					<div class="card-body">						
-						<div class="d-flex align-items-center justify-content-between"  style="min-height: 100px;">
+				<div class="card radius-12 border-start border-3 border-info">
+					<div class="card-body">
+						<div class="d-flex align-items-center">
 							<div>
-								<h6 class="mb-0">Shops</h6>
-								<h2 class="mb-0">{{$myTotalShops}}</h2>
+								<p class="mb-1 text-secondary">Shops</p>
+								<h3 class="mb-0 fw-bold">{{$myTotalShops}}</h3>
 							</div>
-							<div id="chart5"></div>
+							<div class="ms-auto">
+								<div class="widgets-icons rounded-circle bg-info bg-opacity-10 text-info d-flex align-items-center justify-content-center" style="width:54px;height:54px;font-size:1.5rem;">
+									<i class='bx bx-store'></i>
+								</div>
+							</div>
 						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 
-
-		<!--end row-->
-		
-		<!--end row-->
-		<div class="card radius-10">
+		<div class="card radius-12 mt-4">
 			<div class="card-body">
-				<h5 class="">Top Last Registered Users</h5>
+				<div class="d-flex align-items-center mb-3">
+					<h5 class="mb-0">Recently Registered Users</h5>
+				</div>
 				<div class="table-responsive lead-table">
-					<table class="table mb-0 align-middle">
+					<table class="table mb-0 align-middle table-hover">
 						<thead class="table-light">
 							<tr>
 								<th>#</th>
 								<th>Name</th>
 								<th>Role</th>
 								<th>Phone Number</th>
-								<th>Register Date</th>
+								<th>Registered</th>
 							</tr>
 						</thead>
 						<tbody>
-            @if($myUsers && $myUsers->count() > 0)
-              @foreach($myUsers as $user)
-								<tr>
-									<td>{{$i++}}</td>
-									<td>
-										<div class="d-flex align-items-center">
-											<div>
-												<h6 class="mb-0 font-14">{{$user->name}}</h6>
-												<p class="mb-0 font-13 text-secondary">Email</p>
-											</div>
-										</div>
-									</td>
-									<td>{{ucfirst($user->role)}}</td>
-									<td>{{$user->phone_number}}</td>
-									<td>{{$user->created_at->format('Y-m-d')}} - {{$user->created_at->diffForHumans()}}</td>
-								</tr>
-                @endforeach
-            @else
-              <tr>
-                <td colspan="5" class="text-center text-muted">
-                  <i class="bx bx-info-circle me-2"></i>
-                  No users registered yet. Start by registering your first user!
-                </td>
-              </tr>
-            @endif
+						@if($myUsers && $myUsers->count() > 0)
+							@foreach($myUsers as $index => $user)
+							<tr>
+								<td>{{ $index + 1 }}</td>
+								<td>
+									<h6 class="mb-0 font-14">{{$user->name}}</h6>
+								</td>
+								<td>
+									<span class="badge bg-light text-dark border">{{ucfirst($user->role)}}</span>
+								</td>
+								<td>{{$user->phone_number}}</td>
+								<td>
+									<span class="text-muted">{{$user->created_at->format('Y-m-d')}}</span>
+									<small class="d-block text-secondary">{{$user->created_at->diffForHumans()}}</small>
+								</td>
+							</tr>
+							@endforeach
+						@else
+							<tr>
+								<td colspan="5" class="text-center text-muted py-4">
+									<i class="bx bx-info-circle me-2 fs-5"></i>
+									No users registered yet. Start by registering your first user!
+								</td>
+							</tr>
+						@endif
 						</tbody>
 					</table>
 				</div>
