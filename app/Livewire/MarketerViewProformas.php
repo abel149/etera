@@ -3,7 +3,6 @@
 namespace App\Livewire;
 
 use App\Models\Proforma;
-use App\Models\ProformaApplication;
 use Livewire\Component;
 use Livewire\WithPagination;
 use Illuminate\Support\Facades\Auth;
@@ -18,6 +17,7 @@ class MarketerViewProformas extends Component
 
     public $filters = [
         'type'      => 'default',
+        'status'    => 'all',
         'car_type'  => 'All',
         'grade'     => 'All',
         'component' => 'Both',
@@ -37,6 +37,7 @@ class MarketerViewProformas extends Component
         $this->search = '';
         $this->filters = [
             'type'      => 'default',
+            'status'    => 'all',
             'car_type'  => 'All',
             'grade'     => 'All',
             'component' => 'Both',
@@ -49,16 +50,11 @@ class MarketerViewProformas extends Component
         $user   = Auth::user();
         $userId = $user->id;
 
-        $query = Proforma::query()
-            ->where('status', 'published');
+        $query = Proforma::query();
 
-        // Exclude already applied proformas
-        $appliedProformaIds = ProformaApplication::where('application_by', $userId)
-            ->pluck('proforma_id')
-            ->toArray();
-
-        if (!empty($appliedProformaIds)) {
-            $query->whereNotIn('id', $appliedProformaIds);
+        // Status filter — default shows all statuses
+        if (!empty($this->filters['status']) && $this->filters['status'] !== 'all') {
+            $query->where('status', $this->filters['status']);
         }
 
         // Global search — searches the WHOLE list, not just the current page

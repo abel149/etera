@@ -49,7 +49,7 @@ class ProformaApplicationController extends Controller
 
                 if (!$proforma || !in_array($proforma->status, ['pending', 'published', 'opened'])) {
                     $redirectUrl = auth()->user()->role === 'garage' ? '/garage/proformas' : '/spare-part-shops/proformas';
-                    return redirect($redirectUrl)->with('error', 'This proforma is no longer accepting applications.');
+                    return redirect($redirectUrl)->with('error', 'This proforma has just been filled by another sparepart shop.');
                 }
 
                 // Guard: prevent duplicate applications from the same user (concurrent session safety)

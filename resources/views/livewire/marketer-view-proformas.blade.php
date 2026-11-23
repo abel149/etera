@@ -40,6 +40,27 @@
                                         <div class="col">
                                             <div class="btn-group" role="group">
                                                 <button type="button" class="btn btn-white">
+                                                    <i class="bx bx-filter"></i> Status
+                                                </button>
+                                                <div class="btn-group" role="group">
+                                                    <button id="statusDropdown" type="button" class="btn btn-white dropdown-toggle dropdown-toggle-nocaret px-1" data-bs-toggle="dropdown" aria-expanded="false">
+                                                        <i class='bx bx-chevron-down'></i>
+                                                    </button>
+                                                    <ul class="dropdown-menu" aria-labelledby="statusDropdown">
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','all')">All</a></li>
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','pending')">Pending</a></li>
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','published')">Published</a></li>
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','opened')">Opened</a></li>
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','closed')">Closed</a></li>
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','completed')">Completed</a></li>
+                                                        <li><a class="dropdown-item" href="#" wire:click.prevent="$set('filters.status','rejected')">Rejected</a></li>
+                                                    </ul>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="col">
+                                            <div class="btn-group" role="group">
+                                                <button type="button" class="btn btn-white">
                                                     <i class="bx bx-filter"></i> Sort
                                                 </button>
                                                 <div class="btn-group" role="group">
@@ -75,6 +96,7 @@
                                             <th>Customer</th>
                                             <th>Car</th>
                                             <th>License Plate</th>
+                                            <th>Status</th>
                                             <th>Remaining</th>
                                             <th>Created</th>
                                             <th>Action</th>
@@ -117,6 +139,22 @@
                                                 </td>
                                                 <td>{{ $proforma->license_plate_number ?? 'N/A' }}</td>
                                                 <td>
+                                                    @php
+                                                        $badgeClass = match($proforma->status) {
+                                                            'pending'   => 'bg-warning text-dark',
+                                                            'published' => 'bg-info',
+                                                            'opened'    => 'bg-primary',
+                                                            'closed'    => 'bg-danger',
+                                                            'completed' => 'bg-success',
+                                                            'rejected'  => 'bg-secondary',
+                                                            default     => 'bg-secondary',
+                                                        };
+                                                    @endphp
+                                                    <span class="badge rounded-pill {{ $badgeClass }}">
+                                                        {{ ucfirst($proforma->status) }}
+                                                    </span>
+                                                </td>
+                                                <td>
                                                     @if($proforma->isEteraCheretaMode())
                                                         <span class="badge rounded-pill bg-info">Chereta</span>
                                                     @else
@@ -140,7 +178,7 @@
                                             </tr>
                                         @empty
                                             <tr>
-                                                <td colspan="8" class="text-center">
+                                                <td colspan="9" class="text-center">
                                                     <div class="d-flex align-items-center justify-content-center">
                                                         <div>
                                                             <h6 class="mb-0 font-14">
