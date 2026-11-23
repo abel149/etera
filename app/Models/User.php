@@ -222,7 +222,12 @@ class User extends Authenticatable
             ->exists();
     }
 
-    public function getInboxCount() { return $this->myInbox()->count(); }
+    public function getInboxCount() {
+        return $this->myInbox()
+            ->whereHas('proforma', fn($q) => $q->whereIn('status', ['pending', 'published', 'opened']))
+            ->distinct('proforma_id')
+            ->count('proforma_id');
+    }
 
     public function getReturnedFromAdminCount(): int
     {
