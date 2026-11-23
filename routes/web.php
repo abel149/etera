@@ -4329,6 +4329,7 @@ Route::get('/received-details', function (Request $request) {
         Route::get('/inbox', function () {
             $inbox = auth()->user()
                 ->myInbox()
+                ->whereHas('proforma', fn($q) => $q->whereIn('status', ['pending', 'published', 'opened']))
                 ->with(['proforma.poster.parentInsurance', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
                 ->get();
             return view('spare-part.inbox', compact('inbox'));
@@ -4456,53 +4457,51 @@ Route::prefix('garage')
                 ]);
 
                 // 🔹 Step 3 — Handle spare parts
-                // 🔹 Attach FilePond async-uploaded images (using PartsImage model)
-// 🔹 Step 3 — Handle spare parts
-$partsData = $request->input('parts');
+                // 🔹 Step 3 — Handle spare parts
+                $partsData = $request->input('parts');
 
-foreach ($partsData['condition'] as $index => $condition) {
-    $part = $proforma->parts()->create([
-        'number'    => $partsData['number'][$index] ?? null,
-        'grade'     => $partsData['grade'][$index] ?? null,
-        'country'   => $partsData['country'][$index] ?? null,
-        'quantity'  => $partsData['quantity'][$index] ?? 1,
-        'condition' => $condition,
-        'component' => $partsData['component'][$index] ?? null,
-    ]);
-
-    Log::info('✅ Proforma part created', ['part_id' => $part->id, 'index' => $index]);
-
-    // 🔹 Move temp images and attach them
-    if (isset($partsData['photo'][$index]) && is_array($partsData['photo'][$index])) {
-        foreach ($partsData['photo'][$index] as $photoPath) {
-            if (!empty($photoPath) && str_contains($photoPath, 'uploads/temp/')) {
-                $tempPath = $photoPath;
-                $filename = basename($tempPath);
-                $finalPath = 'uploads/part-images/' . $filename;
-
-                // Move the file
-                if (Storage::disk('public')->exists($tempPath)) {
-                    Storage::disk('public')->move($tempPath, $finalPath);
-
-                    \App\Models\PartsImage::create([
-                        'proforma_part_id' => $part->id,
-                        'image_path' => $finalPath,
+                foreach ($partsData['condition'] as $index => $condition) {
+                    $part = $proforma->parts()->create([
+                        'number'    => $partsData['number'][$index] ?? null,
+                        'grade'     => $partsData['grade'][$index] ?? null,
+                        'country'   => $partsData['country'][$index] ?? null,
+                        'quantity'  => $partsData['quantity'][$index] ?? 1,
+                        'condition' => $condition,
+                        'component' => $partsData['component'][$index] ?? null,
                     ]);
 
-                    Log::info('✅ Temp image moved and saved', [
-                        'from' => $tempPath,
-                        'to' => $finalPath,
-                        'proforma_part_id' => $part->id,
-                    ]);
-                } else {
-                    Log::warning('⚠️ Temp image not found', ['path' => $tempPath]);
+                    Log::info('✅ Proforma part created', ['part_id' => $part->id, 'index' => $index]);
+
+                    // 🔹 Move temp images and attach them
+                    if (isset($partsData['photo'][$index]) && is_array($partsData['photo'][$index])) {
+                        foreach ($partsData['photo'][$index] as $photoPath) {
+                            if (!empty($photoPath) && str_contains($photoPath, 'uploads/temp/')) {
+                                $tempPath = $photoPath;
+                                $filename = basename($tempPath);
+                                $finalPath = 'uploads/part-images/' . $filename;
+
+                                if (Storage::disk('public')->exists($tempPath)) {
+                                    Storage::disk('public')->move($tempPath, $finalPath);
+
+                                    \App\Models\PartsImage::create([
+                                        'proforma_part_id' => $part->id,
+                                        'image_path' => $finalPath,
+                                    ]);
+
+                                    Log::info('✅ Temp image moved and saved', [
+                                        'from' => $tempPath,
+                                        'to' => $finalPath,
+                                        'proforma_part_id' => $part->id,
+                                    ]);
+                                } else {
+                                    Log::warning('⚠️ Temp image not found', ['path' => $tempPath]);
+                                }
+                            }
+                        }
+                    } else {
+                        Log::warning('⚠️ No images found for part', ['index' => $index]);
+                    }
                 }
-            }
-        }
-    } else {
-        Log::warning('⚠️ No images found for part', ['index' => $index]);
-    }
-}
 
 
                 // 🔹 Step 4 — Voice note (optional)
@@ -4640,6 +4639,7 @@ Route::prefix('spare-part-shops')
         Route::get('/inbox', function () {
             $inbox = auth()->user()
                 ->myInbox()
+                ->whereHas('proforma', fn($q) => $q->whereIn('status', ['pending', 'published', 'opened']))
                 ->with(['proforma.poster.parentInsurance', 'proforma.brand', 'proforma.inboxes', 'proforma.applications'])
                 ->get();
             return view('spare-part.inbox', compact('inbox'));
