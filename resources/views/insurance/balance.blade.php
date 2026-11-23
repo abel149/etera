@@ -7,8 +7,8 @@
 {{-- ================= SUMMARY ================= --}}
 <div class="row mb-4">
 
-{{-- LEFT: Incoming from Etera --}}
-<div class="col-md-6">
+{{-- LEFT: Incoming from Etera (hidden - not necessary for now) --}}
+{{-- <div class="col-md-6">
 <div class="row text-center">
 
 <div class="col-6 mb-3">
@@ -42,7 +42,7 @@
 </div>
 
 </div>
-</div>
+</div> --}}
 
 {{-- RIGHT: Outgoing to Etera --}}
 <div class="col-md-6">

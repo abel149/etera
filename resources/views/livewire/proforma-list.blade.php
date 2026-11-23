@@ -138,14 +138,15 @@
                                                 @endif
                                             </td>
                                             <td>
-                                                @if($proforma->insured)
+                                                <span class="badge rounded-pill bg-primary w-100">Insured</span>
+                                                {{-- @if($proforma->insured)
                                                     <span class="badge rounded-pill bg-primary w-100"
                                                           data-remaining-time="{{ $proforma->timer_expires_at?->toISOString() }}">
                                                         Insured
                                                     </span>
                                                 @else
                                                     <span class="text-muted">Not Insured</span>
-                                                @endif
+                                                @endif --}}
                                             </td>
                                             <td>
                                                 @if($proforma->call_customer)
