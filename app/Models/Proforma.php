@@ -534,7 +534,7 @@ class Proforma extends Model implements HasMedia
     public function applicationBlockReason(User $user): ?string
     {
         if (!in_array($this->status, ['pending', 'published', 'opened'], true)) {
-            return 'This proforma is no longer accepting applications.';
+            return 'This proforma has just been filled by another sparepart shop.';
         }
 
         if ($this->isEteraCheretaMode()) {

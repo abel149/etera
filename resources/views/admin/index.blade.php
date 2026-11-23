@@ -293,13 +293,13 @@
 							</tr>
 						</thead>
 									@php
-										$allProformasQuery = \App\Models\Proforma::with('poster')->whereHas('poster')->orderBy('created_at', 'desc');
-										if (!(auth()->user()->is_superadmin == 1)) {
-											$allProformasQuery->where(function ($q) {
-												$q->whereNull('processed_by')->orWhere('processed_by', auth()->id());
-											});
-										}
-										$allProformas = $allProformasQuery->paginate(20);
+										// All admins see all proformas - no processed_by restriction.
+										// Previously only superadmins saw everything; regular admins lost
+										// sight of proformas floated by other admins.
+										$allProformas = \App\Models\Proforma::with('poster')
+											->whereHas('poster')
+											->orderBy('created_at', 'desc')
+											->paginate(20);
 									@endphp
 						<tbody id="proformaTableBody">
 							@foreach($allProformas as $proforma)

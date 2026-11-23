@@ -392,11 +392,9 @@ Route::get('/api/admin/proformas', function () {
         ->whereHas('poster')
         ->orderBy('created_at', 'desc');
 
-    if (!($user->is_superadmin == 1)) {
-        $proformasQuery->where(function ($q) use ($user) {
-            $q->whereNull('processed_by')->orWhere('processed_by', $user->id);
-        });
-    }
+    // All admins see all proformas - no processed_by restriction.
+    // Previously only superadmins saw everything; regular admins lost
+    // sight of proformas floated by other admins.
 
     $proformas = $proformasQuery
         ->limit(100)
@@ -2057,9 +2055,8 @@ Route::post('/commission-overrides/{proforma}', function (Request $request, Prof
 
         // Post Proforma
         Route::get('/post-proforma', function (Request $request) {
-            $proforma = \App\Models\Proforma::find(
-                $request->query('proforma_id')
-            );
+            $proforma = \App\Models\Proforma::with('processedBy')
+                ->find($request->query('proforma_id'));
             if (! $proforma) {
                 return redirect()->back();
             }

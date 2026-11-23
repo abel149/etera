@@ -117,6 +117,16 @@
                   <td class="proportional">{{ $proforma->selectedBy()?->operator?->name ?? 'N/A' }}</td>
                   @endif
                 </tr>
+                <tr>
+                  <td class="no-wrap"><b>Floated By</b></td>
+                  <td class="proportional" colspan="3">
+                    @if($proforma->processedBy)
+                      {{ $proforma->processedBy->name }}
+                    @else
+                      <span class="text-muted">Not floated yet</span>
+                    @endif
+                  </td>
+                </tr>
 
                 
                 <tr>
