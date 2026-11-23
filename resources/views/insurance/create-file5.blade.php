@@ -97,7 +97,7 @@
                                         @enderror
                                     </div>
                                     
-                                    <!-- Add Is Insured Checkbox here -->
+                                    {{-- Is Insured checkbox (hidden - always insured by default):
                                     <div class="col-12 col-lg-6">
                                         <div class="form-check mt-4">
                                             <input class="form-check-input" type="checkbox" name="insured" id="insured" value="1" {{ old('insured') ? 'checked' : '' }}>
@@ -109,6 +109,7 @@
                                             <span class="text-danger">{{ $message }}</span>
                                         @enderror
                                     </div>
+                                    --}}
                                     
                                     <div class="col-12 col-lg-6">
                                         <label for="car_type" class="form-label">Car Type</label>

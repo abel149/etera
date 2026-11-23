@@ -3734,7 +3734,7 @@ Route::get('/balance', [UserBalanceController::class, 'index'])->name('insurance
                 'proforma_type' => $proformaType,
                 'timer_duration' => $timerMinutes,
                 'timer_expires_at' => $timerExpiresAt,
-                'insured' => $request->has('insured') ? true : false,
+                'insured' => true, // always insured — checkbox removed from UI
                 'call_customer' => $request->has('call_customer'),
             ]);
 
