@@ -116,23 +116,23 @@ class="current"
             aria-label="Default select example">
 
         <option value="1" {{ old('number_of_proformas') == 1 ? 'selected' : '' }}>
-            1: ({{ number_format($cost->{'1_proforma_cost'}, 2) }} Birr)
+            1: ({{ $cost ? number_format($cost->{'1_proforma_cost'}, 2) : '0.00' }} Birr)
         </option>
 
         <option value="2" {{ old('number_of_proformas') == 2 ? 'selected' : '' }}>
-            2: ({{ number_format($cost->{'2_proforma_cost'}, 2) }} Birr)
+            2: ({{ $cost ? number_format($cost->{'2_proforma_cost'}, 2) : '0.00' }} Birr)
         </option>
 
         <option value="3" {{ old('number_of_proformas') == 3 ? 'selected' : '' }}>
-            3: ({{ number_format($cost->{'3_proforma_cost'}, 2) }} Birr)
+            3: ({{ $cost ? number_format($cost->{'3_proforma_cost'}, 2) : '0.00' }} Birr)
         </option>
 
         <!-- <option value="4" {{ old('number_of_proformas') == 4 ? 'selected' : '' }}>
-            4: ({{ number_format($cost->{'4_proforma_cost'}, 2) }} Birr)
+            4: ({{ $cost ? number_format($cost->{'4_proforma_cost'}, 2) : '0.00' }} Birr)
         </option> -->
 
         <option value="-1" {{ old('number_of_proformas') == -1 ? 'selected' : '' }}>
-             5: Unlimited by timer ({{ number_format($cost->etera_chereta_cost, 2) }} Birr)
+             5: Unlimited by timer ({{ $cost ? number_format($cost->etera_chereta_cost, 2) : '0.00' }} Birr)
         </option>
     </select>
 </div>

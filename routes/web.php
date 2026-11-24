@@ -4365,7 +4365,7 @@ Route::prefix('garage')
          * Display the proforma creation form
          */
         Route::get('create-file', function () {
-            Log::info('🔍 GET request to garage/create-file');
+            try { Log::info('🔍 GET request to garage/create-file'); } catch (\Throwable $e) {}
             return view('spare-part.posts');
         })->name('garage.create-file.2');
 
