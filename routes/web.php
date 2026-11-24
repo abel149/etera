@@ -4379,20 +4379,25 @@ Route::prefix('garage')
          * Handle form submission (POST)
          */
         Route::post('create-file', function (Request $request) {
-            Log::info('📝 POST request to garage/create-file received', [
-                'user_id' => auth()->id(),
-                'has_files' => $request->hasFile('parts.photo'),
-                'all_input_keys' => array_keys($request->all()),
-                'files_count' => $request->hasFile('parts.photo') ? count($request->file('parts.photo')) : 0,
-            ]);
-
-            Log::debug('📥 Full Request Data Snapshot', [
-                'raw_input' => $request->except(['voice_note']),
-                'voice_note_present' => $request->filled('voice_note'),
-            ]);
-
             // 🔹 Step 1 — Validate input
             try {
+                // Log inside try-catch so a storage-permission failure is caught rather than
+                // escaping to the global exception handler where it would silence everything.
+                try {
+                    Log::info('📝 POST request to garage/create-file received', [
+                        'user_id' => auth()->id(),
+                        'has_files' => $request->hasFile('parts.photo'),
+                        'all_input_keys' => array_keys($request->all()),
+                        'files_count' => $request->hasFile('parts.photo') ? count($request->file('parts.photo')) : 0,
+                    ]);
+                    Log::debug('📥 Full Request Data Snapshot', [
+                        'raw_input' => $request->except(['voice_note']),
+                        'voice_note_present' => $request->filled('voice_note'),
+                    ]);
+                } catch (\Throwable $logEx) {
+                    // Logging failed (e.g. storage permissions) — continue without crashing
+                }
+
                 $validatedData = $request->validate([
                     'number_of_proformas' => ['required', 'integer', 'min:-1', 'max:4'],
                     'etera_chereta_hours' => ['nullable', 'integer', 'in:4,8,12,24,48,72'],
@@ -4421,12 +4426,14 @@ Route::prefix('garage')
                     'voice_note' => ['nullable', 'string'],
                 ]);
 
-                Log::info('✅ Validation passed successfully');
+                try { Log::info('✅ Validation passed successfully'); } catch (\Throwable $logEx) {}
             } catch (\Illuminate\Validation\ValidationException $e) {
-                Log::error('❌ Validation failed', [
-                    'errors' => $e->errors(),
-                    'input_data' => $request->except(['parts.photo', 'voice_note'])
-                ]);
+                try {
+                    Log::error('❌ Validation failed', [
+                        'errors' => $e->errors(),
+                        'input_data' => $request->except(['parts.photo', 'voice_note'])
+                    ]);
+                } catch (\Throwable $logEx) {}
                 return redirect()->back()->withErrors($e->errors())->withInput();
             }
 
@@ -4457,8 +4464,11 @@ Route::prefix('garage')
                 ]);
 
                 // 🔹 Step 3 — Handle spare parts
-                // 🔹 Step 3 — Handle spare parts
                 $partsData = $request->input('parts');
+
+                if (empty($partsData['condition'])) {
+                    throw new \RuntimeException('No parts data received. Please add at least one part.');
+                }
 
                 foreach ($partsData['condition'] as $index => $condition) {
                     $part = $proforma->parts()->create([
@@ -4542,13 +4552,35 @@ Route::prefix('garage')
                 }
 
                 return redirect()->back()->with('success', 'Proforma created successfully!');
-            } catch (\Exception $e) {
+            } catch (\Throwable $e) {
                 DB::rollBack();
-                Log::error('❌ Proforma creation failed', [
-                    'error' => $e->getMessage(),
-                    'trace' => $e->getTraceAsString()
-                ]);
-                return redirect()->back()->withErrors(['general' => 'An unexpected error occurred.'])->withInput();
+                // Wrap log call — if storage is broken the log write itself can throw,
+                // which would otherwise cascade into another unhandled exception.
+                try {
+                    Log::error('❌ Proforma creation failed', [
+                        'error'   => $e->getMessage(),
+                        'file'    => $e->getFile(),
+                        'line'    => $e->getLine(),
+                        'trace'   => $e->getTraceAsString(),
+                    ]);
+                } catch (\Throwable $logEx) {
+                    // Log write failed — store error in DB as fallback
+                    try {
+                        \App\Models\AppError::create([
+                            'user_id'     => auth()->id(),
+                            'url'         => request()->fullUrl(),
+                            'method'      => 'POST',
+                            'status_code' => 500,
+                            'message'     => 'garage.create-file: ' . $e->getMessage(),
+                            'trace'       => $e->getTraceAsString(),
+                            'hash'        => md5($e->getMessage() . $e->getFile() . $e->getLine()),
+                            'fixed'       => false,
+                        ]);
+                    } catch (\Throwable $dbEx) {
+                        // Both log and DB failed — nothing we can do at this point
+                    }
+                }
+                return redirect()->back()->withErrors(['general' => 'An unexpected error occurred. Please try again.'])->withInput();
             }
         })->name('garage.create-file');
     });

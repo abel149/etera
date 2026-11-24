@@ -94,7 +94,11 @@ return Application::configure(basePath: dirname(__DIR__))
 
             // 419 - Page Expired
             if ($e instanceof TokenMismatchException) {
-                return response()->view('errors.419', [], 419);
+                try {
+                    return response()->view('errors.419', [], 419);
+                } catch (\Throwable $viewEx) {
+                    return response('Session expired. Please go back and try again.', 419);
+                }
             }
 
             $status = method_exists($e, 'getStatusCode') ? $e->getStatusCode() : 500;
@@ -104,54 +108,69 @@ return Application::configure(basePath: dirname(__DIR__))
             // =========================
             if ($status >= 500) {
 
-                // Log to laravel.log
-                \Log::error('🔥 500 ERROR DETECTED', [
-                    'exception' => $e->getMessage(),
-                    'user'      => auth()->user()?->email ?? 'Guest',
-                    'url'       => request()->fullUrl(),
-                ]);
+                // Log to laravel.log — wrapped so a storage-permission failure does NOT
+                // cause the exception handler itself to crash (which silences everything).
+                try {
+                    \Log::error('🔥 500 ERROR DETECTED', [
+                        'exception' => $e->getMessage(),
+                        'file'      => $e->getFile(),
+                        'line'      => $e->getLine(),
+                        'user'      => auth()->user()?->email ?? 'Guest',
+                        'url'       => request()->fullUrl(),
+                    ]);
+                } catch (\Throwable $logEx) {
+                    // Log write failed — storage permissions likely broken on server.
+                    // Run: sudo chown -R www-data:www-data /var/www/html/storage
+                    //      sudo chmod -R 775 /var/www/html/storage
+                }
 
-                // Hash to prevent duplicate reporting
+                // Hash to prevent duplicate DB records
                 $hash = md5($e->getMessage() . $e->getFile() . $e->getLine());
 
-                if (!AppError::where('hash', $hash)->where('fixed', false)->exists()) {
+                try {
+                    if (!AppError::where('hash', $hash)->where('fixed', false)->exists()) {
 
-                    // Save to database
-                    AppError::create([
-                        'user_id'     => auth()->id(),
-                        'url'         => request()->fullUrl(),
-                        'method'      => request()->method(),
-                        'status_code' => $status,
-                        'message'     => $e->getMessage(),
-                        'trace'       => $e->getTraceAsString(),
-                        'hash'        => $hash,
-                        'fixed'       => false,
-                    ]);
+                        // Save to database
+                        AppError::create([
+                            'user_id'     => auth()->id(),
+                            'url'         => request()->fullUrl(),
+                            'method'      => request()->method(),
+                            'status_code' => $status,
+                            'message'     => $e->getMessage(),
+                            'trace'       => $e->getTraceAsString(),
+                            'hash'        => $hash,
+                            'fixed'       => false,
+                        ]);
 
-                    // Prepare user array
-                    $userData = ['email' => auth()->user()?->email ?? 'Guest'];
+                        // Prepare user array
+                        $userData = ['email' => auth()->user()?->email ?? 'Guest'];
 
-                    if (config('app.send_server_error_emails', false)) {
-                        // Email developers
-                        foreach ($developers as $dev) {
-                            try {
-                                Mail::to($dev['email'])->send(new ServerErrorMail([
-                                    'errorMessage' => (string)$e->getMessage(),
-                                    'status'  => $status,
-                                    'url'     => request()->fullUrl(),
-                                    'method'  => request()->method(),
-                                    'trace'   => (string)$e->getTraceAsString(),
-                                    'user'    => $userData,
-                                ]));
-                            } catch (\Throwable $mailError) {
-                                \Log::error('Failed to send server error email', [
-                                    'original_exception' => $e->getMessage(),
-                                    'mail_exception' => $mailError->getMessage(),
-                                    'developer_email' => $dev['email'],
-                                ]);
+                        if (config('app.send_server_error_emails', false)) {
+                            // Email developers
+                            foreach ($developers as $dev) {
+                                try {
+                                    Mail::to($dev['email'])->send(new ServerErrorMail([
+                                        'errorMessage' => (string)$e->getMessage(),
+                                        'status'  => $status,
+                                        'url'     => request()->fullUrl(),
+                                        'method'  => request()->method(),
+                                        'trace'   => (string)$e->getTraceAsString(),
+                                        'user'    => $userData,
+                                    ]));
+                                } catch (\Throwable $mailError) {
+                                    try {
+                                        \Log::error('Failed to send server error email', [
+                                            'original_exception' => $e->getMessage(),
+                                            'mail_exception' => $mailError->getMessage(),
+                                            'developer_email' => $dev['email'],
+                                        ]);
+                                    } catch (\Throwable $logEx2) {}
+                                }
                             }
                         }
                     }
+                } catch (\Throwable $dbEx) {
+                    // DB save failed — already logged above (if log worked)
                 }
             }
 
@@ -162,15 +181,27 @@ return Application::configure(basePath: dirname(__DIR__))
             // HTTP exceptions (4xx / 5xx)
             if ($e instanceof HttpExceptionInterface) {
                 if ($status >= 400 && $status < 500) {
-                    return response()->view('errors.4xx', ['exception' => $e], $status);
+                    try {
+                        return response()->view('errors.4xx', ['exception' => $e], $status);
+                    } catch (\Throwable $viewEx) {
+                        return response('An error occurred (' . $status . ').', $status);
+                    }
                 }
                 if ($status >= 500) {
-                    return response()->view('errors.5xx', ['exception' => $e], $status);
+                    try {
+                        return response()->view('errors.5xx', ['exception' => $e], $status);
+                    } catch (\Throwable $viewEx) {
+                        return response('A server error occurred. Please try again.', 500);
+                    }
                 }
             }
 
             // Non-HTTP exceptions → 500
-            return response()->view('errors.5xx', ['exception' => $e], 500);
+            try {
+                return response()->view('errors.5xx', ['exception' => $e], 500);
+            } catch (\Throwable $viewEx) {
+                return response('A server error occurred. Please try again.', 500);
+            }
         });
 
         /*
