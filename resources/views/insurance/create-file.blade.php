@@ -490,19 +490,24 @@
                                         @endif
                                     </div>
                                 </div>
-                                <p class="mb-2">Send to inbox <span class="text-secondary small">(optional — each row is a separate group; when one applies the others in that row are removed)</span></p>
-
+                      
                                 {{-- ── SHOPS ─────────────────────────────────────────────── --}}
                                 <div id="shopGroupsWrapper">
-                                <h6 class="mt-3 mb-2 text-muted fw-semibold">Shops</h6>
+                                <div class="d-flex align-items-center justify-content-between mt-3 mb-2 flex-wrap gap-2">
+                                    <h6 class="mb-0 text-muted fw-semibold">Shops</h6>
+                                    {{-- One brand filter shared by every shop slot --}}
+                                    <select class="form-select radius-30 brand-filter-select" id="shopBrandFilter" style="display:none; width:auto; min-width:180px;">
+                                        <option value="">All Brands</option>
+                                    </select>
+                                </div>
 
                                 {{-- Group 1: All shops (same as other slots) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="1">
                                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <label for="shopPartners" class="form-label mb-0">Shops — Slot 1 <span class="text-secondary small">(all shops)</span></label>
-                                        <select class="form-select radius-30 brand-filter-select" data-target="shopPartners" style="display:none; width:auto; min-width:180px;">
+                                        <label for="shopPartners" class="form-label mb-0">Shops — Slot 1</label>
+                                        {{-- <select class="form-select radius-30 brand-filter-select" data-target="shopPartners" style="display:none; width:auto; min-width:180px;">
                                             <option value="">All Brands</option>
-                                        </select>
+                                        </select> --}}
                                     </div>
                                     <select class="form-select shop-select" name="spare_part_partners[]" id="shopPartners" multiple size="4"></select>
                                 </div>
@@ -510,10 +515,10 @@
                                 {{-- Group 2 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="2">
                                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <label for="shopExtra1" class="form-label mb-0">Additional Shops — Slot 2 <span class="text-secondary small">(all shops)</span></label>
-                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra1" style="display:none; width:auto; min-width:180px;">
+                                        <label for="shopExtra1" class="form-label mb-0">Additional Shops — Slot 2</label>
+                                        {{-- <select class="form-select radius-30 brand-filter-select" data-target="shopExtra1" style="display:none; width:auto; min-width:180px;">
                                             <option value="">All Brands</option>
-                                        </select>
+                                        </select> --}}
                                     </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra1[]" id="shopExtra1" multiple size="4"></select>
                                 </div>
@@ -521,10 +526,10 @@
                                 {{-- Group 3 --}}
                                 <div class="mb-3 shop-inbox-group" data-group="3">
                                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <label for="shopExtra2" class="form-label mb-0">Additional Shops — Slot 3 <span class="text-secondary small">(all shops)</span></label>
-                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra2" style="display:none; width:auto; min-width:180px;">
+                                        <label for="shopExtra2" class="form-label mb-0">Additional Shops — Slot 3</label>
+                                        {{-- <select class="form-select radius-30 brand-filter-select" data-target="shopExtra2" style="display:none; width:auto; min-width:180px;">
                                             <option value="">All Brands</option>
-                                        </select>
+                                        </select> --}}
                                     </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra2[]" id="shopExtra2" multiple size="4"></select>
                                 </div>
@@ -532,10 +537,10 @@
                                 {{-- Group 4 (shown when required ≥ 4) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="4" style="display:none">
                                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <label for="shopExtra3" class="form-label mb-0">Additional Shops — Slot 4 <span class="text-secondary small">(all shops)</span></label>
-                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra3" style="display:none; width:auto; min-width:180px;">
+                                        <label for="shopExtra3" class="form-label mb-0">Additional Shops — Slot 4</label>
+                                        {{-- <select class="form-select radius-30 brand-filter-select" data-target="shopExtra3" style="display:none; width:auto; min-width:180px;">
                                             <option value="">All Brands</option>
-                                        </select>
+                                        </select> --}}
                                     </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra3[]" id="shopExtra3" multiple size="4"></select>
                                 </div>
@@ -543,10 +548,10 @@
                                 {{-- Group 5 (shown when required = 5) --}}
                                 <div class="mb-3 shop-inbox-group" data-group="5" style="display:none">
                                     <div class="d-flex align-items-center justify-content-between mb-2 flex-wrap gap-2">
-                                        <label for="shopExtra4" class="form-label mb-0">Additional Shops — Slot 5 <span class="text-secondary small">(all shops)</span></label>
-                                        <select class="form-select radius-30 brand-filter-select" data-target="shopExtra4" style="display:none; width:auto; min-width:180px;">
+                                        <label for="shopExtra4" class="form-label mb-0">Additional Shops — Slot 5</label>
+                                        {{-- <select class="form-select radius-30 brand-filter-select" data-target="shopExtra4" style="display:none; width:auto; min-width:180px;">
                                             <option value="">All Brands</option>
-                                        </select>
+                                        </select> --}}
                                     </div>
                                     <select class="form-select shop-select" name="insurance_shop_extra4[]" id="shopExtra4" multiple size="4"></select>
                                 </div>
@@ -559,31 +564,31 @@
 
                                 {{-- Group 1: All garages (same as other slots) --}}
                                 <div class="mb-3 garage-inbox-group" data-group="1">
-                                    <label for="garagePartners" class="form-label">Garages — Slot 1 <span class="text-secondary small">(all garages)</span></label>
+                                    <label for="garagePartners" class="form-label">Garages — Slot 1</label>
                                     <select class="form-select" name="garage_partners[]" id="garagePartners" multiple size="4"></select>
                                 </div>
 
                                 {{-- Group 2 --}}
                                 <div class="mb-3 garage-inbox-group" data-group="2">
-                                    <label for="garageExtra1" class="form-label">Additional Garages — Slot 2 <span class="text-secondary small">(all garages)</span></label>
+                                    <label for="garageExtra1" class="form-label">Additional Garages — Slot 2</label>
                                     <select class="form-select" name="insurance_garage_extra1[]" id="garageExtra1" multiple size="4"></select>
                                 </div>
 
                                 {{-- Group 3 --}}
                                 <div class="mb-3 garage-inbox-group" data-group="3">
-                                    <label for="garageExtra2" class="form-label">Additional Garages — Slot 3 <span class="text-secondary small">(all garages)</span></label>
+                                    <label for="garageExtra2" class="form-label">Additional Garages — Slot 3</label>
                                     <select class="form-select" name="insurance_garage_extra2[]" id="garageExtra2" multiple size="4"></select>
                                 </div>
 
                                 {{-- Group 4 (shown when required ≥ 4) --}}
                                 <div class="mb-3 garage-inbox-group" data-group="4" style="display:none">
-                                    <label for="garageExtra3" class="form-label">Additional Garages — Slot 4 <span class="text-secondary small">(all garages)</span></label>
+                                    <label for="garageExtra3" class="form-label">Additional Garages — Slot 4</label>
                                     <select class="form-select" name="insurance_garage_extra3[]" id="garageExtra3" multiple size="4"></select>
                                 </div>
 
                                 {{-- Group 5 (shown when required = 5) --}}
                                 <div class="mb-3 garage-inbox-group" data-group="5" style="display:none">
-                                    <label for="garageExtra4" class="form-label">Additional Garages — Slot 5 <span class="text-secondary small">(all garages)</span></label>
+                                    <label for="garageExtra4" class="form-label">Additional Garages — Slot 5</label>
                                     <select class="form-select" name="insurance_garage_extra4[]" id="garageExtra4" multiple size="4"></select>
                                 </div>
 
@@ -891,7 +896,8 @@ document.addEventListener('DOMContentLoaded', () => {
         const dualOnly = currentShopType === 'insurance_shop_garage';
         let selectedBrand = '';
         if (isShop) {
-            const brandSelect = document.querySelector('.brand-filter-select[data-target="' + sel.id + '"]');
+            // const brandSelect = document.querySelector('.brand-filter-select[data-target="' + sel.id + '"]');
+            const brandSelect = document.getElementById('shopBrandFilter');
             selectedBrand = brandSelect ? brandSelect.value : '';
         }
         if (window.jQuery && $(sel).hasClass('select2-hidden-accessible')) {
