@@ -224,7 +224,12 @@ class User extends Authenticatable
 
     public function getInboxCount() {
         return $this->myInbox()
+            ->whereHas('proforma.poster')
             ->whereHas('proforma', fn($q) => $q->whereIn('status', ['pending', 'published', 'opened']))
+            // Match the inbox view: dual-service proformas are hidden from non-dual shops
+            ->when($this->shop_garage != 1, fn($q) => $q->whereHas('proforma', fn($p) =>
+                $p->where(fn($t) => $t->whereNull('proforma_type')->orWhere('proforma_type', '!=', 'insurance_shop_garage'))
+            ))
             ->distinct('proforma_id')
             ->count('proforma_id');
     }
