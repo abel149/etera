@@ -4344,30 +4344,13 @@ Route::get('/received-details', function (Request $request) {
             return view('spare-part.others', compact('proformas'));
         });
 
-Route::get('/create-file', function () {
-    return view('spare-part.posts');
-})->name('garage.create-file.orig');
-
-// use Illuminate\Http\Request;
-// use Illuminate\Support\Facades\DB;
-// use Illuminate\Support\Facades\Log;
-// use Illuminate\Support\Facades\Storage;
-// use App\Jobs\AutoSelectProformaOffers;
-// use App\Models\Proforma;
-// use App\Http\Middleware\GarageMiddleware;
-// use App\Http\Controllers\TempController;
-
-Route::prefix('garage')
-    ->middleware([GarageMiddleware::class])
-    ->group(function () {
-
         /**
          * Display the proforma creation form
          */
         Route::get('create-file', function () {
             try { Log::info('🔍 GET request to garage/create-file'); } catch (\Throwable $e) {}
             return view('spare-part.posts');
-        })->name('garage.create-file.2');
+        })->name('garage.create-file');
 
         /**
          * Handle FilePond uploads
@@ -4582,17 +4565,11 @@ Route::prefix('garage')
                 }
                 return redirect()->back()->withErrors(['general' => 'An unexpected error occurred. Please try again.'])->withInput();
             }
-        })->name('garage.create-file');
-    });
+        })->name('garage.create-file.post');
 
         Route::get('/profile', function () {
             return view('spare-part.profile');
         });
-
-
-
-
-        
     });
 
 Route::post('apply/{proforma}', [ProformaApplicationController::class, 'store'])->name('proforma.apply');
