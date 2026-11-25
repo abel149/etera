@@ -2899,6 +2899,11 @@ Route::put('/business-owners/{id}', [BusinessOwnerController::class, 'update'])
                 'brands' => $brands,
             ]);
         });
+
+        // Marketer profile (change password, contact info)
+        Route::get('/profile', function () {
+            return view('marketer.profile');
+        })->name('marketer.profile');
     });
 
 Route::prefix('employee')
