@@ -1,6 +1,8 @@
 @extends('layouts.marketer')
 @section('content')
 <!--start page wrapper -->
+<div class="page-wrapper">
+	<div class="page-content">
 				<div class="container">
 					<div class="main-body">
 
@@ -48,16 +50,6 @@
 												<div class="col-sm-9 text-secondary">
 													<input type="text" name="name" class="form-control @error('name') is-invalid @enderror" value="{{ old('name', auth()->user()->name) }}" />
 													@error('name')<div class="invalid-feedback">{{ $message }}</div>@enderror
-												</div>
-											</div>
-
-											<div class="row mb-3">
-												<div class="col-sm-3">
-													<h6 class="mb-0">Email</h6>
-												</div>
-												<div class="col-sm-9 text-secondary">
-													<input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', filter_var(auth()->user()->email, FILTER_VALIDATE_EMAIL) ? auth()->user()->email : '') }}" />
-													@error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
 												</div>
 											</div>
 
@@ -118,6 +110,7 @@
 						</div>
 					</div>
 				</div>
-
+	</div>
+</div>
 		<!--end page wrapper -->
 @endsection
