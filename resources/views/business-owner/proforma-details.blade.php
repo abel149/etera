@@ -423,13 +423,13 @@
                                 $boFileExt = strtolower(pathinfo($application->pdf->original_filename ?? '', PATHINFO_EXTENSION));
                                 $boIsImage = in_array($boFileExt, ['jpg','jpeg','png','gif','webp','bmp']);
                             @endphp
-                            <div style="margin:0 1.5rem 1rem; padding:12px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; gap:12px;">
-                                <i class="bx {{ $boIsImage ? 'bxs-image' : 'bxs-file-pdf' }}" style="font-size:1.8rem;color:{{ $boIsImage ? '#3b82f6' : '#ef4444' }};flex-shrink:0;"></i>
+                            <div style="margin:0 1.5rem 1rem; padding:12px 16px; background:#f8fafc; border:1px solid #e2e8f0; border-radius:10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap;">
+                                <i class="bx {{ $boIsImage ? 'bxs-image' : 'bxs-file-pdf' }}" style="font-size:1.5rem;color:{{ $boIsImage ? '#3b82f6' : '#ef4444' }};flex-shrink:0;line-height:1;"></i>
                                 <div style="flex:1; min-width:0;">
                                     <div style="font-weight:600; font-size:0.88rem; color:#1e293b;">{{ $boIsImage ? 'Image' : 'PDF' }} Quotation</div>
                                     <div style="font-size:0.78rem; color:#64748b; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ $application->pdf->original_filename }}</div>
                                 </div>
-                                <button type="button" class="btn btn-sm btn-outline-primary"
+                                <button type="button" class="btn btn-sm btn-outline-primary" style="white-space:nowrap;flex-shrink:0;"
                                         onclick="openPdfViewer(this)"
                                         data-encrypted="0"
                                         data-filename="{{ $application->pdf->original_filename }}"
@@ -613,35 +613,43 @@
 
 {{-- PDF Viewer Modal --}}
 <style>
-#pdfViewerModal .modal-dialog { max-width: 95vw; margin: 1rem auto; }
-#pdfViewerModal .modal-content { height: 90vh; max-height: calc(100vh - 2rem); }
+#pdfViewerModal .modal-dialog { max-width: 95vw; width: 95vw; margin: 1rem auto; }
+#pdfViewerModal .modal-content { height: 90vh; max-height: calc(100vh - 2rem); display: flex; flex-direction: column; }
+#pdfViewerModal .modal-body { flex: 1 1 auto; min-height: 0; overflow: hidden; position: relative; }
 @media (max-width: 768px) {
-    #pdfViewerModal .modal-dialog { max-width: 100vw; margin: 0; height: 100%; }
+    #pdfViewerModal .modal-dialog { max-width: 100%; width: 100%; margin: 0; height: 100%; }
     #pdfViewerModal .modal-content { height: 100vh; max-height: 100vh; border-radius: 0; }
-    #pdfViewerModal .modal-footer { flex-wrap: wrap; gap: 4px; padding: 8px; }
-    #pdfViewerModal .modal-footer .btn { font-size: 0.8rem; padding: 6px 10px; }
+    #pdfViewerModal .modal-header { padding: 10px 12px; }
+    #pdfViewerModal .modal-header .modal-title { font-size: 0.95rem; }
+    #pdfViewerModal .modal-footer { flex-wrap: wrap; gap: 6px; padding: 8px 10px; justify-content: center; }
+    #pdfViewerModal .modal-footer .btn,
+    #pdfViewerModal .modal-footer a.btn { font-size: 0.78rem; padding: 5px 10px; flex: 0 0 auto; }
 }
 #boFileImageContainer {
     display: none; width: 100%; height: 100%; overflow: auto;
-    -webkit-overflow-scrolling: touch; text-align: center; background: #1a1a1a;
+    -webkit-overflow-scrolling: touch; text-align: center; background: #1a1a1a; padding: 8px;
 }
-#boFileImageContainer img { max-width: 100%; height: auto; object-fit: contain; }
+#boFileImageContainer img { max-width: 100%; max-height: 100%; height: auto; object-fit: contain; border-radius: 4px; }
+#boMobilePdfFallback {
+    display: none; width: 100%; height: 100%; align-items: center; justify-content: center;
+    flex-direction: column; padding: 2rem; background: #1a1a1a; text-align: center;
+}
 </style>
 <div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="d-flex align-items-center gap-2">
-                    <i class="bx bxs-file fs-5" id="boFileViewerIcon" style="color:#ef4444;"></i>
+                    <i class="bx bxs-file-pdf fs-5" id="boFileViewerIcon" style="color:#ef4444;"></i>
                     <h5 class="modal-title mb-0" id="boFileViewerTitle">Quotation</h5>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePdfViewer()"></button>
             </div>
-            <div class="modal-body p-0" style="position:relative;flex:1;overflow:hidden;">
+            <div class="modal-body p-0">
                 <div id="pdfViewerLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:rgba(0,0,0,0.15);">
                     <div class="spinner-border text-primary" role="status"></div>
                 </div>
-                <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
+                <div id="pdfIframeContainer" style="width:100%;height:100%;position:relative;">
                     <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="Quotation"></iframe>
                     <div id="pdfStampOverlay" style="position:absolute;bottom:40px;right:30px;width:150px;height:150px;opacity:0.75;pointer-events:none;z-index:5;transform:rotate(10deg);mix-blend-mode:multiply;">
                         <img id="pdfStampImg" src="" alt="Stamp" style="width:100%;height:100%;object-fit:contain;filter:contrast(1.6) brightness(1.2) saturate(1.3);">
@@ -650,6 +658,7 @@
                 <div id="boFileImageContainer">
                     <img id="boFileImageViewer" src="" alt="Quotation Image" />
                 </div>
+                <div id="boMobilePdfFallback"></div>
             </div>
             <div class="modal-footer d-print-none">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closePdfViewer()">Close</button>
@@ -1116,10 +1125,23 @@
         const iframe = document.getElementById('pdfViewerIframe');
         const imgC = document.getElementById('boFileImageContainer');
         const imgEl = document.getElementById('boFileImageViewer');
+        const mobileFb = document.getElementById('boMobilePdfFallback');
+        const icon = document.getElementById('boFileViewerIcon');
+        const title = document.getElementById('boFileViewerTitle');
+        const openTab = document.getElementById('boFileOpenNewTab');
+        const dlBtn = document.getElementById('boFileDownloadBtn');
+        const printBtn = document.getElementById('boPrintBtn');
         if (iframe) iframe.src = '';
         if (imgEl) imgEl.src = '';
         if (imgC) imgC.style.display = 'none';
+        if (mobileFb) { mobileFb.style.display = 'none'; mobileFb.innerHTML = ''; }
         document.getElementById('pdfIframeContainer').style.display = 'block';
+        // Reset icon to default
+        if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
+        if (title) title.textContent = 'Quotation';
+        if (openTab) openTab.style.display = 'none';
+        if (dlBtn) dlBtn.style.display = 'none';
+        if (printBtn) printBtn.style.display = '';
         if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
         _boCurrentUrl = null; _boIsImage = false;
     }
@@ -1155,6 +1177,7 @@
         const iframeCont = document.getElementById('pdfIframeContainer');
         const imgC      = document.getElementById('boFileImageContainer');
         const imgEl     = document.getElementById('boFileImageViewer');
+        const mobileFb  = document.getElementById('boMobilePdfFallback');
         const icon      = document.getElementById('boFileViewerIcon');
         const title     = document.getElementById('boFileViewerTitle');
         const openTab   = document.getElementById('boFileOpenNewTab');
@@ -1178,6 +1201,7 @@
             _boCurrentName = filename || 'quotation';
 
             if (_boIsImgFile(filename, contentType)) {
+                // Image file — show in img tag
                 _boIsImage = true;
                 iframeCont.style.display = 'none';
                 imgC.style.display = 'block';
@@ -1187,24 +1211,21 @@
                 if (printBtn) printBtn.style.display = 'none';
                 loading.style.display = 'none';
             } else if (_boIsMobile) {
-                // Mobile can't render PDFs in iframes
+                // Mobile can't render PDFs in iframes — use separate fallback container
                 iframeCont.style.display = 'none';
-                imgC.style.display = 'flex';
-                imgC.style.alignItems = 'center';
-                imgC.style.justifyContent = 'center';
-                imgC.style.flexDirection = 'column';
-                imgC.style.padding = '2rem';
-                imgC.innerHTML = `
-                    <div style="text-align:center;color:#666;">
-                        <i class="bx bxs-file-pdf" style="font-size:4rem;color:#ef4444;margin-bottom:1rem;"></i>
+                mobileFb.style.display = 'flex';
+                mobileFb.innerHTML = `
+                    <div style="text-align:center;color:#fff;">
+                        <i class="bx bxs-file-pdf" style="font-size:4rem;color:#ef4444;margin-bottom:1rem;display:inline-block;line-height:1;"></i>
                         <p style="margin-bottom:1rem;font-size:1rem;">PDF files open best in your device's PDF viewer.</p>
-                        <a href="${_pdfBlobUrl}" target="_blank" rel="noopener" class="btn btn-primary mb-2" style="display:block;"><i class="bx bx-link-external"></i> Open PDF</a>
-                        <a href="${_pdfBlobUrl}" download="${filename || 'quotation.pdf'}" class="btn btn-outline-secondary" style="display:block;"><i class="bx bx-download"></i> Download PDF</a>
+                        <a href="${_pdfBlobUrl}" target="_blank" rel="noopener" class="btn btn-primary mb-2 d-block"><i class="bx bx-link-external"></i> Open PDF</a>
+                        <a href="${_pdfBlobUrl}" download="${filename || 'quotation.pdf'}" class="btn btn-outline-light d-block"><i class="bx bx-download"></i> Download PDF</a>
                     </div>`;
                 if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
                 if (title) title.textContent = filename || 'PDF Quotation';
                 loading.style.display = 'none';
             } else {
+                // Desktop — show PDF in iframe
                 if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
                 if (title) title.textContent = filename || 'PDF Quotation';
                 iframe.onload = function() { loading.style.display = 'none'; };

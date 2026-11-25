@@ -373,8 +373,8 @@
                                 $pdfExt = strtolower(pathinfo($application->pdf->original_filename ?? '', PATHINFO_EXTENSION));
                                 $isImage = in_array($pdfExt, ['jpg','jpeg','png','gif','webp','bmp']);
                             @endphp
-                            <div class="d-flex align-items-center gap-2 py-2 px-3" style="background:rgba(13,148,136,0.08);border:1px solid rgba(13,148,136,0.2);border-radius:8px;">
-                                <i class="bx {{ $isImage ? 'bxs-image' : 'bxs-file-pdf' }} fs-4" style="color:{{ $isImage ? '#3b82f6' : '#ef4444' }};"></i>
+                            <div class="file-quotation-bar">
+                                <i class="bx {{ $isImage ? 'bxs-image' : 'bxs-file-pdf' }}" style="font-size:1.5rem;color:{{ $isImage ? '#3b82f6' : '#ef4444' }};flex-shrink:0;line-height:1;"></i>
                                 <div class="flex-grow-1">
                                     <div style="font-weight:600;font-size:0.88rem;">{{ $isImage ? 'Image' : 'PDF' }} Quotation</div>
                                     <div style="font-size:0.78rem;color:#aaa;">{{ $application->pdf->original_filename }}</div>
@@ -819,15 +819,25 @@
 <style>
 #pdfViewerModal .modal-dialog {
     max-width: 95vw;
+    width: 95vw;
     margin: 1rem auto;
 }
 #pdfViewerModal .modal-content {
     height: 90vh;
     max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+#pdfViewerModal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
 }
 @media (max-width: 768px) {
     #pdfViewerModal .modal-dialog {
-        max-width: 100vw;
+        max-width: 100%;
+        width: 100%;
         margin: 0;
         height: 100%;
     }
@@ -836,14 +846,23 @@
         max-height: 100vh;
         border-radius: 0;
     }
+    #pdfViewerModal .modal-header {
+        padding: 10px 12px;
+    }
+    #pdfViewerModal .modal-header .modal-title {
+        font-size: 0.95rem;
+    }
     #pdfViewerModal .modal-footer {
         flex-wrap: wrap;
-        gap: 4px;
-        padding: 8px;
+        gap: 6px;
+        padding: 8px 10px;
+        justify-content: center;
     }
-    #pdfViewerModal .modal-footer .btn {
-        font-size: 0.8rem;
-        padding: 6px 10px;
+    #pdfViewerModal .modal-footer .btn,
+    #pdfViewerModal .modal-footer a.btn {
+        font-size: 0.78rem;
+        padding: 5px 10px;
+        flex: 0 0 auto;
     }
 }
 #fileImageContainer {
@@ -854,24 +873,62 @@
     -webkit-overflow-scrolling: touch;
     text-align: center;
     background: #1a1a1a;
+    padding: 8px;
 }
 #fileImageContainer img {
     max-width: 100%;
+    max-height: 100%;
     height: auto;
     object-fit: contain;
+    border-radius: 4px;
+}
+/* Mobile PDF fallback container */
+#fileMobilePdfFallback {
+    display: none;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 2rem;
+    background: #1a1a1a;
+    text-align: center;
+}
+/* View button on card — ensure it stays usable on small screens */
+.file-quotation-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(13,148,136,0.08);
+    border: 1px solid rgba(13,148,136,0.2);
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+.file-quotation-bar .flex-grow-1 {
+    min-width: 0;
+}
+.file-quotation-bar .flex-grow-1 div:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.file-quotation-bar .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
 }
 </style>
 <div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered modal-dialog-scrollable">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <div class="d-flex align-items-center gap-2">
-                    <i class="bx bxs-file fs-5" id="fileViewerIcon" style="color:#ef4444;"></i>
+                    <i class="bx bxs-file-pdf fs-5" id="fileViewerIcon" style="color:#ef4444;"></i>
                     <h5 class="modal-title mb-0" id="pdfViewerModalTitle">Quotation</h5>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePdfViewer()"></button>
             </div>
-            <div class="modal-body p-0" style="position:relative; flex:1; overflow:hidden;">
+            <div class="modal-body p-0">
                 <div id="pdfViewerLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:rgba(0,0,0,0.3);">
                     <div class="text-center text-white">
                         <div class="spinner-border mb-2" role="status"></div>
@@ -882,13 +939,15 @@
                     <div class="alert alert-danger mb-0" id="pdfViewerErrorMsg"></div>
                 </div>
                 <!-- PDF iframe -->
-                <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
+                <div id="pdfIframeContainer" style="width:100%;height:100%;">
                     <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
                 </div>
                 <!-- Image viewer (shown instead of iframe for image files) -->
                 <div id="fileImageContainer">
                     <img id="fileImageViewer" src="" alt="Quotation Image" />
                 </div>
+                <!-- Mobile PDF fallback (separate from image container to avoid innerHTML conflicts) -->
+                <div id="fileMobilePdfFallback"></div>
             </div>
             <div class="modal-footer d-print-none">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closePdfViewer()">Close</button>
@@ -2183,14 +2242,21 @@ function _resetViewerUI() {
     const imgContainer = document.getElementById('fileImageContainer');
     const imgEl = document.getElementById('fileImageViewer');
     const iframeContainer = document.getElementById('pdfIframeContainer');
+    const mobileFallback = document.getElementById('fileMobilePdfFallback');
     const openTab = document.getElementById('fileOpenNewTab');
     const printBtn = document.getElementById('pdfPrintBtn');
+    const icon = document.getElementById('fileViewerIcon');
+    const title = document.getElementById('pdfViewerModalTitle');
     if (iframe) iframe.src = '';
     if (imgEl) imgEl.src = '';
     if (imgContainer) imgContainer.style.display = 'none';
+    if (mobileFallback) { mobileFallback.style.display = 'none'; mobileFallback.innerHTML = ''; }
     if (iframeContainer) iframeContainer.style.display = 'block';
     if (openTab) openTab.style.display = 'none';
     if (printBtn) printBtn.style.display = '';
+    // Reset icon to default PDF icon
+    if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
+    if (title) title.textContent = 'Quotation';
     _currentFileIsImage = false;
     _currentFileUrl = null;
     _currentFileName = 'quotation';
@@ -2206,12 +2272,14 @@ function _showImage(blobUrl, filename) {
     const iframeContainer = document.getElementById('pdfIframeContainer');
     const imgContainer = document.getElementById('fileImageContainer');
     const imgEl = document.getElementById('fileImageViewer');
+    const mobileFallback = document.getElementById('fileMobilePdfFallback');
     const icon = document.getElementById('fileViewerIcon');
     const title = document.getElementById('pdfViewerModalTitle');
     const printBtn = document.getElementById('pdfPrintBtn');
     const openTab = document.getElementById('fileOpenNewTab');
 
     iframeContainer.style.display = 'none';
+    if (mobileFallback) mobileFallback.style.display = 'none';
     imgContainer.style.display = 'block';
     imgEl.src = blobUrl;
     if (icon) { icon.className = 'bx bxs-image fs-5'; icon.style.color = '#3b82f6'; }
@@ -2227,37 +2295,34 @@ function _showImage(blobUrl, filename) {
 function _showPdf(blobUrl, filename) {
     const iframeContainer = document.getElementById('pdfIframeContainer');
     const imgContainer = document.getElementById('fileImageContainer');
+    const mobileFallback = document.getElementById('fileMobilePdfFallback');
     const iframe = document.getElementById('pdfViewerIframe');
     const icon = document.getElementById('fileViewerIcon');
     const title = document.getElementById('pdfViewerModalTitle');
     const openTab = document.getElementById('fileOpenNewTab');
 
     imgContainer.style.display = 'none';
-    iframeContainer.style.display = 'block';
     if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
     if (title) title.textContent = filename || 'PDF Quotation';
 
-    // On mobile, iframes can't render PDFs — show a download/open prompt instead
+    // On mobile, iframes can't render PDFs — show open/download buttons instead
     if (_isMobile) {
         iframeContainer.style.display = 'none';
-        const imgCont = document.getElementById('fileImageContainer');
-        imgCont.style.display = 'flex';
-        imgCont.style.alignItems = 'center';
-        imgCont.style.justifyContent = 'center';
-        imgCont.style.flexDirection = 'column';
-        imgCont.style.padding = '2rem';
-        imgCont.innerHTML = `
+        mobileFallback.style.display = 'flex';
+        mobileFallback.innerHTML = `
             <div style="text-align:center;color:#fff;">
-                <i class="bx bxs-file-pdf" style="font-size:4rem;color:#ef4444;margin-bottom:1rem;"></i>
+                <i class="bx bxs-file-pdf" style="font-size:4rem;color:#ef4444;margin-bottom:1rem;display:inline-block;line-height:1;"></i>
                 <p style="margin-bottom:1rem;font-size:1rem;">PDF files open best in your device's PDF viewer.</p>
-                <a href="${blobUrl}" target="_blank" rel="noopener" class="btn btn-primary mb-2" style="display:block;">
+                <a href="${blobUrl}" target="_blank" rel="noopener" class="btn btn-primary mb-2 d-block">
                     <i class="bx bx-link-external"></i> Open PDF
                 </a>
-                <a href="${blobUrl}" download="${filename || 'quotation.pdf'}" class="btn btn-outline-light" style="display:block;">
+                <a href="${blobUrl}" download="${filename || 'quotation.pdf'}" class="btn btn-outline-light d-block">
                     <i class="bx bx-download"></i> Download PDF
                 </a>
             </div>`;
     } else {
+        iframeContainer.style.display = 'block';
+        if (mobileFallback) mobileFallback.style.display = 'none';
         iframe.src = blobUrl;
     }
 
