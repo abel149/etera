@@ -21,6 +21,8 @@
 
     if (str_contains($posterName, 'africa insurance') || str_contains($posterName, 'africa')) {
         $template = 'africa-insurance';
+    } elseif (str_contains($posterName, 'nyala insurance') || str_contains($posterName, 'nyala')) {
+        $template = 'nyala-insurance';
     }
 
     $viewName = "components.insurance-letterheads.{$template}.{$section}";
