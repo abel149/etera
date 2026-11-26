@@ -128,7 +128,7 @@ class ProformaApplicationController extends Controller
 
                     if ($isEncrypted) {
                         $encryptedRules = [];
-                        if (!$hasPdf) {
+                        if (!$hasPdf && !$isDualService) {
                             $encryptedRules['encrypted_total'] = 'required|array';
                         }
                         if ($isDualService) {
@@ -155,7 +155,9 @@ class ProformaApplicationController extends Controller
                             ->filter(fn($v) => $v !== null && floatval($v) > 0)
                             ->isNotEmpty();
 
-                        if (!$hasAtLeastOnePrice && !$hasPdf) {
+                        // For dual-service, garage estimate is required (validated above);
+                        // spare part prices are optional. For non-dual, require at least one price.
+                        if (!$isDualService && !$hasAtLeastOnePrice && !$hasPdf) {
                             return redirect()->back()
                                 ->withErrors(['total' => 'Please enter a price for at least one part. Leave fields blank only for parts you do not carry.'])
                                 ->withInput();

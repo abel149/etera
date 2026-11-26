@@ -1666,15 +1666,29 @@
 
                     // ── Frontend validation ──────────────────────────────────
                     if (isShopRole) {
-                        if (!hasPdfData) {
-                            const priceInputs = form.querySelectorAll('.unit-price-input');
-                            const hasAtLeastOne = Array.from(priceInputs).some(
-                                inp => !inp.disabled && inp.value.trim() !== '' && parseFloat(inp.value) > 0
-                            );
-                            if (!hasAtLeastOne) {
+                        const priceInputs = form.querySelectorAll('.unit-price-input');
+                        const hasAtLeastOne = Array.from(priceInputs).some(
+                            inp => !inp.disabled && inp.value.trim() !== '' && parseFloat(inp.value) > 0
+                        );
+
+                        if (isDualService) {
+                            const garageInput = form.querySelector('input[name="garage_amount"]');
+                            const garageAmount = parseFloat(garageInput?.value || 0);
+
+                            // Dual-service: garage service estimate is always required
+                            if (garageAmount < 1) {
+                                alert('Please enter a valid garage service estimate (minimum 1 ETB).');
+                                if (garageInput) garageInput.focus();
+                                return;
+                            }
+                        } else {
+                            if (!hasPdfData && !hasAtLeastOne) {
                                 alert('Please enter a price for at least one part.\nLeave fields blank only for parts you do not carry.');
                                 return;
                             }
+                        }
+
+                        if (!hasPdfData && hasAtLeastOne) {
                             for (const inp of priceInputs) {
                                 if (inp.disabled) continue; // skip locked parts (already priced, stored as 0)
                                 const val = inp.value.trim();
@@ -1684,15 +1698,6 @@
                                     return;
                                 }
                                 inp.setCustomValidity('');
-                            }
-                        }
-                        if (isDualService) {
-                            const garageInput = form.querySelector('input[name="garage_amount"]');
-                            const garageAmount = parseFloat(garageInput?.value || 0);
-                            if (garageAmount < 1) {
-                                alert('Please enter a valid garage service estimate (minimum 1 ETB).');
-                                if (garageInput) garageInput.focus();
-                                return;
                             }
                         }
                     } else {
