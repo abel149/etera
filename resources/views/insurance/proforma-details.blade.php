@@ -369,10 +369,14 @@
                                 </p>
                             </div>
 
-                            <div class="d-flex align-items-center gap-2 py-2 px-3" style="background:rgba(13,148,136,0.08);border:1px solid rgba(13,148,136,0.2);border-radius:8px;">
-                                <i class="bx bxs-file-pdf fs-4" style="color:#ef4444;"></i>
+                            @php
+                                $pdfExt = strtolower(pathinfo($application->pdf->original_filename ?? '', PATHINFO_EXTENSION));
+                                $isImage = in_array($pdfExt, ['jpg','jpeg','png','gif','webp','bmp']);
+                            @endphp
+                            <div class="file-quotation-bar">
+                                <i class="bx {{ $isImage ? 'bxs-image' : 'bxs-file-pdf' }}" style="font-size:1.5rem;color:{{ $isImage ? '#3b82f6' : '#ef4444' }};flex-shrink:0;line-height:1;"></i>
                                 <div class="flex-grow-1">
-                                    <div style="font-weight:600;font-size:0.88rem;">PDF Quotation</div>
+                                    <div style="font-weight:600;font-size:0.88rem;">{{ $isImage ? 'Image' : 'PDF' }} Quotation</div>
                                     <div style="font-size:0.78rem;color:#aaa;">{{ $application->pdf->original_filename }}</div>
                                 </div>
                                 <button type="button" class="btn btn-sm btn-outline-primary"
@@ -382,7 +386,7 @@
                                         data-stamp="{{ $application->applicationBy->stamp_image ? asset('storage/' . $application->applicationBy->stamp_image) : asset('assets/images/stamp.png') }}"
                                         data-encrypted-url="{{ route('application.pdf.encrypted', $application->id) }}"
                                         data-serve-url="{{ route('application.pdf.serve', $application->id) }}">
-                                    <i class="bx bx-show"></i> View PDF
+                                    <i class="bx bx-show"></i> View
                                 </button>
                             </div>
                             @if($application->notes)
@@ -811,36 +815,145 @@
     </div>
 </div>
 
-<!-- PDF Viewer Modal -->
+<!-- File Viewer Modal (PDF + Image) -->
+<style>
+#pdfViewerModal .modal-dialog {
+    max-width: 95vw;
+    width: 95vw;
+    margin: 1rem auto;
+}
+#pdfViewerModal .modal-content {
+    height: 90vh;
+    max-height: calc(100vh - 2rem);
+    display: flex;
+    flex-direction: column;
+}
+#pdfViewerModal .modal-body {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: hidden;
+    position: relative;
+}
+@media (max-width: 768px) {
+    #pdfViewerModal .modal-dialog {
+        max-width: 100%;
+        width: 100%;
+        margin: 0;
+        height: 100%;
+    }
+    #pdfViewerModal .modal-content {
+        height: 100vh;
+        max-height: 100vh;
+        border-radius: 0;
+    }
+    #pdfViewerModal .modal-header {
+        padding: 10px 12px;
+    }
+    #pdfViewerModal .modal-header .modal-title {
+        font-size: 0.95rem;
+    }
+    #pdfViewerModal .modal-footer {
+        flex-wrap: wrap;
+        gap: 6px;
+        padding: 8px 10px;
+        justify-content: center;
+    }
+    #pdfViewerModal .modal-footer .btn,
+    #pdfViewerModal .modal-footer a.btn {
+        font-size: 0.78rem;
+        padding: 5px 10px;
+        flex: 0 0 auto;
+    }
+}
+#fileImageContainer {
+    display: none;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    text-align: center;
+    background: #1a1a1a;
+    padding: 8px;
+}
+#fileImageContainer img {
+    max-width: 100%;
+    max-height: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 4px;
+}
+/* Mobile PDF fallback container */
+#fileMobilePdfFallback {
+    display: none;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    padding: 2rem;
+    background: #1a1a1a;
+    text-align: center;
+}
+/* View button on card — ensure it stays usable on small screens */
+.file-quotation-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: rgba(13,148,136,0.08);
+    border: 1px solid rgba(13,148,136,0.2);
+    border-radius: 8px;
+    flex-wrap: wrap;
+}
+.file-quotation-bar .flex-grow-1 {
+    min-width: 0;
+}
+.file-quotation-bar .flex-grow-1 div:last-child {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.file-quotation-bar .btn {
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+</style>
 <div class="modal fade" id="pdfViewerModal" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog modal-xl modal-dialog-centered modal-dialog-scrollable">
-        <div class="modal-content" style="height:90vh;">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
             <div class="modal-header">
                 <div class="d-flex align-items-center gap-2">
-                    <i class="bx bxs-file-pdf fs-5" style="color:#ef4444;"></i>
-                    <h5 class="modal-title mb-0" id="pdfViewerModalTitle">PDF Quotation</h5>
+                    <i class="bx bxs-file-pdf fs-5" id="fileViewerIcon" style="color:#ef4444;"></i>
+                    <h5 class="modal-title mb-0" id="pdfViewerModalTitle">Quotation</h5>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close" onclick="closePdfViewer()"></button>
             </div>
-            <div class="modal-body p-0" style="position:relative; flex:1; overflow:hidden;">
+            <div class="modal-body p-0">
                 <div id="pdfViewerLoading" style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10;background:rgba(0,0,0,0.3);">
                     <div class="text-center text-white">
                         <div class="spinner-border mb-2" role="status"></div>
-                        <div id="pdfViewerLoadingMsg">Loading PDF…</div>
+                        <div id="pdfViewerLoadingMsg">Loading…</div>
                     </div>
                 </div>
-                <div id="pdfViewerError" style="display:none;position:absolute;inset:0;display:none;align-items:center;justify-content:center;padding:20px;">
+                <div id="pdfViewerError" style="display:none;position:absolute;inset:0;align-items:center;justify-content:center;padding:20px;z-index:11;">
                     <div class="alert alert-danger mb-0" id="pdfViewerErrorMsg"></div>
                 </div>
-                <!-- PDF iframe (no stamp overlaid — stamp lives on the cover card) -->
-                <div id="pdfIframeContainer" style="position:relative;width:100%;height:100%;">
+                <!-- PDF iframe -->
+                <div id="pdfIframeContainer" style="width:100%;height:100%;">
                     <iframe id="pdfViewerIframe" src="" style="width:100%;height:100%;border:none;" title="PDF Quotation"></iframe>
                 </div>
+                <!-- Image viewer (shown instead of iframe for image files) -->
+                <div id="fileImageContainer">
+                    <img id="fileImageViewer" src="" alt="Quotation Image" />
+                </div>
+                <!-- Mobile PDF fallback (separate from image container to avoid innerHTML conflicts) -->
+                <div id="fileMobilePdfFallback"></div>
             </div>
             <div class="modal-footer d-print-none">
                 <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal" onclick="closePdfViewer()">Close</button>
+                <a href="#" id="fileOpenNewTab" class="btn btn-outline-info" target="_blank" style="display:none;"><i class="bx bx-link-external"></i> Open</a>
                 <button type="button" id="pdfDownloadBtn" class="btn btn-outline-success" onclick="downloadPdfViewer()"><i class="bx bx-download"></i> Download</button>
-                <button type="button" class="btn btn-outline-primary" onclick="printPdfViewer()"><i class="bx bx-printer"></i> Print</button>
+                <button type="button" id="pdfPrintBtn" class="btn btn-outline-primary" onclick="printPdfViewer()"><i class="bx bx-printer"></i> Print</button>
             </div>
         </div>
     </div>
@@ -2104,151 +2217,245 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-// ── PDF Viewer ────────────────────────────────────────────────────────────────
+// ── File Viewer (PDF + Image) ─────────────────────────────────────────────────
 let _pdfBlobUrl = null;
 let _mergedPdfUrl = null;
 let _cachedPrivateKey = null;
+let _currentFileUrl = null;
+let _currentFileName = 'quotation';
+let _currentFileIsImage = false;
+
+const _imageExtensions = ['jpg', 'jpeg', 'png', 'gif', 'webp', 'bmp'];
+const _isMobile = /Android|iPhone|iPad|iPod|webOS|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+
+function _getFileExtension(filename) {
+    return (filename || '').split('.').pop().toLowerCase();
+}
+
+function _isImageFile(filename, contentType) {
+    if (contentType && contentType.startsWith('image/')) return true;
+    return _imageExtensions.includes(_getFileExtension(filename));
+}
+
+function _resetViewerUI() {
+    const iframe = document.getElementById('pdfViewerIframe');
+    const imgContainer = document.getElementById('fileImageContainer');
+    const imgEl = document.getElementById('fileImageViewer');
+    const iframeContainer = document.getElementById('pdfIframeContainer');
+    const mobileFallback = document.getElementById('fileMobilePdfFallback');
+    const openTab = document.getElementById('fileOpenNewTab');
+    const printBtn = document.getElementById('pdfPrintBtn');
+    const icon = document.getElementById('fileViewerIcon');
+    const title = document.getElementById('pdfViewerModalTitle');
+    if (iframe) iframe.src = '';
+    if (imgEl) imgEl.src = '';
+    if (imgContainer) imgContainer.style.display = 'none';
+    if (mobileFallback) { mobileFallback.style.display = 'none'; mobileFallback.innerHTML = ''; }
+    if (iframeContainer) iframeContainer.style.display = 'block';
+    if (openTab) openTab.style.display = 'none';
+    if (printBtn) printBtn.style.display = '';
+    // Reset icon to default PDF icon
+    if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
+    if (title) title.textContent = 'Quotation';
+    _currentFileIsImage = false;
+    _currentFileUrl = null;
+    _currentFileName = 'quotation';
+}
 
 function closePdfViewer() {
-    const iframe = document.getElementById('pdfViewerIframe');
-    if (iframe) iframe.src = '';
+    _resetViewerUI();
     if (_pdfBlobUrl) { URL.revokeObjectURL(_pdfBlobUrl); _pdfBlobUrl = null; }
     if (_mergedPdfUrl) { URL.revokeObjectURL(_mergedPdfUrl); _mergedPdfUrl = null; }
 }
 
-async function buildPdfOnlyCover(card) {
-const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const formatETB = (n) => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
+function _showImage(blobUrl, filename) {
+    const iframeContainer = document.getElementById('pdfIframeContainer');
+    const imgContainer = document.getElementById('fileImageContainer');
+    const imgEl = document.getElementById('fileImageViewer');
+    const mobileFallback = document.getElementById('fileMobilePdfFallback');
+    const icon = document.getElementById('fileViewerIcon');
+    const title = document.getElementById('pdfViewerModalTitle');
+    const printBtn = document.getElementById('pdfPrintBtn');
+    const openTab = document.getElementById('fileOpenNewTab');
 
-const shopName = card.dataset.shopName || 'N/A';
-const storeId = card.dataset.storeId || 'N/A';
-const tin = card.dataset.tinNumber || 'N/A';
-const location = card.dataset.location || 'N/A';
-const phone = card.dataset.phone || 'N/A';
-const stamp = card.dataset.stampImage || '';
+    iframeContainer.style.display = 'none';
+    if (mobileFallback) mobileFallback.style.display = 'none';
+    imgContainer.style.display = 'block';
+    imgEl.src = blobUrl;
+    if (icon) { icon.className = 'bx bxs-image fs-5'; icon.style.color = '#3b82f6'; }
+    if (title) title.textContent = filename || 'Image Quotation';
+    if (printBtn) printBtn.style.display = 'none';
+    if (openTab) { openTab.href = blobUrl; openTab.style.display = ''; }
 
-async function loadStampAsDataUrl(url) {
-  return new Promise((resolve) => {
-    if (!url) return resolve(url);
-    const img = new Image();
-    img.crossOrigin = 'anonymous';
-    img.onload = () => {
-      const c = document.createElement('canvas');
-      c.width = img.naturalWidth || 200;
-      c.height = img.naturalHeight || 200;
-      const ctx = c.getContext('2d');
-      ctx.drawImage(img, 0, 0);
-      try { resolve(c.toDataURL('image/png')); } catch(e) { resolve(url); }
-    };
-    img.onerror = () => resolve(url);
-    img.src = url;
-  });
+    _currentFileIsImage = true;
+    _currentFileUrl = blobUrl;
+    _currentFileName = filename || 'quotation-image';
 }
 
-const stampDataUrl = await loadStampAsDataUrl(stamp);
+function _showPdf(blobUrl, filename) {
+    const iframeContainer = document.getElementById('pdfIframeContainer');
+    const imgContainer = document.getElementById('fileImageContainer');
+    const mobileFallback = document.getElementById('fileMobilePdfFallback');
+    const iframe = document.getElementById('pdfViewerIframe');
+    const icon = document.getElementById('fileViewerIcon');
+    const title = document.getElementById('pdfViewerModalTitle');
+    const openTab = document.getElementById('fileOpenNewTab');
 
-const customerName = card.dataset.customerName || 'N/A';
-const customerPhone = card.dataset.customerPhone || 'N/A';
-const brand = card.dataset.brand || 'N/A';
-const year = card.dataset.year || 'N/A';
-const plate = card.dataset.plate || 'N/A';
-const isDualService = card.dataset.isShopGarage === '1';
-const garageAmount = parseFloat(card.dataset.amount) || 0;
-const rawNotes = card.dataset.notes || 'null';
-let notes = '';
-try { notes = JSON.parse(rawNotes) || ''; } catch(e) { notes = ''; }
+    imgContainer.style.display = 'none';
+    if (icon) { icon.className = 'bx bxs-file-pdf fs-5'; icon.style.color = '#ef4444'; }
+    if (title) title.textContent = filename || 'PDF Quotation';
 
-const table = card.querySelector('.invoice table');
-const rows = table ? table.querySelectorAll('tbody tr') : [];
-let partRows = '';
-rows.forEach((tr) => {
-  const cells = tr.querySelectorAll('td');
-  if (cells.length >= 6) {
-    partRows += '<tr>' +
-      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[0].textContent.trim()) + '</td>' +
-      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[1].textContent.trim()) + '</td>' +
-      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[2].textContent.trim()) + '</td>' +
-      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[3].textContent.trim()) + '</td>' +
-      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[4].textContent.trim()) + '</td>' +
-      '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[5].textContent.trim()) + '</td>' +
-      '</tr>';
-  }
-});
+    // On mobile, iframes can't render PDFs — show open/download buttons instead
+    if (_isMobile) {
+        iframeContainer.style.display = 'none';
+        mobileFallback.style.display = 'flex';
+        mobileFallback.innerHTML = `
+            <div style="text-align:center;color:#fff;">
+                <i class="bx bxs-file-pdf" style="font-size:4rem;color:#ef4444;margin-bottom:1rem;display:inline-block;line-height:1;"></i>
+                <p style="margin-bottom:1rem;font-size:1rem;">PDF files open best in your device's PDF viewer.</p>
+                <a href="${blobUrl}" target="_blank" rel="noopener" class="btn btn-primary mb-2 d-block">
+                    <i class="bx bx-link-external"></i> Open PDF
+                </a>
+                <a href="${blobUrl}" download="${filename || 'quotation.pdf'}" class="btn btn-outline-light d-block">
+                    <i class="bx bx-download"></i> Download PDF
+                </a>
+            </div>`;
+    } else {
+        iframeContainer.style.display = 'block';
+        if (mobileFallback) mobileFallback.style.display = 'none';
+        iframe.src = blobUrl;
+    }
 
-const garageBlock = isDualService ? '<div style=\'display:flex;justify-content:flex-end;margin-top:16px;\'>' +
-  '<table style=\'width:320px;border-collapse:collapse;\'><tbody>' +
-  '<tr style=\'background:#e3f2fd;font-weight:bold;border-top:2px solid #1976d2;\'>' +
-  '<td style=\'border:1px solid #ddd;padding:8px;\'><strong>Garage Repair Service (VAT Included):</strong></td>' +
-  '<td style=\'border:1px solid #ddd;padding:8px;text-align:right;\'>' + formatETB(garageAmount * 1.15) + '</td>' +
-  '</tr></tbody></table></div>' : '';
+    if (openTab) { openTab.href = blobUrl; openTab.style.display = ''; }
+    _currentFileUrl = blobUrl;
+    _currentFileName = filename || 'quotation.pdf';
+}
 
-const notesBlock = notes ? '<div style=\'margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;\'>' +
-  '<p style=\'font-size:12px;font-weight:700;color:#0f766e;margin-bottom:4px;\'>Applicant Notes</p>' +
-  '<p class=\'pdf-cover-notes\' style=\'font-size:13px;margin:0;white-space:pre-wrap;color:#1f2937;\'></p></div>' : '';
+async function buildPdfOnlyCover(card) {
+    const escapeHtml = (s) => String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    const formatETB = (n) => n.toLocaleString(undefined, {minimumFractionDigits:2, maximumFractionDigits:2}) + ' ETB';
 
-let coverHtml = '<div class=\'pdf-only-cover\' style=\'width:794px;min-height:1123px;padding:48px;background:#fff;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#333;position:relative;\'>' +
-  '<header style=\'border-bottom:2px solid #1976d2;padding-bottom:16px;margin-bottom:24px;\'>' +
-  '<div style=\'display:flex;justify-content:space-between;align-items:center;\'>' +
-  '<h2 style=\'color:#1976d2;margin:0;font-size:28px;\'>Proforma Invoice</h2>' +
-  '<h4 style=\'margin:0;font-size:18px;\'>Shop: ' + escapeHtml(shopName) + '</h4>' +
-  '</div></header>' +
-  '<main>' +
-  '<div style=\'display:flex;justify-content:space-between;margin-bottom:24px;font-size:14px;line-height:1.6;\'>' +
-  '<div>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Date:</strong> ' + escapeHtml(card.dataset.applicationDate || new Date().toLocaleDateString()) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Store ID:</strong> ' + escapeHtml(storeId) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Shop Name:</strong> ' + escapeHtml(shopName) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Tin #:</strong> ' + escapeHtml(tin) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Location:</strong> ' + escapeHtml(location) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Phone:</strong> ' + escapeHtml(phone) + '</p>' +
-  '</div>' +
-  '<div style=\'text-align:right;\'>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Customer:</strong> ' + escapeHtml(customerName) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Customer Phone:</strong> ' + escapeHtml(customerPhone) + '</p>' +
-  '<p style=\'margin:0 0 4px 0;\'><strong>Car:</strong> ' + escapeHtml(year) + ' ' + escapeHtml(brand) + ' [' + escapeHtml(plate) + ']</p>' +
-  '</div></div>' +
-  '<table style=\'width:100%;border-collapse:collapse;font-size:13px;\'>' +
-  '<thead><tr style=\'background:#f5f5f5;\'>' +
-  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>No</th>' +
-  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Part Name & Number</th>' +
-  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Condition</th>' +
-  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Grade</th>' +
-  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Country</th>' +
-  '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Qty</th>' +
-  '</tr></thead><tbody>' + partRows + '</tbody></table>' +
-  garageBlock +
-  '<p style=\'color:#d32f2f;font-size:12px;margin-top:24px;\'><strong>NOTE:</strong> Part prices are contained in the attached PDF quotation.</p>' +
-  notesBlock +
-  '<div style=\'position:absolute;top:3rem;left:5rem;opacity:0.3;z-index:5;\'>' +
-  '<img src=\'' + stampDataUrl + '\' style=\'width:200px;height:200px;border-radius:50%;object-fit:cover;border:2px solid #ccc;\' />' +
-  '</div></main></div>';
+    const shopName = card.dataset.shopName || 'N/A';
+    const storeId = card.dataset.storeId || 'N/A';
+    const tin = card.dataset.tinNumber || 'N/A';
+    const location = card.dataset.location || 'N/A';
+    const phone = card.dataset.phone || 'N/A';
+    const stamp = card.dataset.stampImage || '';
 
-const container = document.createElement('div');
-container.style.position = 'fixed';
-container.style.left = '-9999px';
-container.style.top = '0';
-container.innerHTML = coverHtml;
-document.body.appendChild(container);
+    async function loadStampAsDataUrl(url) {
+        return new Promise((resolve) => {
+            if (!url) return resolve(url);
+            const img = new Image();
+            img.crossOrigin = 'anonymous';
+            img.onload = () => {
+                const c = document.createElement('canvas');
+                c.width = img.naturalWidth || 200;
+                c.height = img.naturalHeight || 200;
+                c.getContext('2d').drawImage(img, 0, 0);
+                try { resolve(c.toDataURL('image/png')); } catch(e) { resolve(url); }
+            };
+            img.onerror = () => resolve(url);
+            img.src = url;
+        });
+    }
 
-const notesEl = container.querySelector('.pdf-cover-notes');
-if (notesEl && notes) notesEl.textContent = notes;
+    const stampDataUrl = await loadStampAsDataUrl(stamp);
+    const customerName = card.dataset.customerName || 'N/A';
+    const customerPhone = card.dataset.customerPhone || 'N/A';
+    const brand = card.dataset.brand || 'N/A';
+    const year = card.dataset.year || 'N/A';
+    const plate = card.dataset.plate || 'N/A';
+    const isDualService = card.dataset.isShopGarage === '1';
+    const garageAmount = parseFloat(card.dataset.amount) || 0;
+    let notes = '';
+    try { notes = JSON.parse(card.dataset.notes || 'null') || ''; } catch(e) { notes = ''; }
 
-const target = container.querySelector('.pdf-only-cover');
-const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
-document.body.removeChild(container);
-return canvas.toDataURL('image/jpeg', 0.9);
+    const table = card.querySelector('.invoice table');
+    const rows = table ? table.querySelectorAll('tbody tr') : [];
+    let partRows = '';
+    rows.forEach((tr) => {
+        const cells = tr.querySelectorAll('td');
+        if (cells.length >= 6) {
+            partRows += '<tr>' +
+                '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[0].textContent.trim()) + '</td>' +
+                '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[1].textContent.trim()) + '</td>' +
+                '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[2].textContent.trim()) + '</td>' +
+                '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[3].textContent.trim()) + '</td>' +
+                '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[4].textContent.trim()) + '</td>' +
+                '<td style=\'border:1px solid #ddd;padding:8px;\'>' + escapeHtml(cells[5].textContent.trim()) + '</td>' +
+                '</tr>';
+        }
+    });
+
+    const garageBlock = isDualService ? '<div style=\'display:flex;justify-content:flex-end;margin-top:16px;\'>' +
+        '<table style=\'width:320px;border-collapse:collapse;\'><tbody>' +
+        '<tr style=\'background:#e3f2fd;font-weight:bold;border-top:2px solid #1976d2;\'>' +
+        '<td style=\'border:1px solid #ddd;padding:8px;\'><strong>Garage Repair Service (VAT Included):</strong></td>' +
+        '<td style=\'border:1px solid #ddd;padding:8px;text-align:right;\'>' + formatETB(garageAmount * 1.15) + '</td>' +
+        '</tr></tbody></table></div>' : '';
+
+    const notesBlock = notes ? '<div style=\'margin-top:16px;background:#f0fdf9;border-left:4px solid #14b8a6;border-radius:0 6px 6px 0;padding:10px 16px;\'>' +
+        '<p style=\'font-size:12px;font-weight:700;color:#0f766e;margin-bottom:4px;\'>Applicant Notes</p>' +
+        '<p class=\'pdf-cover-notes\' style=\'font-size:13px;margin:0;white-space:pre-wrap;color:#1f2937;\'></p></div>' : '';
+
+    let coverHtml = '<div class=\'pdf-only-cover\' style=\'width:794px;min-height:1123px;padding:48px;background:#fff;box-sizing:border-box;font-family:Arial,Helvetica,sans-serif;color:#333;position:relative;\'>' +
+        '<header style=\'border-bottom:2px solid #1976d2;padding-bottom:16px;margin-bottom:24px;\'>' +
+        '<div style=\'display:flex;justify-content:space-between;align-items:center;\'>' +
+        '<h2 style=\'color:#1976d2;margin:0;font-size:28px;\'>Proforma Invoice</h2>' +
+        '<h4 style=\'margin:0;font-size:18px;\'>Shop: ' + escapeHtml(shopName) + '</h4>' +
+        '</div></header>' +
+        '<main>' +
+        '<div style=\'display:flex;justify-content:space-between;margin-bottom:24px;font-size:14px;line-height:1.6;\'>' +
+        '<div>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Date:</strong> ' + escapeHtml(card.dataset.applicationDate || new Date().toLocaleDateString()) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Store ID:</strong> ' + escapeHtml(storeId) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Shop Name:</strong> ' + escapeHtml(shopName) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Tin #:</strong> ' + escapeHtml(tin) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Location:</strong> ' + escapeHtml(location) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Phone:</strong> ' + escapeHtml(phone) + '</p>' +
+        '</div>' +
+        '<div style=\'text-align:right;\'>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Customer:</strong> ' + escapeHtml(customerName) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Customer Phone:</strong> ' + escapeHtml(customerPhone) + '</p>' +
+        '<p style=\'margin:0 0 4px 0;\'><strong>Car:</strong> ' + escapeHtml(year) + ' ' + escapeHtml(brand) + ' [' + escapeHtml(plate) + ']</p>' +
+        '</div></div>' +
+        '<table style=\'width:100%;border-collapse:collapse;font-size:13px;\'>' +
+        '<thead><tr style=\'background:#f5f5f5;\'>' +
+        '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>No</th>' +
+        '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Part Name & Number</th>' +
+        '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Condition</th>' +
+        '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Grade</th>' +
+        '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Country</th>' +
+        '<th style=\'border:1px solid #ddd;padding:8px;text-align:left;\'>Qty</th>' +
+        '</tr></thead><tbody>' + partRows + '</tbody></table>' +
+        garageBlock +
+        '<p style=\'color:#d32f2f;font-size:12px;margin-top:24px;\'><strong>NOTE:</strong> Part prices are contained in the attached PDF quotation.</p>' +
+        notesBlock +
+        '<div style=\'position:absolute;top:3rem;left:5rem;opacity:0.3;z-index:5;\'>' +
+        '<img src=\'' + stampDataUrl + '\' style=\'width:200px;height:200px;border-radius:50%;object-fit:cover;border:2px solid #ccc;\' />' +
+        '</div></main></div>';
+
+    const container = document.createElement('div');
+    container.style.cssText = 'position:fixed;left:-9999px;top:0;';
+    container.innerHTML = coverHtml;
+    document.body.appendChild(container);
+
+    const notesEl = container.querySelector('.pdf-cover-notes');
+    if (notesEl && notes) notesEl.textContent = notes;
+
+    const target = container.querySelector('.pdf-only-cover');
+    const canvas = await html2canvas(target, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false });
+    document.body.removeChild(container);
+    return canvas.toDataURL('image/jpeg', 0.9);
 }
 
 async function buildCoverMergedPdfUrl(card, originalPdfBytes, privateKey) {
     const { PDFDocument } = PDFLib;
 
-    // If we have the private key, decrypt any encrypted amounts on the card first
-    // so the cover page shows the real garage price.
     if (privateKey && typeof applyDecryption === 'function') {
         try { await applyDecryption(privateKey); } catch(e) { /* already decrypted or failed */ }
     }
 
-    // Build a full-page invoice-style cover from the card data
     const dataUrl = await buildPdfOnlyCover(card);
     const b64 = dataUrl.split(',')[1];
     const coverBytes = Uint8Array.from(atob(b64), c => c.charCodeAt(0));
@@ -2272,9 +2479,16 @@ async function buildCoverMergedPdfUrl(card, originalPdfBytes, privateKey) {
 }
 
 async function printPdfViewer() {
+    if (_currentFileIsImage && _currentFileUrl) {
+        const w = window.open('', '_blank');
+        if (w) {
+            w.document.write('<html><body style="margin:0;display:flex;justify-content:center;align-items:center;min-height:100vh;background:#fff;"><img src="' + _currentFileUrl + '" style="max-width:100%;height:auto;" onload="window.print();"></body></html>');
+            w.document.close();
+        }
+        return;
+    }
     const iframe = document.getElementById('pdfViewerIframe');
     if (!iframe || !iframe.src) return;
-    // Print the merged cover + original PDF shown in the viewer.
     try {
         iframe.contentWindow.focus();
         iframe.contentWindow.print();
@@ -2284,11 +2498,11 @@ async function printPdfViewer() {
 }
 
 async function downloadPdfViewer() {
-    const iframe = document.getElementById('pdfViewerIframe');
-    if (!iframe || !iframe.src) return;
-    // Download the merged cover + original PDF shown in the viewer.
+    const url = _currentFileUrl;
+    if (!url) return;
     const a = document.createElement('a');
-    a.href = iframe.src; a.download = 'quotation.pdf';
+    a.href = url;
+    a.download = _currentFileName;
     document.body.appendChild(a); a.click(); document.body.removeChild(a);
 }
 
@@ -2297,6 +2511,7 @@ async function openPdfViewer(btn) {
     const encryptedUrl = btn.dataset.encryptedUrl || '';
     const serveUrl     = btn.dataset.serveUrl || '';
     const card         = btn.closest('.pdf-application-card');
+    const filename     = card ? (card.dataset.pdfFilename || '') : '';
 
     const modal       = new bootstrap.Modal(document.getElementById('pdfViewerModal'));
     const loading     = document.getElementById('pdfViewerLoading');
@@ -2305,20 +2520,20 @@ async function openPdfViewer(btn) {
     const errMsg      = document.getElementById('pdfViewerErrorMsg');
     const iframe      = document.getElementById('pdfViewerIframe');
 
+    _resetViewerUI();
     errBox.style.display = 'none';
     loading.style.display = 'flex';
-    iframe.src = '';
 
     modal.show();
 
     try {
         if (isEncrypted) {
-            loadingMsg.textContent = 'Fetching encrypted PDF…';
+            loadingMsg.textContent = 'Fetching encrypted file…';
             const resp = await fetch(encryptedUrl);
-            if (!resp.ok) throw new Error('Could not fetch PDF data.');
+            if (!resp.ok) throw new Error('Could not fetch file data.');
             const data = await resp.json();
+            const origName = data.original_filename || filename;
 
-            // Helper: decrypt PDF bytes, build cover page, and show merged document
             const decryptAndShow = async (privateKey) => {
                 const unb64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
                 const rawAesKey = await crypto.subtle.decrypt(
@@ -2327,29 +2542,40 @@ async function openPdfViewer(btn) {
                 const aesKey = await crypto.subtle.importKey(
                     'raw', rawAesKey, { name: 'AES-GCM', length: 256 }, false, ['decrypt']
                 );
-                const pdfBytes = await crypto.subtle.decrypt(
+                const fileBytes = await crypto.subtle.decrypt(
                     { name: 'AES-GCM', iv: unb64(data.aes_iv) }, aesKey, unb64(data.encrypted_pdf)
                 );
-                const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-                if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
-                _pdfBlobUrl = URL.createObjectURL(blob);
 
-                loadingMsg.textContent = 'Building cover page…';
-                const mergedUrl = await buildCoverMergedPdfUrl(card, pdfBytes, privateKey);
-                iframe.src = mergedUrl;
-                loading.style.display = 'none';
+                if (_isImageFile(origName)) {
+                    // Decrypted file is an image
+                    const ext = _getFileExtension(origName);
+                    const mimeMap = { jpg:'image/jpeg', jpeg:'image/jpeg', png:'image/png', gif:'image/gif', webp:'image/webp', bmp:'image/bmp' };
+                    const blob = new Blob([fileBytes], { type: mimeMap[ext] || 'image/jpeg' });
+                    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+                    _pdfBlobUrl = URL.createObjectURL(blob);
+                    _showImage(_pdfBlobUrl, origName);
+                    loading.style.display = 'none';
+                } else {
+                    // Decrypted file is a PDF — merge with cover page
+                    const blob = new Blob([fileBytes], { type: 'application/pdf' });
+                    if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+                    _pdfBlobUrl = URL.createObjectURL(blob);
+
+                    loadingMsg.textContent = 'Building cover page…';
+                    const mergedUrl = await buildCoverMergedPdfUrl(card, fileBytes, privateKey);
+                    _showPdf(mergedUrl, origName);
+                    loading.style.display = 'none';
+                }
             };
 
             if (_cachedPrivateKey) {
-                // Prices already decrypted — reuse key without asking for PIN again
-                loadingMsg.textContent = 'Decrypting PDF…';
+                loadingMsg.textContent = 'Decrypting…';
                 await decryptAndShow(_cachedPrivateKey);
             } else {
-                // Show inline PIN prompt
                 loading.style.display = 'flex';
                 loadingMsg.innerHTML = `
                     <div style="background:rgba(0,0,0,0.6);border-radius:10px;padding:20px;max-width:320px;margin:auto;">
-                        <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this PDF:</p>
+                        <p style="margin-bottom:10px;font-size:0.9rem;">Enter your Encryption PIN to decrypt this file:</p>
                         <div class="input-group mb-2">
                             <input type="password" id="pdfDecryptPin" class="form-control" placeholder="Encryption PIN" autocomplete="new-password">
                             <span class="input-group-text" style="cursor:pointer;" onclick="togglePinVisibility('pdfDecryptPin', this)">
@@ -2386,19 +2612,38 @@ async function openPdfViewer(btn) {
                 });
             }
         } else {
-            // Plain PDF — fetch bytes and prepend cover page
-            loadingMsg.textContent = 'Loading PDF…';
+            // Plain (non-encrypted) file — detect image vs PDF
+            loadingMsg.textContent = 'Loading file…';
             const resp = await fetch(serveUrl);
-            if (!resp.ok) throw new Error('Could not fetch PDF.');
-            const pdfBytes = await resp.arrayBuffer();
-            const blob = new Blob([pdfBytes], { type: 'application/pdf' });
-            if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
-            _pdfBlobUrl = URL.createObjectURL(blob);
+            if (!resp.ok) throw new Error('Could not fetch file.');
 
-            loadingMsg.textContent = 'Building cover page…';
-            const mergedUrl = await buildCoverMergedPdfUrl(card, pdfBytes, _cachedPrivateKey);
-            iframe.src = mergedUrl;
-            loading.style.display = 'none';
+            const contentType = resp.headers.get('Content-Type') || '';
+            const fileBytes = await resp.arrayBuffer();
+
+            if (_isImageFile(filename, contentType)) {
+                // It's an image — display directly
+                const blob = new Blob([fileBytes], { type: contentType || 'image/jpeg' });
+                if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+                _pdfBlobUrl = URL.createObjectURL(blob);
+                _showImage(_pdfBlobUrl, filename);
+                loading.style.display = 'none';
+            } else {
+                // It's a PDF — build cover page and merge
+                const blob = new Blob([fileBytes], { type: 'application/pdf' });
+                if (_pdfBlobUrl) URL.revokeObjectURL(_pdfBlobUrl);
+                _pdfBlobUrl = URL.createObjectURL(blob);
+
+                loadingMsg.textContent = 'Building cover page…';
+                try {
+                    const mergedUrl = await buildCoverMergedPdfUrl(card, fileBytes, _cachedPrivateKey);
+                    _showPdf(mergedUrl, filename);
+                } catch (mergeErr) {
+                    // If pdf-lib fails (corrupted PDF, etc.), fall back to showing the raw file
+                    console.warn('Cover merge failed, showing raw file:', mergeErr);
+                    _showPdf(_pdfBlobUrl, filename);
+                }
+                loading.style.display = 'none';
+            }
         }
     } catch(err) {
         loading.style.display = 'none';

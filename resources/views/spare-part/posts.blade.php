@@ -443,7 +443,7 @@ function initializeFilePond() {
         allowImageTransform: true,
         server: {
             process: {
-                url: '/upload-part-image',
+                url: '/garage/upload-part-image',
                 method: 'POST',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken
@@ -470,7 +470,7 @@ function initializeFilePond() {
                 }
             },
             revert: {
-                url: '/delete-part-image',
+                url: '/garage/delete-part-image',
                 method: 'DELETE',
                 headers: {
                     'X-CSRF-TOKEN': csrfToken
