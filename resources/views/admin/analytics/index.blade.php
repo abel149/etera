@@ -200,6 +200,7 @@
                                         <tr>
                                             <th>Date</th>
                                             <th>Invoice ID</th>
+                                            <th>SKU</th>
                                             <th>Subtotal</th>
                                             <th>VAT</th>
                                             <th>Total</th>
@@ -211,6 +212,7 @@
                                             <tr>
                                                 <td>{{ optional($inv->created_at)->format('Y-m-d') ?? '-' }}</td>
                                                 <td>{{ $inv->id ?? '-' }}</td>
+                                                <td>{{ $inv->sku ?? '-' }}</td>
                                                 <td>{{ number_format($inv->subtotal ?? 0, 2) }} ETB</td>
                                                 <td>{{ number_format($inv->vat_amount ?? 0, 2) }} ETB</td>
                                                 <td>{{ number_format($inv->total_amount ?? 0, 2) }} ETB</td>
