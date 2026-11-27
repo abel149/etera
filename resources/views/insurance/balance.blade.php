@@ -200,6 +200,7 @@ Phone: <span id="uPhone"></span>
 document.addEventListener("DOMContentLoaded", function () {
 
 const username = @json($user->name ?? '');
+const userphone = @json($user->phone_number ?? '');
 const transactions = @json($transactionsArray);
 
 function renderTransactionCards(data){
@@ -240,23 +241,23 @@ View Details
 });
 }
 
-function viewDetails(t){
+window.viewDetails = function(t){
 const net = Math.abs(t.amount)/1.15;
 const vat = net * 0.15;
 const gross = net + vat;
 
 uName.innerText = username;
-uPhone.innerText = t.user_phone || 'N/A';
+uPhone.innerText = userphone || 'N/A';
 netVal.innerText = net.toFixed(2)+' ETB';
 vatVal.innerText = vat.toFixed(2)+' ETB';
 grossVal.innerText = gross.toFixed(2)+' ETB';
 
-new bootstrap.Modal(txModal).show();
+new bootstrap.Modal(document.getElementById('txModal')).show();
 }
 
-function printReceipt(){
+window.printReceipt = function(){
 const w = window.open('','','width=800,height=600');
-w.document.write(`<html><body>${printArea.innerHTML}</body></html>`);
+w.document.write(`<html><body>${document.getElementById('printArea').innerHTML}</body></html>`);
 w.print();
 w.close();
 }
