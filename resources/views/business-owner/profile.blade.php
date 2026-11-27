@@ -43,7 +43,7 @@
 											<h6 class="mb-0">Email</h6>
 										</div>
 										<div class="col-sm-9 text-secondary">
-											<input type="email" class="form-control" name="email" value="{{auth()->user()->email}}" />
+											<input type="email" autocomplete="email" class="form-control" name="email" value="{{auth()->user()->email}}" />
 											@error('email') <span class="text-danger">{{ $message }}</span> @enderror
 										</div>
 									</div>
@@ -52,7 +52,7 @@
 											<h6 class="mb-0">Phone</h6>
 										</div>
 										<div class="col-sm-9 text-secondary">
-											<input type="text" class="form-control" name="phone_number" value="{{auth()->user()->phone_number}}" />
+											<input type="text" autocomplete="tel" class="form-control" name="phone_number" value="{{auth()->user()->phone_number}}" />
 											@error('phone_number') <span class="text-danger">{{ $message }}</span> @enderror
 										</div>
 									</div>

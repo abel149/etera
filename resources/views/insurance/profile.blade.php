@@ -56,7 +56,7 @@
 													<h6 class="mb-0">Email</h6>
 												</div>
 												<div class="col-sm-9 text-secondary">
-													<input type="email" name="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', filter_var(auth()->user()->email, FILTER_VALIDATE_EMAIL) ? auth()->user()->email : '') }}" />
+													<input type="email" name="email" autocomplete="email" class="form-control @error('email') is-invalid @enderror" value="{{ old('email', filter_var(auth()->user()->email, FILTER_VALIDATE_EMAIL) ? auth()->user()->email : '') }}" />
 													@error('email')<div class="invalid-feedback">{{ $message }}</div>@enderror
 												</div>
 											</div>
@@ -66,7 +66,7 @@
 													<h6 class="mb-0">Phone</h6>
 												</div>
 												<div class="col-sm-9 text-secondary">
-													<input type="text" name="phone_number" class="form-control @error('phone_number') is-invalid @enderror" value="{{ old('phone_number', auth()->user()->phone_number) }}" />
+													<input type="text" name="phone_number" autocomplete="tel" class="form-control @error('phone_number') is-invalid @enderror" value="{{ old('phone_number', auth()->user()->phone_number) }}" />
 													@error('phone_number')<div class="invalid-feedback">{{ $message }}</div>@enderror
 												</div>
 											</div>
