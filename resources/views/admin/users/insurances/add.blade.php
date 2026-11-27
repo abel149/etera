@@ -45,8 +45,8 @@
 
                     <!-- Stamp Image -->
                     <div class="col-md-6">
-                        <label for="stamp_image_fp" class="form-label">Stamp Image</label>
-                        <input type="file" name="stamp_image" id="stamp_image_fp" class="filepond-upload" accept="image/*" required>
+                        <label for="stamp_image_fp" class="form-label">Stamp Image <small class="text-muted">(optional)</small></label>
+                        <input type="file" name="stamp_image" id="stamp_image_fp" class="filepond-upload" accept="image/*">
                         <div id="stamp_image_fp_progress" style="display:none;" class="mt-2">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <small class="upload-progress-text text-muted">Loading...</small>

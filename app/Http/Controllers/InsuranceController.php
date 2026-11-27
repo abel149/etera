@@ -49,7 +49,7 @@ return redirect()->to('/admin/insurances');
                 'email' => 'nullable|email|unique:users,email',
                 'phone_number' => 'required|unique:users,phone_number',
                 'password' => 'nullable|min:6', // password can be null
-                'stamp_image' => 'required|file|image|max:10240',
+                'stamp_image' => 'nullable|file|image|max:10240',
                 'insured_cost' => 'nullable|numeric|min:0',
                 'insurance_proforma' => 'nullable|numeric|min:0',
             ]);
@@ -57,8 +57,10 @@ return redirect()->to('/admin/insurances');
             // If password is null, default to 123456
             $password = $request->password ?: '123456';
 
-            // Upload stamp image (use 'public' disk for consistent path format)
-            $stampImagePath = $request->file('stamp_image')->store('stamps', 'public');
+            // Upload stamp image if provided (use 'public' disk for consistent path format)
+            $stampImagePath = $request->hasFile('stamp_image')
+                ? $request->file('stamp_image')->store('stamps', 'public')
+                : null;
 
             $user = User::create([
                 'name' => $request->name,
